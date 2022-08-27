@@ -24,8 +24,12 @@ from .layout import Grid
 
 class Chart(Enum):
     Bar = "bar"
+    Box = "box"
     Colors = "colors"
     Scatter = "scatter"
+    Dendrogram = "dendrogram"
+    Violin = "violin"
+    Line = "line"
 
 
 class Plot:

@@ -31,29 +31,33 @@ class SubLayout:
     mode: str = "blank"  # blank or placeholder
     w_ratios: list = field(default=None)
     h_ratios: list = field(default=None)
-    ax: Any = field(default=None, repr=False)
-    ax_labels: Any = field(default_factory=list)
-
-    def get_canvas_ax(self):
-        pass
-
-    def get_placeholder_ax(self):
-        pass
+    # ax: Any = field(default=None, repr=False)
 
 
 @dataclass
-class Block:
+class GridBlock:
     row: int
     col: int
     hsize: float
     wsize: float
+    side: str
     is_split: bool = field(default=False)
     sub_layout: SubLayout = field(default_factory=SubLayout)
     ax: Any = field(default=None, repr=False)
+    ax_labels: Any = field(default_factory=list)
+
+    def get_canvas_ax(self):
+        if self.ax is None:
+            return None
+        return self.ax[self.ax_labels]
+
+    def get_placeholder_ax(self):
+        if self.ax is None:
+            return None
+        return self.ax[~self.ax_labels]
 
 
 class Grid:
-
     nrow: int = 1
     ncol: int = 1
     gs: GridSpec = None
@@ -72,7 +76,8 @@ class Grid:
         self.w_ratios = [w]
 
         self.side_tracker = {"right": [], "left": [], "top": [], "bottom": []}
-        self.layout = {name: Block(row=self.crow_ix, col=self.ccol_ix, hsize=h, wsize=w)}
+        self.layout = {name: GridBlock(row=self.crow_ix, col=self.ccol_ix,
+                                       side="main", hsize=h, wsize=w)}
 
     def __repr__(self):
         return f"{self.nrow}*{self.ncol} Grid"
@@ -98,12 +103,13 @@ class Grid:
         self.nrow += 1
         self.crow_ix += 1
 
-        for _, gi in self.layout.items():
-            gi.row += 1
+        for _, gb in self.layout.items():
+            gb.row += 1
 
-        self.layout[name] = Block(row=0, col=self.ccol_ix,
-                                  hsize=size, wsize=self.heat_w)
+        self.layout[name] = GridBlock(row=0, col=self.ccol_ix, side="top",
+                                      hsize=size, wsize=self.heat_w)
         self.h_ratios = [size, *self.h_ratios]
+        self.side_tracker['top'].append(name)
 
     def top_n(self, names, sizes=None):
         n = len(names)
@@ -118,42 +124,56 @@ class Grid:
         self.nrow += n
         self.crow_ix += n
 
-        for _, gi in self.layout.items():
-            gi.row += n
+        for _, gb in self.layout.items():
+            gb.row += n
 
         for row_i, (name, s) in enumerate(zip(names, sizes)):
-            self.layout[name] = Block(row=row_i, col=self.ccol_ix, hsize=s, wsize=self.heat_w)
+            self.layout[name] = GridBlock(row=row_i, col=self.ccol_ix,
+                                          side="top",
+                                          hsize=s, wsize=self.heat_w)
         self.h_ratios = [*sizes, *self.h_ratios]
 
     def bottom(self, name, size=1):
         self._check_name(name)
         self.nrow += 1
 
-        self.layout[name] = Block(row=self.nrow - 1, col=self.ccol_ix,
-                                  hsize=size, wsize=self.heat_w)
+        self.layout[name] = GridBlock(row=self.nrow - 1, col=self.ccol_ix,
+                                      side="bottom",
+                                      hsize=size, wsize=self.heat_w)
         self.h_ratios.append(size)
+        self.side_tracker['bottom'].append(name)
 
     def left(self, name, size=1):
         self._check_name(name)
         self.ncol += 1
         self.ccol_ix += 1
 
-        for _, gi in self.layout.items():
-            gi.col += 1
+        for _, gb in self.layout.items():
+            gb.col += 1
 
-        self.layout[name] = Block(row=self.crow_ix, col=0,
-                                  hsize=self.heat_h, wsize=size)
+        self.layout[name] = GridBlock(row=self.crow_ix, col=0, side="left",
+                                      hsize=self.heat_h, wsize=size)
         self.w_ratios = [size, *self.w_ratios]
+        self.side_tracker['left'].append(name)
 
     def right(self, name, size=1):
         self._check_name(name)
         self.ncol += 1
 
-        self.layout[name] = Block(row=self.crow_ix, col=self.ncol - 1,
-                                  hsize=self.heat_h, wsize=size)
+        self.layout[name] = GridBlock(row=self.crow_ix, col=self.ncol - 1,
+                                      side="right",
+                                      hsize=self.heat_h, wsize=size)
         self.w_ratios.append(size)
+        self.side_tracker['right'].append(name)
 
-    def split(self, name, x=None, y=None, wspace=0.05, hspace=0.05, mode="blank"):
+    def split(self,
+              name,
+              x=None,
+              y=None,
+              wspace=0.05,
+              hspace=0.05,
+              mode="placeholder",
+              ):
 
         if (wspace >= 1.) & (wspace < 0):
             raise ValueError("wspace should be in (0, 1)")
@@ -164,25 +184,30 @@ class Grid:
         if mode == "blank":
             self._split_blank(name, x=x, y=y, wspace=wspace, hspace=hspace)
         elif mode == "placeholder":
-            self._split_placeholder(name, x=x, y=y, wspace=wspace, hspace=hspace)
+            self._split_placeholder(name, x=x, y=y, wspace=wspace,
+                                    hspace=hspace)
         else:
             raise ValueError(f"Don't know mode='{mode}', "
                              f"options are (blank or placeholder)")
 
-    def _split_placeholder(self, name, x=None, y=None, wspace=0.05, hspace=0.05):
+    def _split_placeholder(self,
+                           name,
+                           x=None,
+                           y=None,
+                           wspace=0.05,
+                           hspace=0.05,
+                           ):
         # TODO: check wspace and hspace range in (0, 1)
 
         split_x = x is not None
         split_y = y is not None
-        if split_x & split_y:
-            raise ValueError("Should only split in one direction, "
-                             "you split on both x and y.")
 
-        gi = self.layout[name]
-        gi.is_split = True
-        sub_layout = gi.sub_layout
+        gb = self.layout[name]
+        gb.is_split = True
+        sub_layout = gb.sub_layout
         sub_layout.wspace = 0
         sub_layout.hspace = 0
+        sub_layout.mode = "placeholder"
 
         if split_x:
             if sub_layout.col != 1:
@@ -192,26 +217,48 @@ class Grid:
             for pt in x:
                 inject_x.append(pt - wspace / 2.)
                 inject_x.append(pt + wspace / 2.)
-            sub_layout.w_ratios = _interval(1., inject_x)
+            sub_layout.w_ratios = _interval(gb.wsize, inject_x)
+
+        if split_y:
+            if sub_layout.row != 1:
+                raise ValueError("Can only be split once")
+            sub_layout.row = 2 * len(y) + 1
+            inject_y = []
+            for pt in y:
+                inject_y.append(pt - hspace / 2.)
+                inject_y.append(pt + hspace / 2.)
+            sub_layout.h_ratios = _interval(gb.hsize, inject_y)
+
+        # create a binary mask to label
+        # which is canvas ax (1) which is placeholder (0)
+        masks = np.ones((sub_layout.row, sub_layout.col))
+
+        for loc in np.arange(1, sub_layout.row, step=2):
+            masks[loc, :] = 0
+        for loc in np.arange(1, sub_layout.col, step=2):
+            masks[:, loc] = 0
+        gb.ax_labels = masks.flatten()
 
     def _split_blank(self, name, x=None, y=None, wspace=0.05, hspace=0.05):
-        gi = self.layout[name]
-        gi.is_split = True
-        sub_layout = gi.sub_layout
+        gb = self.layout[name]
+        gb.is_split = True
+        sub_layout = gb.sub_layout
         sub_layout.wspace = wspace
         sub_layout.hspace = hspace
+        sub_layout.mode = "blank"
 
         if x is not None:
             if sub_layout.col != 1:
                 raise ValueError("Can only be split once")
             sub_layout.col += len(x)
-            sub_layout.w_ratios = _interval(gi.wsize, x)
+            sub_layout.w_ratios = _interval(gb.wsize, x)
 
         if y is not None:
             if sub_layout.row != 1:
                 raise ValueError("Can only be split once")
             sub_layout.row += len(y)
-            sub_layout.h_ratios = _interval(gi.hsize, y)
+            sub_layout.h_ratios = _interval(gb.hsize, y)
+        gb.ax_labels = np.ones((sub_layout.row, sub_layout.col)).flatten()
 
     def freeze(self, figure, wspace=0, hspace=0, debug=False):
         gs = GridSpec(self.nrow, self.ncol,
@@ -221,42 +268,65 @@ class Grid:
                       width_ratios=self.w_ratios)
         self.gs = gs
 
-        for block, gi in self.layout.items():
-            ax_loc = gs[gi.row, gi.col]
-            if gi.is_split:
-                sub_layout = gi.sub_layout
-                print(sub_layout)
+        for block, gb in self.layout.items():
+            ax_loc = gs[gb.row, gb.col]
+            if gb.is_split:
+                sub_layout = gb.sub_layout
+                print(gb)
 
-                new_gs = GridSpecFromSubplotSpec(sub_layout.row, sub_layout.col, ax_loc,
-                                                 wspace=sub_layout.wspace,
-                                                 hspace=sub_layout.hspace,
-                                                 width_ratios=sub_layout.w_ratios,
-                                                 height_ratios=sub_layout.h_ratios)
+                new_gs = GridSpecFromSubplotSpec(
+                    sub_layout.row,
+                    sub_layout.col,
+                    ax_loc,
+                    wspace=sub_layout.wspace,
+                    hspace=sub_layout.hspace,
+                    width_ratios=sub_layout.w_ratios,
+                    height_ratios=sub_layout.h_ratios)
                 axes = []
+                num = 0
                 for ix in range(sub_layout.row):
                     for iy in range(sub_layout.col):
+
                         ax = figure.add_subplot(new_gs[ix, iy])
+                        self._set_axis_dir(gb, ax)
                         axes.append(ax)
                         if debug:
                             ax.tick_params(labelbottom=False, labelleft=False)
                             ax.set_xticks([])
                             ax.set_yticks([])
-                            # ax.text(0.5, 0.5, f"{block} {ix}-{iy}", va="center", ha="center")
-                gi.ax = axes
+                            ax.text(0.5, 0.5, f"{block} {ix}-{iy}",
+                                    va="center", ha="center")
+                            # If it is placeholder mark it in gray
+                            if gb.ax_labels[num] == 0:
+                                ax.set_facecolor("gray")
+                        num += 1
+                gb.ax = np.array(axes)
 
             else:
                 ax = figure.add_subplot(ax_loc)
-                gi.ax = ax
+                self._set_axis_dir(gb, ax)
+                gb.ax = ax
                 if debug:
                     ax.tick_params(labelbottom=False, labelleft=False)
                     ax.set_xticks([])
                     ax.set_yticks([])
-                    # ax.text(0.5, 0.5, block, va="center", ha="center")
+                    ax.text(0.5, 0.5, block, va="center", ha="center")
 
-    def get_ax(self, name) -> Axes:
-        return self.layout[name].ax
+    @staticmethod
+    def _set_axis_dir(gi, ax):
+        if gi.side == "left":
+            ax.invert_xaxis()
+        if gi.side == "bottom":
+            ax.invert_yaxis()
+
+    def get_ax(self, name) -> (Axes, np.ndarray):
+        gb = self.layout[name]
+        return gb.ax, gb.ax_labels
+
+    def get_canvas_ax(self, name) -> Axes:
+        return self.layout[name].get_canvas_ax()
 
     def plot(self):
         if self.gs is None:
-            figure = plt.figure(constrained_layout=True)
+            figure = plt.figure()
             self.freeze(figure=figure, debug=True)
