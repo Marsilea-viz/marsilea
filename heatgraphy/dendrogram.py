@@ -62,6 +62,18 @@ class _DendrogramBase:
         y1 = yc[1]
         return x1, y1
 
+    def _draw_dendrogram(self, ax, orient="h"):
+        x_coords = self.x_coords
+        y_coords = self.y_coords
+        if orient == "v":
+            x_coords, y_coords = y_coords, x_coords
+
+        lines = LineCollection(
+            [list(zip(x, y)) for x, y in zip(x_coords, y_coords)],
+            color="black", lw=1
+        )
+        ax.add_collection(lines)
+
 
 class Dendrogram(_DendrogramBase):
 
@@ -73,15 +85,8 @@ class Dendrogram(_DendrogramBase):
         super().__init__(data, method=method, metric=metric)
 
     def draw(self, ax, orient="h", add_root=False, control_ax=True):
-        x_coords = self.x_coords
-        y_coords = self.y_coords
-        if orient == "v":
-            x_coords, y_coords = y_coords, x_coords
 
-        lines = LineCollection(
-            [list(zip(x, y)) for x, y in zip(x_coords, y_coords)]
-        )
-        ax.add_collection(lines)
+        self._draw_dendrogram(ax, orient=orient)
 
         xlim = self.xlim
         ylim = self.ylim
@@ -94,9 +99,14 @@ class Dendrogram(_DendrogramBase):
 
         if add_root:
             x1, y1 = self.root
-            x2 = x1
-            y2 = ylim[1]
-            root_line = Line2D([x1, x2], [y1, y2])
+            if orient == "v":
+                x1, y1 = y1, x1
+                x2 = xlim[1]
+                y2 = y1
+            else:
+                x2 = x1
+                y2 = ylim[1]
+            root_line = Line2D([x1, x2], [y1, y2], color="black", lw=1)
             ax.add_artist(root_line)
 
 
@@ -111,6 +121,18 @@ class GroupDendrogram(_DendrogramBase):
         self.dens = np.asarray(dens)[self.reorder_index]
         self.n = len(self.dens)
 
+        den_xlim = 0
+        ylim = 0
+        x_coords = []
+        for den in self.dens:
+            den_xlim += den.xrange
+            dylim = den.yrange
+            if dylim > ylim:
+                ylim = dylim
+            x_coords.append(den.root[0])
+        self.den_xlim = den_xlim
+        self.divider = ylim
+
     def test_draw(self, axes):
         for ax, den in zip(axes, self.dens):
             den.draw(ax, add_root=True)
@@ -119,43 +141,31 @@ class GroupDendrogram(_DendrogramBase):
              ax,
              orient="h",
              spacing=None,
-             sub_frac=0.7
+             sub_frac=0.7,
+             divide=True,
              ):
         if spacing is None:
             spacing = [0 for _ in range(self.n - 1)]
         elif not isinstance(spacing, Sequence):
             spacing = [spacing for _ in range(self.n - 1)]
 
-        xlim = 0
-        ylim = 0
-        x_coords = []
-        for den in self.dens:
-            xlim += den.xrange
-            dylim = den.yrange
-            if dylim > ylim:
-                ylim = dylim
-            x_coords.append(den.root[0])
-        xlim /= (1 - np.sum(spacing))
-
-
+        render_xlim = self.den_xlim / (1 - np.sum(spacing))
         x_start = 0
         for i, den in enumerate(self.dens):
             if x_start != 0:
-                den.reset_lim(x_start=x_start, y_end=ylim)
+                den.reset_lim(x_start=x_start, y_end=self.divider)
             else:
-                den.reset_lim(y_end=ylim)
+                den.reset_lim(y_end=self.divider)
             if i != self.n - 1:
-                x_start = x_start + den.xrange + spacing[i] * xlim
-        ax.set_xlim(0, xlim)
-        ax.set_ylim(0, ylim/sub_frac)
+                x_start = x_start + den.xrange + spacing[i] * render_xlim
 
         skeleton = np.sort(np.unique(self.x_coords[self.y_coords == 0]))
         ranger = [(skeleton[i], skeleton[i + 1]) \
                   for i in range(len(skeleton) - 1)]
         # get render x
         # orient ?
-        render_x = [den.root[0] for den in self.dens]
-        mapper = {i: v for i, v in zip(skeleton, render_x)}
+        skeleton_x = [den.root[0] for den in self.dens]
+        mapper = {i: v for i, v in zip(skeleton, skeleton_x)}
         x_coords = np.sort(np.unique(self.x_coords.flatten()))
 
         real_x = {}
@@ -180,20 +190,28 @@ class GroupDendrogram(_DendrogramBase):
         self.x_coords = np.asarray(
             [real_x[i] for i in self.x_coords.flatten()]
         ).reshape(self.x_coords.shape)
-        self.y_coords += ylim
-        ax.hlines(ylim, 0, xlim, linestyles="--")
+        self.y_coords += self.divider
+
+        xlim = render_xlim
+        # TODO: Handle the ylim better
+        #   Reserve room for dendrogram title
+        ylim = self.divider / sub_frac
+        if orient == "v":
+            xlim, ylim = ylim, xlim
+
+        ax.set_xlim(0, xlim)
+        ax.set_ylim(0, ylim)
+
+        if divide:
+            if orient == "h":
+                ax.hlines(self.divider, 0, xlim,
+                          linestyles="--", color="black", lw=1)
+            else:
+                ax.vlines(self.divider, 0, ylim,
+                          linestyles="--", color="black", lw=1)
 
         for den in self.dens:
             den.draw(ax, orient=orient, add_root=True, control_ax=False)
 
         # Add meta dendrogram
-        x_coords = self.x_coords
-        y_coords = self.y_coords
-        if orient == "v":
-            x_coords, y_coords = y_coords, x_coords
-
-        lines = LineCollection(
-            [list(zip(x, y)) for x, y in zip(x_coords, y_coords)]
-        )
-        ax.add_collection(lines)
-
+        self._draw_dendrogram(ax, orient=orient)

@@ -12,7 +12,6 @@ def _interval(size, breakpoints):
     bp = np.array([*bp, size])
 
     start = 0.0
-    end = 0.0
     result = []
     for i in bp:
         end = i - start
@@ -31,6 +30,7 @@ class SubLayout:
     mode: str = "blank"  # blank or placeholder
     w_ratios: list = field(default=None)
     h_ratios: list = field(default=None)
+    mask_placeholder: bool = True
     # ax: Any = field(default=None, repr=False)
 
 
@@ -44,17 +44,19 @@ class GridBlock:
     is_split: bool = field(default=False)
     sub_layout: SubLayout = field(default_factory=SubLayout)
     ax: Any = field(default=None, repr=False)
-    ax_labels: Any = field(default_factory=list)
+    ax_masks: Any = field(default_factory=list)
 
     def get_canvas_ax(self):
         if self.ax is None:
             return None
-        return self.ax[self.ax_labels]
+        if isinstance(self.ax, Axes):
+            return self.ax
+        return self.ax[self.ax_masks]
 
     def get_placeholder_ax(self):
         if self.ax is None:
             return None
-        return self.ax[~self.ax_labels]
+        return self.ax[~self.ax_masks]
 
 
 class Grid:
@@ -173,7 +175,25 @@ class Grid:
               wspace=0.05,
               hspace=0.05,
               mode="placeholder",
+              mask_placeholder=True,
               ):
+        """
+
+        Parameters
+        ----------
+        name :
+        x : array
+            The ratio of each chunk, the sum the array should be 1
+        y
+        wspace
+        hspace
+        mode : {'blank', 'placeholder'}
+        mask_placeholder
+
+        Returns
+        -------
+
+        """
 
         if (wspace >= 1.) & (wspace < 0):
             raise ValueError("wspace should be in (0, 1)")
@@ -196,6 +216,7 @@ class Grid:
                            y=None,
                            wspace=0.05,
                            hspace=0.05,
+                           mask_placeholder=True
                            ):
         # TODO: check wspace and hspace range in (0, 1)
 
@@ -208,6 +229,7 @@ class Grid:
         sub_layout.wspace = 0
         sub_layout.hspace = 0
         sub_layout.mode = "placeholder"
+        sub_layout.mask_placeholder = mask_placeholder
 
         if split_x:
             if sub_layout.col != 1:
@@ -237,7 +259,7 @@ class Grid:
             masks[loc, :] = 0
         for loc in np.arange(1, sub_layout.col, step=2):
             masks[:, loc] = 0
-        gb.ax_labels = masks.flatten()
+        gb.ax_masks = masks.flatten().astype(bool)
 
     def _split_blank(self, name, x=None, y=None, wspace=0.05, hspace=0.05):
         gb = self.layout[name]
@@ -258,7 +280,7 @@ class Grid:
                 raise ValueError("Can only be split once")
             sub_layout.row += len(y)
             sub_layout.h_ratios = _interval(gb.hsize, y)
-        gb.ax_labels = np.ones((sub_layout.row, sub_layout.col)).flatten()
+        gb.ax_masks = np.ones((sub_layout.row, sub_layout.col)).flatten()
 
     def freeze(self, figure, wspace=0, hspace=0, debug=False):
         gs = GridSpec(self.nrow, self.ncol,
@@ -297,10 +319,13 @@ class Grid:
                             ax.text(0.5, 0.5, f"{block} {ix}-{iy}",
                                     va="center", ha="center")
                             # If it is placeholder mark it in gray
-                            if gb.ax_labels[num] == 0:
+                            if gb.ax_masks[num] == 0:
                                 ax.set_facecolor("gray")
                         num += 1
                 gb.ax = np.array(axes)
+                if sub_layout.mask_placeholder:
+                    for pax in gb.get_placeholder_ax():
+                        pax.set_axis_off()
 
             else:
                 ax = figure.add_subplot(ax_loc)
@@ -321,7 +346,7 @@ class Grid:
 
     def get_ax(self, name) -> (Axes, np.ndarray):
         gb = self.layout[name]
-        return gb.ax, gb.ax_labels
+        return gb.ax, gb.ax_masks
 
     def get_canvas_ax(self, name) -> Axes:
         return self.layout[name].get_canvas_ax()
