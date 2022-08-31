@@ -1,24 +1,10 @@
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Iterable
 
 import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
 from matplotlib.gridspec import GridSpec, GridSpecFromSubplotSpec
-
-
-def _interval(size, breakpoints):
-    bp = np.sort(np.array(breakpoints)) * size
-    bp = np.array([*bp, size])
-
-    start = 0.0
-    result = []
-    for i in bp:
-        end = i - start
-        start += end
-        result.append(end)
-
-    return result
 
 
 @dataclass
@@ -170,8 +156,8 @@ class Grid:
 
     def split(self,
               name,
-              x=None,
-              y=None,
+              w_ratios=None,
+              h_ratios=None,
               wspace=0.05,
               hspace=0.05,
               mode="placeholder",
@@ -182,10 +168,11 @@ class Grid:
         Parameters
         ----------
         name :
-        x : array
-            The ratio of each chunk, the sum the array should be 1
-        y
-        wspace
+        w_ratios : array
+            The length of each chunk, the sum the array should be 1
+        h_ratios
+        wspace : float or array
+            The horizontal space between each axes
         hspace
         mode : {'blank', 'placeholder'}
         mask_placeholder
@@ -194,34 +181,33 @@ class Grid:
         -------
 
         """
+        if w_ratios is not None:
+            w_ratios = np.asarray(w_ratios)
+            w_ratios = w_ratios / np.sum(w_ratios)
 
-        if (wspace >= 1.) & (wspace < 0):
-            raise ValueError("wspace should be in (0, 1)")
-
-        if (hspace >= 1.) & (hspace < 0):
-            raise ValueError("hspace should be in (0, 1)")
+        if h_ratios is not None:
+            h_ratios = np.asarray(h_ratios)
+            h_ratios = h_ratios / np.sum(h_ratios)
 
         if mode == "blank":
-            self._split_blank(name, x=x, y=y, wspace=wspace, hspace=hspace)
+            self._split_blank(name, w_ratios=w_ratios, h_ratios=h_ratios,
+                              wspace=wspace, hspace=hspace)
         elif mode == "placeholder":
-            self._split_placeholder(name, x=x, y=y, wspace=wspace,
-                                    hspace=hspace)
+            self._split_placeholder(name, w_ratios=w_ratios, h_ratios=h_ratios,
+                                    wspace=wspace, hspace=hspace)
         else:
             raise ValueError(f"Don't know mode='{mode}', "
                              f"options are (blank or placeholder)")
 
     def _split_placeholder(self,
                            name,
-                           x=None,
-                           y=None,
+                           w_ratios=None,
+                           h_ratios=None,
                            wspace=0.05,
                            hspace=0.05,
                            mask_placeholder=True
                            ):
         # TODO: check wspace and hspace range in (0, 1)
-
-        split_x = x is not None
-        split_y = y is not None
 
         gb = self.layout[name]
         gb.is_split = True
@@ -231,25 +217,17 @@ class Grid:
         sub_layout.mode = "placeholder"
         sub_layout.mask_placeholder = mask_placeholder
 
-        if split_x:
+        if w_ratios is not None:
             if sub_layout.col != 1:
                 raise ValueError("Can only be split once")
-            sub_layout.col = 2 * len(x) + 1
-            inject_x = []
-            for pt in x:
-                inject_x.append(pt - wspace / 2.)
-                inject_x.append(pt + wspace / 2.)
-            sub_layout.w_ratios = _interval(gb.wsize, inject_x)
+            sub_layout.col = 2 * len(w_ratios) - 1
+            sub_layout.w_ratios = self._inject_placeholder(w_ratios, wspace)
 
-        if split_y:
+        if h_ratios is not None:
             if sub_layout.row != 1:
                 raise ValueError("Can only be split once")
-            sub_layout.row = 2 * len(y) + 1
-            inject_y = []
-            for pt in y:
-                inject_y.append(pt - hspace / 2.)
-                inject_y.append(pt + hspace / 2.)
-            sub_layout.h_ratios = _interval(gb.hsize, inject_y)
+            sub_layout.row = 2 * len(h_ratios) - 1
+            sub_layout.h_ratios = self._inject_placeholder(h_ratios, hspace)
 
         # create a binary mask to label
         # which is canvas ax (1) which is placeholder (0)
@@ -261,7 +239,31 @@ class Grid:
             masks[:, loc] = 0
         gb.ax_masks = masks.flatten().astype(bool)
 
-    def _split_blank(self, name, x=None, y=None, wspace=0.05, hspace=0.05):
+    @staticmethod
+    def _inject_placeholder(ratios, space):
+
+        ratios = np.asarray(ratios)
+        count = len(ratios)
+        if not isinstance(space, Iterable):
+            space = [space for _ in range(count - 1)]
+
+        canvas_size = 1 - np.sum(space)
+        ratios = ratios * canvas_size
+
+        inject = []
+        for ix, i in enumerate(ratios):
+            inject.append(i)
+            if ix != count - 1:
+                inject.append(space[ix])
+
+        return inject
+
+    def _split_blank(self, name,
+                     w_ratios=None,
+                     h_ratios=None,
+                     wspace=0.05,
+                     hspace=0.05,
+                     ):
         gb = self.layout[name]
         gb.is_split = True
         sub_layout = gb.sub_layout
@@ -269,18 +271,19 @@ class Grid:
         sub_layout.hspace = hspace
         sub_layout.mode = "blank"
 
-        if x is not None:
+        if w_ratios is not None:
             if sub_layout.col != 1:
                 raise ValueError("Can only be split once")
-            sub_layout.col += len(x)
-            sub_layout.w_ratios = _interval(gb.wsize, x)
+            sub_layout.col += len(w_ratios) - 1
+            sub_layout.w_ratios = w_ratios
 
-        if y is not None:
+        if h_ratios is not None:
             if sub_layout.row != 1:
                 raise ValueError("Can only be split once")
-            sub_layout.row += len(y)
-            sub_layout.h_ratios = _interval(gb.hsize, y)
-        gb.ax_masks = np.ones((sub_layout.row, sub_layout.col)).flatten()
+            sub_layout.row += len(h_ratios) - 1
+            sub_layout.h_ratios = h_ratios
+        gb.ax_masks = np.ones((sub_layout.row, sub_layout.col),
+                              dtype=bool).flatten()
 
     def freeze(self, figure, wspace=0, hspace=0, debug=False):
         gs = GridSpec(self.nrow, self.ncol,
@@ -294,7 +297,6 @@ class Grid:
             ax_loc = gs[gb.row, gb.col]
             if gb.is_split:
                 sub_layout = gb.sub_layout
-                print(gb)
 
                 new_gs = GridSpecFromSubplotSpec(
                     sub_layout.row,
@@ -344,9 +346,9 @@ class Grid:
         if gi.side == "bottom":
             ax.invert_yaxis()
 
-    def get_ax(self, name) -> (Axes, np.ndarray):
+    def get_ax(self, name) -> Axes:
         gb = self.layout[name]
-        return gb.ax, gb.ax_masks
+        return gb.ax
 
     def get_canvas_ax(self, name) -> Axes:
         return self.layout[name].get_canvas_ax()

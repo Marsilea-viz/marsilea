@@ -14,7 +14,7 @@ from sklearn.preprocessing import RobustScaler
 
 from ._planner import SplitPlan, RenderPlan
 from ._plotter import ColorMesh, Chart
-from .dendrogram import Dendrogram
+from .dendrogram import Dendrogram, GroupDendrogram
 from .layout import Grid
 
 log = logging.getLogger("heatgraphy")
@@ -23,6 +23,13 @@ log = logging.getLogger("heatgraphy")
 class Plot:
     ax: Any
     legend: Any
+
+
+def _handle_ax(ax, side):
+    if side == "left":
+        ax.invert_xaxis()
+    if side == "bottom":
+        ax.invert_yaxis()
 
 
 class Heatmap:
@@ -41,21 +48,18 @@ class Heatmap:
                  ):
 
         self.render_data = None
+        self._row_index = None  # if pandas
+        self._col_index = None  # if pandas
         self._process_cmap(cmap, center)
         self._get_render_data(data, vmin, vmax, robust)
 
         self._dens = {}
 
         self.grid = Grid()
+        self._split = False
         self._split_plan = SplitPlan(self.render_data)
         self._side_count = {"right": 0, "left": 0, "top": 0, "bottom": 0}
         self._render_plan = []
-
-        self._split_x = None
-        self._split_y = None
-        self._split_x_ratio = None
-        self._split_y_ratio = None
-        self._split_data = None
 
     def _get_render_data(self, raw_data, vmin, vmax, robust):
 
@@ -143,35 +147,17 @@ class Heatmap:
             if over_set:
                 self.cmap.set_over(over)
 
-    def split_row(self, cut=None, labels=None, order=None, spacing=0.05):
+    def split_row(self, cut=None, labels=None, order=None, spacing=0.01):
+        self._split = True
         self._split_plan.hspace = spacing
         if cut is not None:
-            self._split_plan.split_index_y = cut
+            self._split_plan.set_split_index(row=cut)
 
-    def split_col(self, cut=None, labels=None, order=None, spacing=0.05):
+    def split_col(self, cut=None, labels=None, order=None, spacing=0.01):
+        self._split = True
         self._split_plan.wspace = spacing
         if cut is not None:
-            self._split_plan.split_index_x = cut
-
-    def _split(self, x=None, y=None, wspace=0.05, hspace=0.05):
-        split_x = x is not None
-        split_y = y is not None
-
-        X, Y = self.render_data.shape
-        if split_x:
-            x = np.asarray(x)
-            self._split_x = np.array([*x, X])
-            self._split_x_ratio = np.sort(x) / X
-        if split_y:
-            y = np.asarray(y)
-            self._split_y = np.array([*y, Y])
-            self._split_y_ratio = np.sort(y) / Y
-        self.grid.split("main", x=self._split_x_ratio, y=self._split_y_ratio,
-                        wspace=wspace, hspace=hspace)
-
-        log.debug(f"split_x: {split_x}\n"
-                  f"split_y: {split_y}\n"
-                  f"split_data: {len(self._split_data)}\n")
+            self._split_plan.set_split_index(col=cut)
 
     def add_labels(self, side):
         """Add tick labels to the heatmap"""
@@ -183,7 +169,7 @@ class Heatmap:
     def _get_plot_name(self, name, side, chart):
         self._side_count[side] += 1
         if name is None:
-            return f"{chart}-{self._side_count[side]}"
+            return f"{chart}-{side}-{self._side_count[side]}"
         else:
             return name
 
@@ -206,15 +192,18 @@ class Heatmap:
             metric=None,
             linkage=None,
             show=True,
-            size=1,
+            size=0.5,
     ):
         plot_name = self._get_plot_name(name, side, Chart.Dendrogram)
         self.grid.add_ax(side, name=plot_name, size=size)
         pos = "row"
         if side in ["right", "left"]:
             pos = "col"
-        self._dens[pos] = dict(
+
+        self._dens[plot_name] = dict(
+            name=plot_name,
             side=side,
+            pos=pos,
             method=method,
             metric=metric,
         )
@@ -270,66 +259,95 @@ class Heatmap:
             self.figure = plt.figure()
         else:
             self.figure = figure
+
+        dendrogram_storage = {}
         split_plan = self._split_plan
-        render_data = self.render_data
-        if split_plan.split_col or split_plan.split_row:
-            print(split_plan.split_ratio_x, split_plan.split_ratio_y)
-            self.grid.split("main",
-                            x=split_plan.split_ratio_x,
-                            y=split_plan.split_ratio_y,
-                            wspace=split_plan.wspace,
-                            hspace=split_plan.hspace
-                            )
-            render_data = split_plan.split_data()
-            # TODO: split ax for other render plan
+        if self._split:
+
+            # If dendrogram is added
             if len(self._dens) > 0:
-                col_split_data = split_plan.split_other_x(self.render_data)
-                row_split_data = split_plan.split_other_y(self.render_data)
-                col_dendrogram = []
-                for pos, den in self._dens:
-                    if pos == "col":
-                        for chunk in col_split_data:
-                            Dendrogram(chunk)
-                            col_dendrogram.append()
-                            self.render_data = self.render_data[
-                                aden.reorder_index]
-
+                for name, den in self._dens.items():
+                    if den['side'] in ["top", "bottom"]:
+                        if split_plan.split_col:
+                            split_col_data = split_plan.\
+                                get_split_col_data(reorder=False)
+                            dens = [Dendrogram(chunk.T) for chunk in split_col_data]
+                            gd = GroupDendrogram(dens)
+                            dendrogram_storage[name] = gd
+                            split_plan.set_order(
+                                col=[d.reorder_index for d in dens],
+                                col_chunk=gd.reorder_index)
                     else:
-                        aden = Dendrogram(self.render_data.T)
-                        self.render_data = self.render_data[:,
-                                           aden.reorder_index]
+                        if split_plan.split_row:
+                            split_row_data = split_plan.\
+                                get_split_row_data(reorder=False)
+                            dens = [Dendrogram(chunk) for chunk in split_row_data]
+                            gd = GroupDendrogram(dens)
+                            dendrogram_storage[name] = gd
+                            split_plan.set_order(
+                                row=[d.reorder_index for d in dens],
+                                row_chunk=gd.reorder_index)
+                self.render_data = split_plan.get_split_data()
+            # If no dendrogram is added
+            else:
+                render_data = split_plan.get_split_data()
+                if split_plan.split_col & split_plan.split_row:
+                    render_data = render_data.flatten()
+                self.render_data = render_data
 
+            self.grid.split(
+                "main",
+                w_ratios=split_plan.col_segments,
+                h_ratios=split_plan.row_segments,
+                wspace=split_plan.wspace,
+                hspace=split_plan.hspace
+            )
 
         else:
             # If not split
-            for side, den in self._dens:
-                if side in ["left", "right"]:
-                    aden = Dendrogram(self.render_data)
-                    self.render_data = self.render_data[aden.reorder_index]
-
+            for name, den in self._dens.items():
+                if den['side'] in ["left", "right"]:
+                    dg = Dendrogram(self.render_data)
+                    self.render_data = self.render_data[dg.reorder_index]
+                    dendrogram_storage[name] = dg
                 else:
-                    aden = Dendrogram(self.render_data.T)
-                    self.render_data = self.render_data[:, aden.reorder_index]
+                    dg = Dendrogram(self.render_data.T)
+                    self.render_data = self.render_data[:, dg.reorder_index]
+                    dendrogram_storage[name] = dg
 
-        self.grid.freeze(figure=self.figure, wspace=wspace, hspace=hspace)
+        self.grid.freeze(figure=self.figure,
+                         wspace=wspace,
+                         hspace=hspace)
         self.heatmap_axes = self.grid.get_canvas_ax("main")
         ColorMesh(self.heatmap_axes,
-                  render_data,
+                  self.render_data,
                   cmap=self.cmap,
                   vmin=self.vmin,
                   vmax=self.vmax
                   )
+        for name, dendrogram in dendrogram_storage.items():
+            orient = "h"
+            side = self._dens[name]['side']
+            if side in ["left", "right"]:
+                orient = "v"
+                spacing = split_plan.hspace
+            else:
+                spacing = split_plan.wspace
+            ax = self.grid.get_ax(name)
+            ax.set_axis_off()
 
-        # for plan in self._render_plan:
-        #     ax = self.grid.get_ax(plan.name)
-        #     if plan.chart == Chart.Bar:
-        #         # ax.xaxis.set_tick_params(labelbottom=False)
-        #         if plan.side == "top":
-        #             ax = sns.barplot(x=np.arange(10), y=plan.data, ax=ax)
-        #             despine(ax=ax, top=True, bottom=False, right=True, left=True)
-        #             ax.set_xticks([])
-        #             ax.set_yticks([])
-        #     elif plan.chart == Chart.Colors:
-        #         if plan.side == "top":
-        #             ax.pcolormesh(plan.data, cmap="Set1")
-        #             ax.set_axis_off()
+            if isinstance(dendrogram, Dendrogram):
+                dendrogram.draw(
+                    ax,
+                    orient=orient
+                )
+            else:
+
+                dendrogram.draw(
+                    ax,
+                    orient=orient,
+                    spacing=spacing
+                )
+            # invert the ax manually
+            # the dendrogram need to set the xlim and ylim
+            _handle_ax(ax, side)

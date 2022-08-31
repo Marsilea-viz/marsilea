@@ -6,6 +6,9 @@ from matplotlib.lines import Line2D
 from scipy.cluster.hierarchy import linkage, dendrogram
 
 
+COLOR = "#212121"
+LW = .75
+
 class _DendrogramBase:
 
     def __init__(self,
@@ -62,6 +65,7 @@ class _DendrogramBase:
         y1 = yc[1]
         return x1, y1
 
+    # TODO: change the orient to four side
     def _draw_dendrogram(self, ax, orient="h"):
         x_coords = self.x_coords
         y_coords = self.y_coords
@@ -70,7 +74,7 @@ class _DendrogramBase:
 
         lines = LineCollection(
             [list(zip(x, y)) for x, y in zip(x_coords, y_coords)],
-            color="black", lw=1
+            color=COLOR, lw=LW
         )
         ax.add_collection(lines)
 
@@ -85,7 +89,6 @@ class Dendrogram(_DendrogramBase):
         super().__init__(data, method=method, metric=metric)
 
     def draw(self, ax, orient="h", add_root=False, control_ax=True):
-
         self._draw_dendrogram(ax, orient=orient)
 
         xlim = self.xlim
@@ -106,7 +109,7 @@ class Dendrogram(_DendrogramBase):
             else:
                 x2 = x1
                 y2 = ylim[1]
-            root_line = Line2D([x1, x2], [y1, y2], color="black", lw=1)
+            root_line = Line2D([x1, x2], [y1, y2], color=COLOR, lw=LW)
             ax.add_artist(root_line)
 
 
@@ -131,7 +134,7 @@ class GroupDendrogram(_DendrogramBase):
                 ylim = dylim
             x_coords.append(den.root[0])
         self.den_xlim = den_xlim
-        self.divider = ylim
+        self.divider = ylim * 1.2
 
     def test_draw(self, axes):
         for ax, den in zip(axes, self.dens):
@@ -141,7 +144,6 @@ class GroupDendrogram(_DendrogramBase):
              ax,
              orient="h",
              spacing=None,
-             sub_frac=0.7,
              divide=True,
              ):
         if spacing is None:
@@ -195,7 +197,7 @@ class GroupDendrogram(_DendrogramBase):
         xlim = render_xlim
         # TODO: Handle the ylim better
         #   Reserve room for dendrogram title
-        ylim = self.divider / sub_frac
+        ylim = np.max(self.y_coords)
         if orient == "v":
             xlim, ylim = ylim, xlim
 
@@ -203,12 +205,14 @@ class GroupDendrogram(_DendrogramBase):
         ax.set_ylim(0, ylim)
 
         if divide:
+            xmin = np.min(self.dens[0].x_coords)
+            xmax = np.max(self.dens[-1].x_coords)
             if orient == "h":
-                ax.hlines(self.divider, 0, xlim,
-                          linestyles="--", color="black", lw=1)
+                ax.hlines(self.divider, xmin, xmax,#0, xlim,
+                          linestyles="--", color=COLOR, lw=LW)
             else:
-                ax.vlines(self.divider, 0, ylim,
-                          linestyles="--", color="black", lw=1)
+                ax.vlines(self.divider, xmin, xmax,# 0, ylim,
+                          linestyles="--", color=COLOR, lw=LW)
 
         for den in self.dens:
             den.draw(ax, orient=orient, add_root=True, control_ax=False)
