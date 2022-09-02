@@ -1,6 +1,7 @@
 from enum import Enum
 
 from matplotlib.axes import Axes
+import matplotlib.colors as mcolors
 
 
 class Chart(Enum):
@@ -11,6 +12,12 @@ class Chart(Enum):
     Dendrogram = "dendrogram"
     Violin = "violin"
     Line = "line"
+
+
+class _PlotBase:
+
+    def render(self, axes):
+        raise NotImplemented
 
 
 class ColorMesh:
@@ -48,3 +55,14 @@ class ColorMesh:
                                vmin=self.vmin, vmax=self.vmax)
                 # hax.text(0.5, 0.5, f"AXES {count}")
                 # count += 1
+
+class CatMesh:
+
+    def __init__(self,
+                 axes,
+                 data,
+                 labels,
+                 ):
+        cmap = mcolors.ListedColormap(list(unique_colors))
+        if isinstance(axes, Axes):
+            axes.
