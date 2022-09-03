@@ -36,6 +36,8 @@ class Heatmap:
     gird: Grid
     figure: Figure
     heatmap_axes: Axes | List[Axes]
+    _row_plan: List[RenderPlan]
+    _col_plan: List[RenderPlan]
 
     def __init__(self,
                  data: np.ndarray,
@@ -56,7 +58,6 @@ class Heatmap:
         self._dens = {}
 
         self.grid = Grid()
-        self._split = False
         self._split_plan = SplitPlan(self.render_data)
         self._side_count = {"right": 0, "left": 0, "top": 0, "bottom": 0}
         self._render_plan = []
@@ -148,13 +149,11 @@ class Heatmap:
                 self.cmap.set_over(over)
 
     def split_row(self, cut=None, labels=None, order=None, spacing=0.01):
-        self._split = True
         self._split_plan.hspace = spacing
         if cut is not None:
             self._split_plan.set_split_index(row=cut)
 
     def split_col(self, cut=None, labels=None, order=None, spacing=0.01):
-        self._split = True
         self._split_plan.wspace = spacing
         if cut is not None:
             self._split_plan.set_split_index(col=cut)
@@ -250,6 +249,72 @@ class Heatmap:
         """Draw legend based on the order of annotation"""
         pass
 
+    def _data_cluster(self):
+        split_plan = self._split_plan
+        dendrogram_storage = {}
+
+        for name, den in self._dens.items():
+            if den['side'] in ["top", "bottom"]:
+                if split_plan.split_col:
+                    split_col_data = split_plan. \
+                        get_split_col_data(reorder=False)
+                    dens = [Dendrogram(chunk.T) for chunk in
+                            split_col_data]
+                    gd = GroupDendrogram(dens)
+                    dendrogram_storage[name] = gd
+                    split_plan.set_order(
+                        col=[d.reorder_index for d in dens],
+                        col_chunk=gd.reorder_index)
+                else:
+                    dg = Dendrogram(self.render_data.T)
+                    self.render_data = self.render_data[:, dg.reorder_index]
+                    dendrogram_storage[name] = dg
+            else:
+                if split_plan.split_row:
+                    split_row_data = split_plan. \
+                        get_split_row_data(reorder=False)
+                    dens = [Dendrogram(chunk) for chunk in split_row_data]
+                    gd = GroupDendrogram(dens)
+                    dendrogram_storage[name] = gd
+                    split_plan.set_order(
+                        row=[d.reorder_index for d in dens],
+                        row_chunk=gd.reorder_index)
+                else:
+                    dg = Dendrogram(self.render_data)
+                    self.render_data = self.render_data[dg.reorder_index]
+                    dendrogram_storage[name] = dg
+        if self._split:
+            self.render_data = split_plan.get_split_data()
+
+        return dendrogram_storage
+
+    def _setup_axes(self):
+        split_plan = self._split_plan
+        if split_plan.split:
+            self.grid.split(
+                "main",
+                w_ratios=split_plan.col_segments,
+                h_ratios=split_plan.row_segments,
+                wspace=split_plan.wspace,
+                hspace=split_plan.hspace
+            )
+
+        if split_plan.split_col:
+            for plan in self._col_plan:
+                self.grid.split(
+                    plan.name,
+                    w_ratios=split_plan.col_segments,
+                    wspace=split_plan.wspace
+                )
+
+        if split_plan.split_row:
+            for plan in self._row_plan:
+                self.grid.split(
+                    plan.name,
+                    h_ratios=split_plan.row_segments,
+                    hspace=split_plan.hspace
+                )
+
     def render(self,
                figure=None,
                wspace=0,
@@ -262,59 +327,20 @@ class Heatmap:
 
         dendrogram_storage = {}
         split_plan = self._split_plan
-        if self._split:
 
-            # If dendrogram is added
-            if len(self._dens) > 0:
-                for name, den in self._dens.items():
-                    if den['side'] in ["top", "bottom"]:
-                        if split_plan.split_col:
-                            split_col_data = split_plan.\
-                                get_split_col_data(reorder=False)
-                            dens = [Dendrogram(chunk.T) for chunk in split_col_data]
-                            gd = GroupDendrogram(dens)
-                            dendrogram_storage[name] = gd
-                            split_plan.set_order(
-                                col=[d.reorder_index for d in dens],
-                                col_chunk=gd.reorder_index)
-                    else:
-                        if split_plan.split_row:
-                            split_row_data = split_plan.\
-                                get_split_row_data(reorder=False)
-                            dens = [Dendrogram(chunk) for chunk in split_row_data]
-                            gd = GroupDendrogram(dens)
-                            dendrogram_storage[name] = gd
-                            split_plan.set_order(
-                                row=[d.reorder_index for d in dens],
-                                row_chunk=gd.reorder_index)
-                self.render_data = split_plan.get_split_data()
-            # If no dendrogram is added
-            else:
-                render_data = split_plan.get_split_data()
-                if split_plan.split_col & split_plan.split_row:
-                    render_data = render_data.flatten()
-                self.render_data = render_data
-
-            self.grid.split(
-                "main",
-                w_ratios=split_plan.col_segments,
-                h_ratios=split_plan.row_segments,
-                wspace=split_plan.wspace,
-                hspace=split_plan.hspace
-            )
-
+        # If dendrogram is added
+        if len(self._dens) > 0:
+            dendrogram_storage = self._data_cluster()
+        # If no dendrogram is added
         else:
-            # If not split
-            for name, den in self._dens.items():
-                if den['side'] in ["left", "right"]:
-                    dg = Dendrogram(self.render_data)
-                    self.render_data = self.render_data[dg.reorder_index]
-                    dendrogram_storage[name] = dg
-                else:
-                    dg = Dendrogram(self.render_data.T)
-                    self.render_data = self.render_data[:, dg.reorder_index]
-                    dendrogram_storage[name] = dg
+            render_data = split_plan.get_split_data()
+            if split_plan.split_col & split_plan.split_row:
+                render_data = render_data.flatten()
+            self.render_data = render_data
 
+        # Make sure all axes is split
+        self._setup_axes()
+        # Place axes
         self.grid.freeze(figure=self.figure,
                          wspace=wspace,
                          hspace=hspace)

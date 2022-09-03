@@ -1,7 +1,11 @@
+import warnings
 from enum import Enum
 
+import numpy as np
+from matplotlib import cm
 from matplotlib.axes import Axes
 import matplotlib.colors as mcolors
+from natsort import natsorted
 
 
 class Chart(Enum):
@@ -62,7 +66,18 @@ class CatMesh:
                  axes,
                  data,
                  labels,
+                 colors,
                  ):
-        cmap = mcolors.ListedColormap(list(unique_colors))
-        if isinstance(axes, Axes):
-            axes.
+        pass
+
+    @staticmethod
+    def _cat2int(arr, cmap):
+        cats = natsorted(np.unique(arr))
+        vmax = len(cats)
+        if cmap is None:
+            cmap = cm.get_cmap('tab20')
+        if cmap.N > vmax:
+            warnings.warn(f"Current colormap has only {cmap.N} colors "
+                          f"which is less that your input "
+                          f"with {vmax} elements")
+        mapper = {c: i for i, c in enumerate(cats)}

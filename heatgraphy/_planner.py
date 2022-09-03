@@ -36,6 +36,7 @@ class SplitPlan:
     3. Compute the ratio to split axes that match with data
     """
     data: np.ndarray
+    split = False  # To known whether to do the split
     split_col = False
     split_row = False
     wspace: float = 0.05
@@ -60,6 +61,7 @@ class SplitPlan:
         self._nrow, self._ncol = data.shape
 
     def set_split_index(self, col=None, row=None):
+        self.split = True
         if col is not None:
             col = np.sort(np.asarray(col))
             self._split_index_col = col
