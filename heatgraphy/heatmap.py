@@ -10,7 +10,7 @@ from matplotlib import cm
 from matplotlib import colors as mcolors
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
-from sklearn.preprocessing import RobustScaler
+# from sklearn.preprocessing import RobustScaler
 
 from ._planner import SplitPlan, RenderPlan
 from ._plotter import ColorMesh, Chart
@@ -38,6 +38,8 @@ class Heatmap:
     heatmap_axes: Axes | List[Axes]
     _row_plan: List[RenderPlan]
     _col_plan: List[RenderPlan]
+    vmin = None
+    vmax = None
 
     def __init__(self,
                  data: np.ndarray,
@@ -49,20 +51,22 @@ class Heatmap:
                  mask=None,
                  ):
 
-        self.render_data = None
+        self.render_data = self._transform_data(data, vmin, vmax, robust)
+
         self._row_index = None  # if pandas
         self._col_index = None  # if pandas
         self._process_cmap(cmap, center)
-        self._get_render_data(data, vmin, vmax, robust)
 
-        self._dens = {}
+        self._row_den = []
+        self._col_den = []
 
         self.grid = Grid()
         self._split_plan = SplitPlan(self.render_data)
         self._side_count = {"right": 0, "left": 0, "top": 0, "bottom": 0}
-        self._render_plan = []
+        self._col_plan = []
+        self._row_plan = []
 
-    def _get_render_data(self, raw_data, vmin, vmax, robust):
+    def _transform_data(self, raw_data, vmin, vmax, robust):
 
         if isinstance(raw_data, pd.DataFrame):
             data = raw_data.to_numpy()
@@ -75,7 +79,7 @@ class Heatmap:
                 msg = f"Don't know how to process input data with type " \
                       f"{type(raw_data)}"
                 raise TypeError(msg)
-
+        return data
         # If vmin and vmax is set
         # Perform regular normalize
         orig_shape = data.shape
@@ -93,24 +97,24 @@ class Heatmap:
             # scaled = std * vrange + self.vmin
 
             trans_data = data
-
-        else:
-            # Use robust scale
-            if isinstance(robust, bool):
-                # Use seaborn default
-                robust = (2., 98.)
-            else:
-                # User input quantile range, eg. (5., 95.)
-                robust = robust
-            transformer = RobustScaler(quantile_range=robust)
-            transformer.fit(data)
-            trans_data = transformer.transform(data)
-            self.vmin = np.nanmin(trans_data)
-            self.vmax = np.nanmax(trans_data)
-            self.center = transformer.center_
+        #
+        # else:
+        #     # Use robust scale
+        #     if isinstance(robust, bool):
+        #         # Use seaborn default
+        #         robust = (2., 98.)
+        #     else:
+        #         # User input quantile range, eg. (5., 95.)
+        #         robust = robust
+        #     transformer = RobustScaler(quantile_range=robust)
+        #     transformer.fit(data)
+        #     trans_data = transformer.transform(data)
+        #     self.vmin = np.nanmin(trans_data)
+        #     self.vmax = np.nanmax(trans_data)
+        #     self.center = transformer.center_
         # Map to origin shape
         # Flip to match origin style of dataframe
-        self.render_data = trans_data.reshape(orig_shape)
+        return trans_data.reshape(orig_shape)
 
     # Copy from seaborn/matrix.py
     def _process_cmap(self, cmap, center):
@@ -166,6 +170,7 @@ class Heatmap:
         pass
 
     def _get_plot_name(self, name, side, chart):
+        # TODO: check duplicate names
         self._side_count[side] += 1
         if name is None:
             return f"{chart}-{side}-{self._side_count[side]}"
@@ -193,19 +198,52 @@ class Heatmap:
             show=True,
             size=0.5,
     ):
-        plot_name = self._get_plot_name(name, side, Chart.Dendrogram)
-        self.grid.add_ax(side, name=plot_name, size=size)
-        pos = "row"
-        if side in ["right", "left"]:
-            pos = "col"
+        """
 
-        self._dens[plot_name] = dict(
-            name=plot_name,
-            side=side,
-            pos=pos,
-            method=method,
-            metric=metric,
-        )
+        .. notes::
+            Notice that we only use method and metric
+            when you add the first dendrogram.
+
+        Parameters
+        ----------
+        side
+        name
+        method
+        metric
+        linkage
+        show
+        size
+
+        Returns
+        -------
+
+        """
+        plot_name = self._get_plot_name(name, side, Chart.Dendrogram)
+        if show:
+            self.grid.add_ax(side, name=plot_name, size=size)
+
+        if side in ["right", "left"]:
+            self._row_den.append(
+                dict(
+                    name=plot_name,
+                    show=show,
+                    pos="row",
+                    side=side,
+                    method=method,
+                    metric=metric
+                )
+            )
+        else:
+            self._col_den.append(
+                dict(
+                    name=plot_name,
+                    show=show,
+                    pos="col",
+                    side=side,
+                    method=method,
+                    metric=metric
+                )
+            )
 
     def add_heatmap(self, data):
         pass
@@ -251,42 +289,41 @@ class Heatmap:
 
     def _data_cluster(self):
         split_plan = self._split_plan
-        dendrogram_storage = {}
+        col_den = None
+        row_den = None
 
-        for name, den in self._dens.items():
-            if den['side'] in ["top", "bottom"]:
-                if split_plan.split_col:
-                    split_col_data = split_plan. \
-                        get_split_col_data(reorder=False)
-                    dens = [Dendrogram(chunk.T) for chunk in
-                            split_col_data]
-                    gd = GroupDendrogram(dens)
-                    dendrogram_storage[name] = gd
-                    split_plan.set_order(
-                        col=[d.reorder_index for d in dens],
-                        col_chunk=gd.reorder_index)
-                else:
-                    dg = Dendrogram(self.render_data.T)
-                    self.render_data = self.render_data[:, dg.reorder_index]
-                    dendrogram_storage[name] = dg
+        # If add dendrogram on column
+        if len(self._col_den) > 0:
+            if split_plan.split_col:
+                split_col_data = split_plan. \
+                    get_split_col_data(reorder=False)
+                dens = [Dendrogram(chunk.T) for chunk in
+                        split_col_data]
+                gd = GroupDendrogram(dens)
+                split_plan.set_order(
+                    col=[d.reorder_index for d in dens],
+                    col_chunk=gd.reorder_index)
+                col_den = gd
             else:
-                if split_plan.split_row:
-                    split_row_data = split_plan. \
-                        get_split_row_data(reorder=False)
-                    dens = [Dendrogram(chunk) for chunk in split_row_data]
-                    gd = GroupDendrogram(dens)
-                    dendrogram_storage[name] = gd
-                    split_plan.set_order(
-                        row=[d.reorder_index for d in dens],
-                        row_chunk=gd.reorder_index)
-                else:
-                    dg = Dendrogram(self.render_data)
-                    self.render_data = self.render_data[dg.reorder_index]
-                    dendrogram_storage[name] = dg
-        if self._split:
-            self.render_data = split_plan.get_split_data()
+                dg = Dendrogram(self.render_data.T)
+                self.render_data = self.render_data[:, dg.reorder_index]
+                col_den = dg
 
-        return dendrogram_storage
+        if len(self._row_den) > 0:
+            if split_plan.split_row:
+                split_row_data = split_plan. \
+                    get_split_row_data(reorder=False)
+                dens = [Dendrogram(chunk) for chunk in split_row_data]
+                gd = GroupDendrogram(dens)
+                split_plan.set_order(
+                    row=[d.reorder_index for d in dens],
+                    row_chunk=gd.reorder_index)
+                row_den = gd
+            else:
+                dg = Dendrogram(self.render_data)
+                self.render_data = self.render_data[dg.reorder_index]
+                row_den = dg
+        return col_den, row_den
 
     def _setup_axes(self):
         split_plan = self._split_plan
@@ -325,18 +362,16 @@ class Heatmap:
         else:
             self.figure = figure
 
-        dendrogram_storage = {}
         split_plan = self._split_plan
 
-        # If dendrogram is added
-        if len(self._dens) > 0:
-            dendrogram_storage = self._data_cluster()
-        # If no dendrogram is added
-        else:
-            render_data = split_plan.get_split_data()
-            if split_plan.split_col & split_plan.split_row:
-                render_data = render_data.flatten()
-            self.render_data = render_data
+        # If dendrogram is added, perform the cluster and set the order
+        if (len(self._row_den) > 0) or (len(self._col_den) > 0):
+            col_den, row_den = self._data_cluster()
+
+        # If split, get the split data
+        if split_plan.split:
+            self.render_data = split_plan.get_split_data()
+        # Otherwise, use the original render data
 
         # Make sure all axes is split
         self._setup_axes()
@@ -351,29 +386,15 @@ class Heatmap:
                   vmin=self.vmin,
                   vmax=self.vmax
                   )
-        for name, dendrogram in dendrogram_storage.items():
-            orient = "h"
-            side = self._dens[name]['side']
-            if side in ["left", "right"]:
-                orient = "v"
+
+        # add row and col dendrogram
+        for den in (self._row_den + self._col_den):
+            if den['show']:
+                ax = self.grid.get_ax(den['name'])
+                ax.set_axis_off()
                 spacing = split_plan.hspace
-            else:
-                spacing = split_plan.wspace
-            ax = self.grid.get_ax(name)
-            ax.set_axis_off()
-
-            if isinstance(dendrogram, Dendrogram):
-                dendrogram.draw(
-                    ax,
-                    orient=orient
-                )
-            else:
-
-                dendrogram.draw(
-                    ax,
-                    orient=orient,
-                    spacing=spacing
-                )
-            # invert the ax manually
-            # the dendrogram need to set the xlim and ylim
-            _handle_ax(ax, side)
+                den_obj = row_den
+                if den['pos'] == "col":
+                    spacing = split_plan.wspace
+                    den_obj = col_den
+                den_obj.draw(ax, orient=den['side'], spacing=spacing)

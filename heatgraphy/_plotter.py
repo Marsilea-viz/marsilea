@@ -60,18 +60,43 @@ class ColorMesh:
                 # hax.text(0.5, 0.5, f"AXES {count}")
                 # count += 1
 
+
 class CatMesh:
 
     def __init__(self,
                  axes,
                  data,
                  labels,
-                 colors,
+                 color_mapping=None,
                  ):
         pass
 
+
+
+    # @staticmethod
+    # def _cat2int(data, color_mapper=None):
+    #     # color_lists =
+    #     if color_mapper is not None:
+    #
+    #     cats = []
+    #     if isinstance(data, list):
+    #         for arr in data:
+    #             cats += np.unique(arr).tolist()
+    #         cats = np.unique(cats)
+    #     else:
+    #         cats = np.unique(data)
+    #     vmax = len(cats)
+    #
+    #     if cmap is None:
+    #         cmap = cm.get_cmap('tab20')
+    #     if cmap.N > vmax:
+    #         warnings.warn(f"Current colormap has only {cmap.N} colors "
+    #                       f"which is less that your input "
+    #                       f"with {vmax} elements")
+    #     mapper = {c: i for i, c in enumerate(cats)}
+
     @staticmethod
-    def _cat2int(arr, cmap):
+    def _color_mapper(arr, cmap):
         cats = natsorted(np.unique(arr))
         vmax = len(cats)
         if cmap is None:

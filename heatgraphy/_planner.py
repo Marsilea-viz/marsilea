@@ -104,16 +104,24 @@ class SplitPlan:
                 return split_data
             # When only split on col
             else:
-                return self._reorder_1d(data, self._col_order,
-                                        self._col_chunk_order)
+                return self._reorder_1d_col(data, self._col_order,
+                                            self._col_chunk_order)
         return data
 
     @staticmethod
-    def _reorder_1d(data1d, order, chunk_order):
+    def _reorder_1d_col(data1d, order, chunk_order):
         for i, ix in zip(
                 range(len(data1d)),
                 order):
             data1d[i] = data1d[i][:, ix]
+        return [data1d[i] for i in chunk_order]
+
+    @staticmethod
+    def _reorder_1d_row(data1d, order, chunk_order):
+        for i, ix in zip(
+                range(len(data1d)),
+                order):
+            data1d[i] = data1d[i][ix]
         return [data1d[i] for i in chunk_order]
 
     def _reorder_row(self, data):
@@ -128,8 +136,8 @@ class SplitPlan:
                     split_data.append(row)
                 return [split_data[i] for i in self._row_chunk_order]
             else:
-                return self._reorder_1d(data, self._row_order,
-                                        self._row_chunk_order)
+                return self._reorder_1d_row(data, self._row_order,
+                                            self._row_chunk_order)
         return data
 
     def get_split_col_data(self, reorder=True):
@@ -164,6 +172,7 @@ class SplitPlan:
         return None
 
     def get_split_data(self, reorder=True):
+        """Return 1d data in list container"""
         if self.split_col & self.split_row:
             # split x and y
             split_data = []
@@ -183,7 +192,6 @@ class SplitPlan:
             if reorder:
                 split_data = self._reorder_row(split_data)
                 split_data = self._reorder_col(split_data)
-
             flatten_data = []
             for row in split_data:
                 for i in row:
@@ -192,9 +200,9 @@ class SplitPlan:
             return flatten_data
         else:
             if self.split_col:
-                return self.get_split_col_data()
+                return self.get_split_col_data(reorder=reorder)
             if self.split_row:
-                return self.get_split_row_data()
+                return self.get_split_row_data(reorder=reorder)
 
     def split_by_col(self, data):
         if self.split_col:
