@@ -12,8 +12,8 @@ from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 # from sklearn.preprocessing import RobustScaler
 
-from ._planner import SplitPlan, RenderPlan
-from ._plotter import ColorMesh, Chart
+from ._planner import SplitPlan
+from ._plotter import ColorMesh, Chart, RenderPlan
 from .dendrogram import Dendrogram, GroupDendrogram
 from .layout import Grid
 
@@ -119,7 +119,7 @@ class Heatmap:
     # Copy from seaborn/matrix.py
     def _process_cmap(self, cmap, center):
         if cmap is None:
-            self.cmap = cm.get_cmap('RdBu')
+            self.cmap = cm.get_cmap('Spectral')
         elif isinstance(cmap, str):
             self.cmap = cm.get_cmap(cmap)
         elif isinstance(cmap, list):
@@ -166,6 +166,10 @@ class Heatmap:
         """Add tick labels to the heatmap"""
         pass
 
+    def add_marked_labels(self):
+        """Mark specific tick labels on the heatmap"""
+        pass
+
     def set_title(self, row=None, col=None, main=None):
         pass
 
@@ -177,16 +181,34 @@ class Heatmap:
         else:
             return name
 
-    def _add_plot(self, side, plot_type, data, name=None, size=1):
+    def _add_plot(self, side, plot_type, data, name=None, size=1, **kwargs):
         plot_name = self._get_plot_name(name, side, plot_type)
         self.grid.add_ax(side, name=plot_name, size=size)
-        self._render_plan.append(
+        if side in ["top", "bottom"]:
+            plan = self._col_plan
+        else:
+            plan = self._row_plan
+        plan.append(
             RenderPlan(name=plot_name, side=side,
-                       data=data, size=size, chart=plot_type)
+                       data=data, size=size, chart=plot_type,
+                       options=kwargs,
+                       )
         )
 
-    def add_colors(self, side, data, name=None, size=1):
-        self._add_plot(side, Chart.Colors, data, name, size)
+    def add_colors(self,
+                   side,
+                   data,
+                   label=None,
+                   label_loc=None,
+                   name=None,
+                   size=0.25,
+                   ):
+        if not isinstance(data, np.ndarray):
+            data = np.array(data)
+        if data.ndim < 2:
+            data = data.reshape(1, -1)
+        self._add_plot(side, Chart.Colors, data, name, size,
+                       label=label, label_loc=label_loc)
 
     def add_dendrogram(
             self,
@@ -287,13 +309,21 @@ class Heatmap:
         """Draw legend based on the order of annotation"""
         pass
 
+    @property
+    def row_cluster(self):
+        return len(self._row_den) > 0
+
+    @property
+    def col_cluster(self):
+        return len(self._col_den) > 0
+
     def _data_cluster(self):
         split_plan = self._split_plan
         col_den = None
         row_den = None
 
         # If add dendrogram on column
-        if len(self._col_den) > 0:
+        if self.col_cluster:
             if split_plan.split_col:
                 split_col_data = split_plan. \
                     get_split_col_data(reorder=False)
@@ -309,7 +339,7 @@ class Heatmap:
                 self.render_data = self.render_data[:, dg.reorder_index]
                 col_den = dg
 
-        if len(self._row_den) > 0:
+        if self.row_cluster:
             if split_plan.split_row:
                 split_row_data = split_plan. \
                     get_split_row_data(reorder=False)
@@ -358,14 +388,14 @@ class Heatmap:
                hspace=0,
                ):
         if figure is None:
-            self.figure = plt.figure()
+            self.figure = plt.figure(figsize=(8, 8))
         else:
             self.figure = figure
 
         split_plan = self._split_plan
 
         # If dendrogram is added, perform the cluster and set the order
-        if (len(self._row_den) > 0) or (len(self._col_den) > 0):
+        if self.row_cluster or self.col_cluster:
             col_den, row_den = self._data_cluster()
 
         # If split, get the split data
@@ -398,3 +428,22 @@ class Heatmap:
                     spacing = split_plan.wspace
                     den_obj = col_den
                 den_obj.draw(ax, orient=den['side'], spacing=spacing)
+
+        # render other plots
+        for plan in self._col_plan:
+            if split_plan.split_col:
+                plan.data = split_plan.split_by_col(plan.data)
+            elif self.col_cluster:
+                plan.data = plan.data[:, col_den.reorder_index]
+            axes = self.grid.get_canvas_ax(plan.name)
+            plan.render(axes, orient=plan.side)
+
+        # render other plots
+        for plan in self._row_plan:
+            plan.data = plan.data.T
+            if split_plan.split_row:
+                plan.data = split_plan.split_by_row(plan.data)
+            elif self.row_cluster:
+                plan.data = plan.data[row_den.reorder_index]
+            axes = self.grid.get_canvas_ax(plan.name)
+            plan.render(axes, orient=plan.side)

@@ -232,9 +232,8 @@ class GroupDendrogram(_DendrogramBase):
         self._draw_dendrogram(ax, orient=orient)
 
         xlim = render_xlim
-        # TODO: Handle the ylim better
-        #   Reserve room for dendrogram title
-        ylim = np.max(self._render_y_coords) * 1.005
+        # reserve room to avoid clipping of the top
+        ylim = np.max(self._render_y_coords) * 1.05
         if orient in ["right", "left"]:
             xlim, ylim = ylim, xlim
 

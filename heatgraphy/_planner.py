@@ -1,9 +1,4 @@
-from dataclasses import dataclass
-from typing import Any, Sequence, Iterable
-
 import numpy as np
-
-from ._plotter import Chart
 
 
 def _segments(breakpoints, total):
@@ -17,15 +12,6 @@ def _segments(breakpoints, total):
         result.append(end)
 
     return np.array(result)
-
-
-@dataclass
-class RenderPlan:
-    name: str
-    side: str
-    data: Any
-    size: float
-    chart: Chart
 
 
 # x: col, y: row
@@ -208,7 +194,7 @@ class SplitPlan:
         if self.split_col:
             split_data = []
             start_x = 0
-            for ix in self._split_index_col:
+            for ix in [*self._split_index_col, self._ncol]:
                 if data.ndim == 2:
                     chunk = data[:, start_x:ix]
                 elif data.ndim == 1:
@@ -217,7 +203,12 @@ class SplitPlan:
                     raise ValueError("Cannot split data more than 2d")
                 split_data.append(chunk)
                 start_x += ix
-            return self._reorder_col(split_data)
+            if self._col_order is None:
+                return split_data
+            else:
+                return self._reorder_1d_col(split_data,
+                                            self._col_order,
+                                            self._col_chunk_order)
         else:
             return data
 
@@ -225,7 +216,7 @@ class SplitPlan:
         if self.split_row:
             split_data = []
             start_y = 0
-            for iy in self._split_index_row:
+            for iy in [*self._split_index_row, self._nrow]:
                 if data.ndim == 2:
                     chunk = data[start_y:iy, :]
                 elif data.ndim == 1:
@@ -234,7 +225,12 @@ class SplitPlan:
                     raise ValueError("Cannot split data more than 2d")
                 split_data.append(chunk)
                 start_y += iy
-            return self._reorder_row(split_data)
+            if self._row_order is None:
+                return split_data
+            else:
+                return self._reorder_1d_row(split_data,
+                                            self._row_order,
+                                            self._row_chunk_order)
         else:
             return data
 

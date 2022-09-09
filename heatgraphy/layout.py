@@ -207,8 +207,6 @@ class Grid:
                            hspace=0.05,
                            mask_placeholder=True
                            ):
-        # TODO: check wspace and hspace range in (0, 1)
-
         gb = self.layout[name]
         gb.is_split = True
         sub_layout = gb.sub_layout
@@ -315,14 +313,23 @@ class Grid:
                         self._set_axis_dir(gb, ax)
                         axes.append(ax)
                         if debug:
-                            ax.tick_params(labelbottom=False, labelleft=False)
-                            ax.set_xticks([])
-                            ax.set_yticks([])
-                            ax.text(0.5, 0.5, f"{block} {ix}-{iy}",
-                                    va="center", ha="center")
                             # If it is placeholder mark it in gray
                             if gb.ax_masks[num] == 0:
-                                ax.set_facecolor("gray")
+                                ax.set_axis_off()
+                            else:
+                                ax.tick_params(labelbottom=False, labelleft=False)
+                                ax.set_xticks([])
+                                ax.set_yticks([])
+                                rotation = 0
+                                if gb.side == "left":
+                                    rotation = 90
+                                elif gb.side == "right":
+                                    rotation = -90
+                                ax.text(0.5, 0.5, f"{block} ({ix}-{iy})",
+                                        va="center", ha="center",
+                                        rotation=rotation
+                                        )
+
                         num += 1
                 gb.ax = np.array(axes)
                 if sub_layout.mask_placeholder:
@@ -337,7 +344,14 @@ class Grid:
                     ax.tick_params(labelbottom=False, labelleft=False)
                     ax.set_xticks([])
                     ax.set_yticks([])
-                    ax.text(0.5, 0.5, block, va="center", ha="center")
+                    rotation = 0
+                    if gb.side == "left":
+                        rotation = 90
+                    elif gb.side == "right":
+                        rotation = -90
+                    ax.text(0.5, 0.5, block,
+                            va="center", ha="center",
+                            rotation=rotation)
 
     @staticmethod
     def _set_axis_dir(gi, ax):
@@ -353,7 +367,7 @@ class Grid:
     def get_canvas_ax(self, name) -> Axes:
         return self.layout[name].get_canvas_ax()
 
-    def plot(self):
+    def plot(self, figure=None):
         if self.gs is None:
             figure = plt.figure()
-            self.freeze(figure=figure, debug=True)
+        self.freeze(figure=figure, debug=True)
