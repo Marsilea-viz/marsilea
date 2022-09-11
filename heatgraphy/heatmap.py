@@ -173,11 +173,11 @@ class Heatmap:
     def set_title(self, row=None, col=None, main=None):
         pass
 
-    def _get_plot_name(self, name, side, chart):
+    def _get_plot_name(self, name, side, chart: Chart):
         # TODO: check duplicate names
         self._side_count[side] += 1
         if name is None:
-            return f"{chart}-{side}-{self._side_count[side]}"
+            return f"{chart.value}-{side}-{self._side_count[side]}"
         else:
             return name
 
