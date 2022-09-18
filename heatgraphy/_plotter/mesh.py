@@ -7,7 +7,7 @@ class ColorMesh(_PlotBase):
 
     def __init__(self,
                  axes,
-                 render_data,
+                 data,
                  cmap=None,
                  vmin=None,
                  vmax=None,
@@ -15,7 +15,7 @@ class ColorMesh(_PlotBase):
                  mode="mesh"  # mesh or collection
                  ):
         self.axes = axes
-        self.render_data = render_data
+        self.data = data
 
         self.cmap = cmap
         self.vmin = vmin
@@ -25,16 +25,21 @@ class ColorMesh(_PlotBase):
     def render(self):
         count = 1
         if isinstance(self.axes, Axes):
-            # print(self.render_data)
-            self.axes.invert_yaxis()
-            self.axes.set_axis_off()
-            self.axes.pcolormesh(self.render_data, cmap=self.cmap)
+            self._draw_ax(self.axes, self.data)
         else:
-            for hax, data in zip(self.axes, self.render_data):
-                # print(data)
-                hax.invert_yaxis()
-                hax.set_axis_off()
-                hax.pcolormesh(data, cmap=self.cmap,
-                               vmin=self.vmin, vmax=self.vmax)
-                # hax.text(0.5, 0.5, f"AXES {count}")
-                # count += 1
+            for hax, data in zip(self.axes, self.data):
+                self._draw_ax(hax, data)
+
+    def _draw_ax(self, ax, data):
+        ax.invert_yaxis()
+        ax.set_axis_off()
+        ax.pcolormesh(data, cmap=self.cmap,
+                      vmin=self.vmin, vmax=self.vmax)
+
+    def get_legend(self):
+        pass
+
+
+class CatMesh(_PlotBase):
+    """Draw a different element based on categorical data"""
+    pass

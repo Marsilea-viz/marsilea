@@ -202,7 +202,7 @@ class SplitPlan:
                 else:
                     raise ValueError("Cannot split data more than 2d")
                 split_data.append(chunk)
-                start_x += ix
+                start_x = ix
             if self._col_order is None:
                 return split_data
             else:
@@ -224,7 +224,7 @@ class SplitPlan:
                 else:
                     raise ValueError("Cannot split data more than 2d")
                 split_data.append(chunk)
-                start_y += iy
+                start_y = iy
             if self._row_order is None:
                 return split_data
             else:

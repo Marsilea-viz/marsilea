@@ -310,7 +310,7 @@ class Grid:
                     for iy in range(sub_layout.col):
 
                         ax = figure.add_subplot(new_gs[ix, iy])
-                        self._set_axis_dir(gb, ax)
+                        # self._set_axis_dir(gb, ax)
                         axes.append(ax)
                         if debug:
                             # If it is placeholder mark it in gray
@@ -338,7 +338,7 @@ class Grid:
 
             else:
                 ax = figure.add_subplot(ax_loc)
-                self._set_axis_dir(gb, ax)
+                # self._set_axis_dir(gb, ax)
                 gb.ax = ax
                 if debug:
                     ax.tick_params(labelbottom=False, labelleft=False)
