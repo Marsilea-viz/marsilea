@@ -109,16 +109,16 @@ class ColorStrip(_PlotBase):
         "right": "bottom",
     }
 
-    def render(self, orient="top"):
+    def render(self):
         if self.label_loc is None:
-            self.label_loc = self.default_label_loc[orient]
+            self.label_loc = self.default_label_loc[self.orient]
         if isinstance(self.data, list):
             if self.label_loc in ["top", "left"]:
                 self._add_label(self.axes[0])
             else:
                 self._add_label(self.axes[-1])
             for hax, arr in zip(self.axes, self.data):
-                if orient in ["left", "right"]:
+                if self.is_horizontal:
                     hax.invert_yaxis()
                 hax.set_axis_off()
                 render_data = self._remap(arr, self.mapper)
@@ -126,7 +126,7 @@ class ColorStrip(_PlotBase):
                                vmin=0, vmax=self.vmax)
         else:
             render_data = self._remap(self.data, self.mapper)
-            if orient in ["left", "right"]:
+            if self.is_horizontal:
                 self.axes.invert_yaxis()
             self.axes.pcolormesh(render_data, cmap=self.render_cmap,
                                  vmin=0, vmax=self.vmax)

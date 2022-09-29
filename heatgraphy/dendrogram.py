@@ -241,5 +241,5 @@ class GroupDendrogram(_DendrogramBase):
         ax.set_ylim(0, ylim)
         if orient == "left":
             ax.invert_xaxis()
-        if orient == "bottom":
+        if orient != "top":
             ax.invert_yaxis()

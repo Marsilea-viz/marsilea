@@ -321,14 +321,14 @@ class Grid:
                                 ax.set_xticks([])
                                 ax.set_yticks([])
                                 rotation = 0
-                                if gb.side == "left":
+                                if gb.orient == "left":
                                     rotation = 90
-                                elif gb.side == "right":
+                                elif gb.orient == "right":
                                     rotation = -90
-                                ax.text(0.5, 0.5, f"{block} ({ix}-{iy})",
-                                        va="center", ha="center",
-                                        rotation=rotation
-                                        )
+                                ax.text_obj(0.5, 0.5, f"{block} ({ix}-{iy})",
+                                            va="center", ha="center",
+                                            rotation=rotation
+                                            )
 
                         num += 1
                 gb.ax = np.array(axes)
@@ -345,19 +345,19 @@ class Grid:
                     ax.set_xticks([])
                     ax.set_yticks([])
                     rotation = 0
-                    if gb.side == "left":
+                    if gb.orient == "left":
                         rotation = 90
-                    elif gb.side == "right":
+                    elif gb.orient == "right":
                         rotation = -90
-                    ax.text(0.5, 0.5, block,
-                            va="center", ha="center",
-                            rotation=rotation)
+                    ax.text_obj(0.5, 0.5, block,
+                                va="center", ha="center",
+                                rotation=rotation)
 
     @staticmethod
     def _set_axis_dir(gi, ax):
-        if gi.side == "left":
+        if gi.orient == "left":
             ax.invert_xaxis()
-        if gi.side == "bottom":
+        if gi.orient == "bottom":
             ax.invert_yaxis()
 
     def get_ax(self, name) -> Axes:

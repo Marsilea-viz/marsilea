@@ -5,6 +5,9 @@ from matplotlib.axes import Axes
 class _PlotBase:
     data = None
     axes = None
+    orient = "top"
+    is_vertical = None
+    is_horizontal = None
 
     def render(self, *args, **kwargs):
         raise NotImplemented
@@ -19,3 +22,9 @@ class _PlotBase:
 
     def is_whole(self):
         return isinstance(self.axes, Axes)
+
+    def set_orient(self, orient):
+        self.orient = orient
+        self.is_vertical = orient in ["top", "bottom"]
+        self.is_horizontal = orient in ["right", "left"]
+

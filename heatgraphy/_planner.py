@@ -149,8 +149,7 @@ class SplitPlan:
                 split_data.append(
                     self.data[start:ix]
                 )
-                start += ix
-            row_data = np.asarray(split_data)
+                start = ix
             if reorder:
                 return self._reorder_row(split_data)
             else:
