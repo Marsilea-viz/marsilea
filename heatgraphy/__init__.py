@@ -1,4 +1,5 @@
-from .heatmap import Heatmap
-from .layout import Grid
+from .heatmap import Heatmap, DotHeatmap
+from .layout import Grid, GridLayout
 from .dendrogram import Dendrogram, GroupDendrogram
-from ._plotter import Chart
+from ._planner import Deformation
+from .plotter import Colors

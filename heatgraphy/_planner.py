@@ -1,242 +1,242 @@
+from itertools import tee
+
 import numpy as np
 
-
-def _segments(breakpoints, total):
-    bp = np.array([*breakpoints, total])
-
-    start = 0.0
-    result = []
-    for i in bp:
-        end = i - start
-        start += end
-        result.append(end)
-
-    return np.array(result)
+from .dendrogram import Dendrogram, GroupDendrogram
 
 
-# x: col, y: row
-class SplitPlan:
+def pairwise(iterable):
+    a, b = tee(iterable)
+    next(b, None)
+    return zip(a, b)
+
+
+class Deformation:
     """A helper class that does:
-    1. Split the data based on index
-    2. Reorder data chunks and data within chunk
-    3. Compute the ratio to split axes that match with data
+        1. Split the data based on index
+        2. Reorder data chunks and data within chunk
+        3. Compute the ratio to split axes that match with data
     """
-    data: np.ndarray
-    split = False  # To known whether to do the split
-    split_col = False
-    split_row = False
-    wspace: float = 0.05
-    hspace: float = 0.05
-    _split_index_col: np.ndarray = None
-    _split_index_row: np.ndarray = None
-    _split_col_data: np.ndarray = None
-    _split_row_data: np.ndarray = None
-    _split_data: np.ndarray = None
-    _col_segments: np.ndarray = None
-    _row_segments: np.ndarray = None
-    _col_order: np.ndarray = None
-    _row_order: np.ndarray = None
-    _col_chunk_order: np.ndarray = None
-    _row_chunk_order: np.ndarray = None
+    is_row_split = False
+    is_col_split = False
+    is_row_cluster = False
+    is_col_cluster = False
+    _row_clustered = False
+    _col_clustered = False
 
-    def __repr__(self):
-        return f"SplitPlan(row={self.split_row}, col={self.split_col})"
+    row_ratios = None
+    col_ratios = None
+
+    row_breakpoints = None
+    col_breakpoints = None
+
+    row_dendrogram = None
+    col_dendrogram = None
+
+    row_reorder_index = None
+    col_reorder_index = None
+
+    row_chunk_index = None
+    col_chunk_index = None
+
+    # just for storage
+    wspace = 0
+    hspace = 0
 
     def __init__(self, data):
         self.data = data
         self._nrow, self._ncol = data.shape
 
-    def set_split_index(self, col=None, row=None):
-        self.split = True
-        if col is not None:
-            col = np.sort(np.asarray(col))
-            self._split_index_col = col
-            self.split_col = True
-            self._col_segments = _segments(col, self._ncol)
+    def set_split_row(self, breakpoints=None):
+        if breakpoints is not None:
+            self.is_row_split = True
+            self.row_breakpoints = [0, *np.sort(np.asarray(breakpoints)),
+                                    self._nrow]
+            self.row_ratios = np.array(
+                [ix2 - ix1 for ix1, ix2 in pairwise(self.row_breakpoints)]
+            )
 
-        if row is not None:
-            row = np.sort(np.asarray(row))
-            self._split_index_row = row
-            self.split_row = True
-            self._row_segments = _segments(row, self._nrow)
+    def set_split_col(self, breakpoints=None):
+        if breakpoints is not None:
+            self.is_col_split = True
+            self.col_breakpoints = [0, *np.sort(np.asarray(breakpoints)),
+                                    self._ncol]
+            self.col_ratios = np.array(
+                [ix2 - ix1 for ix1, ix2 in pairwise(self.col_breakpoints)]
+            )
 
-    def set_order(self, col=None, row=None,
-                  col_chunk=None, row_chunk=None):
-        """This is used to record the order of generated dendrogram
-        when no split happen
+    def set_row_chunk_order(self, order):
+        self.row_chunk_index = order
 
-        This function should only be called once in a render cycle
+    def set_col_chunk_order(self, order):
+        self.col_chunk_index = order
 
-        """
-        if col_chunk is not None:
-            self._col_order = col
-            self._col_chunk_order = col_chunk
-            self._col_segments = self._col_segments[col_chunk]
-        if row_chunk is not None:
-            self._row_order = row
-            self._row_chunk_order = row_chunk
-            self._row_segments = self._row_segments[row_chunk]
+    def split_by_row(self, data: np.ndarray):
+        if not self.is_row_split:
+            return data
+        return [data[ix1:ix2] for ix1, ix2 in pairwise(self.row_breakpoints)]
 
-    def _reorder_col(self, data):
-        if self._col_chunk_order is not None:
-            # When split both col and row
-            if self.split_row:
-                split_data = []
-                for row_data_chunk in data:
-                    row = []
-                    for chunk, ix in zip(row_data_chunk, self._col_order):
-                        row.append(chunk[:, ix])
-                    split_data.append([row[i] for i in self._col_chunk_order])
-                return split_data
-            # When only split on col
-            else:
-                return self._reorder_1d_col(data, self._col_order,
-                                            self._col_chunk_order)
-        return data
+    def split_by_col(self, data: np.ndarray):
+        if not self.is_col_split:
+            return data
+        if data.ndim == 1:
+            return [data[ix1:ix2] for ix1, ix2 in pairwise(
+                self.col_breakpoints)]
+        else:
+            return [data[:, ix1:ix2] for ix1, ix2 in pairwise(
+                self.col_breakpoints)]
 
-    @staticmethod
-    def _reorder_1d_col(data1d, order, chunk_order):
-        for i, ix in zip(
-                range(len(data1d)),
-                order):
-            data1d[i] = data1d[i][:, ix]
-        return [data1d[i] for i in chunk_order]
-
-    @staticmethod
-    def _reorder_1d_row(data1d, order, chunk_order):
-        for i, ix in zip(
-                range(len(data1d)),
-                order):
-            data1d[i] = data1d[i][ix]
-        return [data1d[i] for i in chunk_order]
-
-    def _reorder_row(self, data):
-        if self._row_chunk_order is not None:
-            # When split both col and row
-            if self.split_col:
-                split_data = []
-                for row_data_chunk, ix in zip(data, self._row_order):
-                    row = []
-                    for chunk in row_data_chunk:
-                        row.append(chunk[ix])
-                    split_data.append(row)
-                return [split_data[i] for i in self._row_chunk_order]
-            else:
-                return self._reorder_1d_row(data, self._row_order,
-                                            self._row_chunk_order)
-        return data
-
-    def get_split_col_data(self, reorder=True):
-        if self.split_col:
+    def split_cross(self, data: np.ndarray):
+        if self.is_col_split & self.is_row_split:
             split_data = []
-            start = 0
-            for ix in [*self._split_index_col, self._ncol]:
-                split_data.append(
-                    self.data[:, start:ix]
-                )
-                start = ix
-            if reorder:
-                return self._reorder_col(split_data)
-            else:
-                return split_data
-        return None
-
-    def get_split_row_data(self, reorder=True):
-        if self.split_row:
-            split_data = []
-            start = 0
-            for ix in [*self._split_index_row, self._nrow]:
-                split_data.append(
-                    self.data[start:ix]
-                )
-                start = ix
-            if reorder:
-                return self._reorder_row(split_data)
-            else:
-                return split_data
-        return None
-
-    def get_split_data(self, reorder=True):
-        """Return 1d data in list container"""
-        if self.split_col & self.split_row:
-            # split x and y
-            split_data = []
-            start_x = 0
-            start_y = 0
-            for iy in [*self._split_index_row, self._nrow]:
+            for ix1, ix2 in pairwise(self.row_breakpoints):
                 row = []
-                for ix in [*self._split_index_col, self._ncol]:
-                    # print((start_y, iy), (start_x, ix))
+                for iy1, iy2 in pairwise(self.col_breakpoints):
                     row.append(
-                        self.data[start_y:iy, start_x:ix]
+                        data[ix1:ix2, iy1:iy2]
                     )
-                    start_x = ix
                 split_data.append(row)
-                start_x = 0
-                start_y = iy
-            if reorder:
-                split_data = self._reorder_row(split_data)
-                split_data = self._reorder_col(split_data)
-            flatten_data = []
-            for row in split_data:
-                for i in row:
-                    flatten_data.append(i)
+            return split_data
+        if self.is_row_split:
+            return self.split_by_row(data)
+        if self.is_col_split:
+            return self.split_by_col(data)
+        return data
 
+    def cluster_row(self):
+        row_data = self.split_by_row(self.data)
+        if self.is_row_split:
+            dens = [Dendrogram(chunk) for chunk in row_data]
+            dg = GroupDendrogram(dens)
+            self.row_chunk_index = dg.reorder_index
+            self.row_reorder_index = [d.reorder_index for d in dens]
+        else:
+            dg = Dendrogram(row_data)
+            self.row_reorder_index = dg.reorder_index
+        self.row_dendrogram = dg
+
+    def cluster_col(self):
+        col_data = self.split_by_col(self.data)
+        if self.is_col_split:
+            dens = [Dendrogram(chunk.T) for chunk in col_data]
+            dg = GroupDendrogram(dens)
+            self.col_chunk_index = dg.reorder_index
+            self.col_reorder_index = [d.reorder_index for d in dens]
+        else:
+            dg = Dendrogram(col_data.T)
+            self.col_reorder_index = dg.reorder_index
+        self.col_dendrogram = dg
+
+    def _run_cluster(self):
+        """Calculation of dendrogram is expensive,
+        so only calculated once"""
+        if self.is_row_cluster & (not self._row_clustered):
+            self.cluster_row()
+            self._row_clustered = True
+        if self.is_col_cluster & (not self._col_clustered):
+            self.cluster_col()
+            self._col_clustered = True
+
+    def reorder_by_row(self, data, split="both"):
+        self._run_cluster()
+        if not self.is_row_cluster:
+            return data
+        # no split
+        elif not self.is_split:
+            return data[self.row_reorder_index]
+        # 2d list situation
+        elif self.is_row_split & self.is_col_split & (split == "both"):
+            for row, order in zip(data, self.row_reorder_index):
+                for ix in range(len(row)):
+                    row[ix] = row[ix][order]
+            return [data[ix] for ix in self.row_chunk_index]
+        # 1d list situation
+        else:
+            for ix in range(len(data)):
+                data[ix] = data[ix][self.row_reorder_index]
+            if self.is_row_split:
+                return [data[ix] for ix in self.row_chunk_index]
+            else:
+                return data
+
+    def reorder_by_col(self, data, split="both"):
+        self._run_cluster()
+        if not self.is_col_cluster:
+            return data
+        # no split
+        elif not self.is_split:
+            if data.ndim == 2:
+                return data[:, self.col_reorder_index]
+            else:
+                return data[self.col_reorder_index]
+        # 2d list situation
+        elif self.is_row_split & self.is_col_split & (split == "both"):
+            final_data = []
+            for row in data:
+                for ix, order in zip(range(len(row)), self.col_reorder_index):
+                    if row[ix].ndim == 2:
+                        row[ix] = row[ix][:, order]
+                    else:
+                        row[ix] = row[ix][order]
+                final_data.append(
+                    [row[ix] for ix in self.col_chunk_index]
+                )
+            return final_data
+        # 1d list situation
+        else:
+            for ix, order in zip(range(len(data)), self.col_reorder_index):
+                if data[ix].ndim == 2:
+                    data[ix] = data[ix][:, order]
+                else:
+                    data[ix] = data[ix][order]
+            if self.is_col_split:
+                return [data[ix] for ix in self.col_chunk_index]
+            else:
+                return data
+
+    def transform(self, data: np.ndarray):
+        """data must be 2d array with the same shape as cluster data"""
+        if not data.shape == (self._nrow, self._ncol):
+            msg = f"The shape of input data {data.shape} does not align with" \
+                  f" the shape of cluster data {(self._nrow, self._ncol)}"
+            raise ValueError(msg)
+        trans_data = self.split_cross(data)
+        trans_data = self.reorder_by_row(trans_data, split="both")
+        trans_data = self.reorder_by_col(trans_data, split="both")
+
+        flatten_data = []
+        if self.is_row_split & self.is_col_split:
+            for chunk in trans_data:
+                flatten_data += chunk
             return flatten_data
-        else:
-            if self.split_col:
-                return self.get_split_col_data(reorder=reorder)
-            if self.split_row:
-                return self.get_split_row_data(reorder=reorder)
+        return trans_data
 
-    def split_by_col(self, data):
-        if self.split_col:
-            split_data = []
-            start_x = 0
-            for ix in [*self._split_index_col, self._ncol]:
-                if data.ndim == 2:
-                    chunk = data[:, start_x:ix]
-                elif data.ndim == 1:
-                    chunk = data[start_x:ix]
-                else:
-                    raise ValueError("Cannot split data more than 2d")
-                split_data.append(chunk)
-                start_x = ix
-            if self._col_order is None:
-                return split_data
-            else:
-                return self._reorder_1d_col(split_data,
-                                            self._col_order,
-                                            self._col_chunk_order)
+    def transform_row(self, data: np.ndarray):
+        if data.ndim == 1:
+            assert len(data) == self._nrow
         else:
-            return data
+            assert data.shape[1] == self._nrow
 
-    def split_by_row(self, data):
-        if self.split_row:
-            split_data = []
-            start_y = 0
-            for iy in [*self._split_index_row, self._nrow]:
-                if data.ndim == 2:
-                    chunk = data[start_y:iy, :]
-                elif data.ndim == 1:
-                    chunk = data[start_y:iy]
-                else:
-                    raise ValueError("Cannot split data more than 2d")
-                split_data.append(chunk)
-                start_y = iy
-            if self._row_order is None:
-                return split_data
-            else:
-                return self._reorder_1d_row(split_data,
-                                            self._row_order,
-                                            self._row_chunk_order)
+        trans_data = self.split_by_row(data)
+        trans_data = self.reorder_by_row(trans_data, split="row")
+        return trans_data
+
+    def transform_col(self, data: np.ndarray):
+        if data.ndim == 1:
+            assert len(data) == self._ncol
         else:
-            return data
+            assert data.shape[1] == self._ncol
+
+        trans_data = self.split_by_col(data)
+        trans_data = self.reorder_by_col(trans_data, split="col")
+        return trans_data
+
+    def get_row_dendrogram(self):
+        return self.row_dendrogram
+
+    def get_col_dendrogram(self):
+        return self.col_dendrogram
 
     @property
-    def col_segments(self):
-        return self._col_segments
-
-    @property
-    def row_segments(self):
-        return self._row_segments
+    def is_split(self):
+        return self.is_row_split | self.is_col_split
