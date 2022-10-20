@@ -75,13 +75,15 @@ class ColorMesh(RenderPlan, _MeshBase):
         self._process_cmap(data, vmin, vmax, cmap, norm, center, robust)
 
     def render_ax(self, ax, data):
-        ax.invert_yaxis()
-        ax.set_axis_off()
+        print(data.shape)
+
         ax.pcolormesh(data, cmap=self.cmap,
                       vmin=self.vmin, vmax=self.vmax,
                       linewidth=self.linewidth,
                       edgecolor=self.edgecolor
                       )
+        ax.invert_yaxis()
+        ax.set_axis_off()
 
     def get_legend(self):
         pass
@@ -257,8 +259,9 @@ class Pieces:
 
 
 def preview(element: Pieces, figsize=(1, 1)):
-    figure, ax = plt.subplots(figsize=figsize)
-    ax.set_axis_off()
+    figure = plt.figure(figsize=figsize)
+    ax = figure.add_axes([0, 0, 1, 1])
+    close_ticks(ax)
     arts = element.draw(0, 0, 1, 1)
     ax.add_artist(arts)
 

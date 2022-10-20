@@ -152,11 +152,13 @@ class Deformation:
             return [data[ix] for ix in self.row_chunk_index]
         # 1d list situation
         else:
-            for ix in range(len(data)):
-                data[ix] = data[ix][self.row_reorder_index]
             if self.is_row_split:
-                return [data[ix] for ix in self.row_chunk_index]
+                for ix, order in zip(range(len(data)), self.row_reorder_index):
+                    data[ix] = data[ix][order]
+                    return [data[ix] for ix in self.row_chunk_index]
             else:
+                for ix, order in range(len(data)):
+                    data[ix] = data[ix][self.row_reorder_index]
                 return data
 
     def reorder_by_col(self, data, split="both"):
@@ -184,14 +186,19 @@ class Deformation:
             return final_data
         # 1d list situation
         else:
-            for ix, order in zip(range(len(data)), self.col_reorder_index):
-                if data[ix].ndim == 2:
-                    data[ix] = data[ix][:, order]
-                else:
-                    data[ix] = data[ix][order]
             if self.is_col_split:
+                for ix, order in zip(range(len(data)), self.col_reorder_index):
+                    if data[ix].ndim == 2:
+                        data[ix] = data[ix][:, order]
+                    else:
+                        data[ix] = data[ix][order]
                 return [data[ix] for ix in self.col_chunk_index]
             else:
+                for ix in range(len(data)):
+                    if data[ix].ndim == 2:
+                        data[ix] = data[ix][:, self.col_reorder_index]
+                    else:
+                        data[ix] = data[ix][self.col_reorder_index]
                 return data
 
     def transform(self, data: np.ndarray):

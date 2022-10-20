@@ -10,6 +10,7 @@ class RenderPlan:
     size: float = 1.
     side: str = "top"
     no_split: bool = False
+    canvas_size_unknown: bool = False
 
     render_data = None
 
@@ -46,6 +47,9 @@ class RenderPlan:
             self.render_axes(axes)
         else:
             self.render_ax(axes, self.get_render_data())
+
+    def get_canvas_size(self):
+        raise NotImplemented
 
     def align_lim(self, axes):
         if self.v:

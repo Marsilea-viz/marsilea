@@ -8,6 +8,9 @@ from matplotlib.figure import Figure, figaspect
 from matplotlib.gridspec import GridSpec, GridSpecFromSubplotSpec
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
+import logging
+log = logging.getLogger("heatgraphy")
+
 
 @dataclass
 class SubLayout:
@@ -109,19 +112,19 @@ class Grid:
         if self.layout.get(name) is not None:
             raise NameError(f"{name} has been used.")
 
-    def add_ax(self, side, name, size=1):
+    def add_ax(self, side, name, size=1, pad=0.):
         if side == "top":
-            self.top(name, size=size)
+            self.top(name, size=size, pad=pad)
         elif side == "bottom":
-            self.bottom(name, size=size)
+            self.bottom(name, size=size, pad=pad)
         elif side == "right":
-            self.right(name, size=size)
+            self.right(name, size=size, pad=pad)
         elif side == "left":
-            self.left(name, size=size)
+            self.left(name, size=size, pad=pad)
         else:
             raise ValueError(f"Cannot add axes at {side}")
 
-    def top(self, name, size=1, pad=0):
+    def top(self, name, size=1., pad=0.):
         self._check_name(name)
 
         gain = 2 if pad > 0 else 1
@@ -138,7 +141,7 @@ class Grid:
         self.h_ratios = [*ratios_append, *self.h_ratios]
         self.side_tracker['top'].append(name)
 
-    def bottom(self, name, size=1, pad=0):
+    def bottom(self, name, size=1., pad=0.):
         self._check_name(name)
         gain = 2 if pad > 0 else 1
         ratios_append = [pad, size] if pad > 0 else [size]
@@ -151,7 +154,7 @@ class Grid:
         self.h_ratios = [*self.h_ratios, *ratios_append]
         self.side_tracker['bottom'].append(name)
 
-    def left(self, name, size=1, pad=0):
+    def left(self, name, size=1., pad=0.):
         self._check_name(name)
         gain = 2 if pad > 0 else 1
         ratios_append = [size, pad] if pad > 0 else [size]
@@ -167,7 +170,7 @@ class Grid:
         self.w_ratios = [*ratios_append, *self.w_ratios]
         self.side_tracker['left'].append(name)
 
-    def right(self, name, size=1, pad=0):
+    def right(self, name, size=1., pad=0.):
         self._check_name(name)
         gain = 2 if pad > 0 else 1
         ratios_append = [pad, size] if pad > 0 else [size]
@@ -360,6 +363,9 @@ class Grid:
                 w_ratios[gb.col] = offset
 
         figure.set_size_inches(fig_w, fig_h)
+        print(f"Setting figure size: {fig_w}, {fig_h}")
+        print(f"width ratios: {w_ratios}")
+        print(f"height ratios: {h_ratios}")
 
         gs = GridSpec(self.nrow, self.ncol,
                       figure=figure,

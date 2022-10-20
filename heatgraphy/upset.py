@@ -1,5 +1,5 @@
-from .base import MatrixBase
+from .base import _Base
 
 
-class Upset(MatrixBase):
+class Upset(_Base):
     pass

@@ -9,7 +9,7 @@ from matplotlib import colors as mcolors
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 
-from ._planner import Deformation
+from ._deform import Deformation
 from ._plotter import Chart
 from .layout import Grid
 from .plotter import RenderPlan
@@ -59,16 +59,25 @@ class _Base:
         else:
             return name
 
-    def add_plot(self, plot: RenderPlan, side, name=None, size=1.,
+    def add_plot(self, side, plot: RenderPlan, name=None, size=None, pad=0.,
                  no_split=False):
         plot_name = self._get_plot_name(name, side, type(plot))
-        self.grid.add_ax(side, name=plot_name, size=size)
+
+        add_ax_size = size if size is not None else 1.
+        self.grid.add_ax(side, name=plot_name, size=add_ax_size, pad=pad)
+
         if side in ["top", "bottom"]:
             plan = self._col_plan
         else:
             plan = self._row_plan
         plot.set(name=plot_name, side=side,
                  size=size, no_split=no_split)
+
+        if plot.canvas_size_unknown & (plot.size is None):
+            s = plot.get_canvas_size()
+            print(s)
+            self.grid.set_render_size_inches(plot_name, s)
+
         plan.append(plot)
 
     # def _add_plot(self, side, plot_type, data, name=None, size=1.,
