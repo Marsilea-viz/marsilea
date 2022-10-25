@@ -1,5 +1,14 @@
+from itertools import tee
+
 import numpy as np
 from matplotlib import colors as mcolors
+
+
+def pairwise(iterable):
+    """This is not available in itertools until 3.10"""
+    a, b = tee(iterable)
+    next(b, None)
+    return zip(a, b)
 
 
 # Copy from seaborn/utils.py

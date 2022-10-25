@@ -1,11 +1,8 @@
 from __future__ import annotations
 
-import warnings
-from itertools import cycle
 from typing import List
 
 import numpy as np
-from matplotlib import colors as mcolors
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 
@@ -13,12 +10,12 @@ from ._deform import Deformation
 from ._plotter import Chart
 from .layout import Grid
 from .plotter import RenderPlan
-from .utils import relative_luminance
+from .utils import pairwise
 
 
 def getaspect(ratio, w=None, h=None):
-    canvas_size_min = np.array((4.0, 4.0))  # min length for width/height
-    canvas_size_max = np.array((10.0, 10.0))  # max length for width/height
+    canvas_size_min = np.array((2.0, 2.0))  # min length for width/height
+    canvas_size_max = np.array((20.0, 20.0))  # max length for width/height
 
     set_w = w is not None
     set_h = h is not None
@@ -30,7 +27,10 @@ def getaspect(ratio, w=None, h=None):
     elif set_w:
         canvas_width = w
     else:
-        canvas_height = 5
+        if ratio >= 1:
+            canvas_height = 4
+        else:
+            canvas_height = 2
 
     if canvas_height is not None:
         newsize = np.array((canvas_height / ratio, canvas_height))
@@ -43,7 +43,36 @@ def getaspect(ratio, w=None, h=None):
     return newsize
 
 
+def reorder_index(arr, order=None):
+    uniq = set(arr)
+    indices = {x: [] for x in uniq}
+    for ix, a in enumerate(arr):
+        indices[a].append(ix)
+
+    final_index = []
+    if order is not None:
+        for it in order:
+            final_index += indices[it]
+    else:
+        for it in indices.values():
+            final_index += it
+    return final_index
+
+
+def get_breakpoints(arr):
+    breakpoints = []
+    for ix, (a, b) in enumerate(pairwise(arr)):
+        if a != b:
+            breakpoints.append(ix + 1)
+    return breakpoints
+
+
 class _Base:
+    gird: Grid
+    figure: Figure
+    main_axes: Axes | List[Axes]
+    _row_plan: List[RenderPlan]
+    _col_plan: List[RenderPlan]
 
     def __init__(self, w=None, h=None, data_aspect=1):
         w, h = getaspect(data_aspect, w=w, h=h)
@@ -51,6 +80,7 @@ class _Base:
         self._side_count = {"right": 0, "left": 0, "top": 0, "bottom": 0}
         self._col_plan = []
         self._row_plan = []
+        self._deform = Deformation()
 
     def _get_plot_name(self, name, side, chart):
         self._side_count[side] += 1
@@ -70,184 +100,40 @@ class _Base:
             plan = self._col_plan
         else:
             plan = self._row_plan
-        plot.set(name=plot_name, side=side,
-                 size=size, no_split=no_split)
+        plot.set(name=plot_name, size=size, no_split=no_split)
+        plot.set_side(side)
 
         if plot.canvas_size_unknown & (plot.size is None):
             s = plot.get_canvas_size()
-            print(s)
             self.grid.set_render_size_inches(plot_name, s)
 
         plan.append(plot)
-
-    # def _add_plot(self, side, plot_type, data, name=None, size=1.,
-    #               no_split=False,
-    #               **kwargs):
-    #     plot_name = self._get_plot_name(name, side, plot_type)
-    #     self.grid.add_ax(side, name=plot_name, size=size)
-    #     if side in ["top", "bottom"]:
-    #         plan = self._col_plan
-    #     else:
-    #         plan = self._row_plan
-    #     plan.append(
-    #         plot(name=plot_name, orient=side,
-    #                    data=data, size=size, chart=plot_type,
-    #                    no_split=no_split,
-    #                    options=kwargs,
-    #                    )
-    #     )
-
-    # def add_labels(self, side, labels, name=None, size=.5, **options):
-    #     """Add tick labels to the heatmap"""
-    #     labels = np.asarray(labels)
-    #     self._add_plot(side, Chart.Label, labels, name, size,
-    #                    **options)
-
-    # def add_chunks(self, side,
-    #                labels=None,
-    #                colors=None,
-    #                bordercolor=None,
-    #                borderwidth=None,
-    #                borderstyle=None,
-    #                name=None, size=.5, **options,
-    #                ):
-    #     if labels is None:
-    #         labels = cycle([None])
-    #     elif isinstance(labels, str):
-    #         labels = [labels]
-    #     if colors is None:
-    #         colors = cycle([None])
-    #     elif isinstance(colors, (str, tuple)):
-    #         colors = [colors]
-    #
-    #     data = np.asarray([(text, c) for text, c in zip(labels, colors)],
-    #                       dtype=object)
-    #     self._add_plot(side, Chart.Chunk, data, name, size,
-    #                    no_split=True,
-    #                    bordercolor=bordercolor,
-    #                    borderwidth=borderwidth,
-    #                    borderstyle=borderstyle,
-    #                    **options)
-
-    # def add_colors(self,
-    #                side,
-    #                data,
-    #                label=None,
-    #                label_loc=None,
-    #                name=None,
-    #                size=0.25,
-    #                ):
-    #     if not isinstance(data, np.ndarray):
-    #         data = np.array(data)
-    #     if data.ndim < 2:
-    #         if side in ["top", "bottom"]:
-    #             data = data.reshape(1, -1)
-    #         else:
-    #             data = data.reshape(-1, 1)
-    #     self._add_plot(side, Chart.Colors, data, name, size=size,
-    #                    label=label, label_loc=label_loc)
-
-    # def add_bar(self, side, data, name=None, size=1, **options):
-    #     self._add_plot(side, Chart.Bar, data, name, size,
-    #                    **options)
-    #
-    # def add_scatter(self):
-    #     pass
-    #
-    # def add_violin(self):
-    #     pass
-    #
-    # def add_custom(self):
-    #     pass
-
-    def set_title(self, row=None, col=None, main=None):
-        pass
-
-    def get_ax(self, name):
-        """Get a specific axes by name when available"""
-        pass
-
-    def get_main_ax(self):
-        """Return the main axes, like the heatmap axes"""
-        pass
-
-
-class MatrixBase(_Base):
-    gird: Grid
-    figure: Figure
-    main_axes: Axes | List[Axes]
-    _row_plan: List[RenderPlan]
-    _col_plan: List[RenderPlan]
-
-    # vmin = None
-    # vmax = None
-    # cmap = None
-    # norm = None
-    # annot_text = None
-    # render_data = None
-
-    def __init__(self, cluster_data, w=None, h=None, data_aspect=1):
-        super().__init__(w=w, h=h, data_aspect=data_aspect)
-        self._row_den = []
-        self._col_den = []
-        self._deform = Deformation(cluster_data)
-
-    # def add_annotated_labels(self, side, labels, masks,
-    #                          name=None, size=1, **options):
-    #     """Mark specific tick labels on the heatmap"""
-    #     annotated_labels = np.ma.masked_where(masks, labels)
-    #     self._add_plot(side, Chart.AnnotatedLabel, annotated_labels,
-    #                    name, size, **options)
-
-    def add_dendrogram(self, side, name=None, method=None, metric=None,
-                       linkage=None, show=True, size=0.5):
-        """
-
-        .. notes::
-            Notice that we only use method and metric
-            when you add the first dendrogram.
-
-        Parameters
-        ----------
-        side
-        name
-        method
-        metric
-        linkage
-        show
-        size
-
-        Returns
-        -------
-
-        """
-        plot_name = self._get_plot_name(name, side, Chart.Dendrogram)
-        if show:
-            self.grid.add_ax(side, name=plot_name, size=size)
-
-        if side in ["right", "left"]:
-            self._row_den.append(
-                dict(name=plot_name, show=show, pos="row",
-                     side=side, method=method, metric=metric)
-            )
-            self._deform.is_row_cluster = True
-        else:
-            self._col_den.append(
-                dict(name=plot_name, show=show, pos="col",
-                     side=side, method=method, metric=metric
-                     )
-            )
-            self._deform.is_col_cluster = True
 
     def split_row(self, cut=None, labels=None, order=None, spacing=0.01):
         self._deform.hspace = spacing
         if cut is not None:
             self._deform.set_split_row(breakpoints=cut)
+        else:
+            labels = np.asarray(labels)
+
+            reindex = reorder_index(labels, order=order)
+            self._deform.set_data_row_reindex(reindex)
+
+            breakpoints = get_breakpoints(labels[reindex])
+            self._deform.set_split_row(breakpoints=breakpoints)
 
     def split_col(self, cut=None, labels=None, order=None, spacing=0.01):
         self._deform.wspace = spacing
         if cut is not None:
             self._deform.set_split_col(breakpoints=cut)
+        else:
+            labels = np.asarray(labels)
+
+            reindex = reorder_index(labels, order=order)
+            self._deform.set_data_col_reindex(reindex)
+
+            breakpoints = get_breakpoints(labels[reindex])
+            self._deform.set_split_col(breakpoints=breakpoints)
 
     def _setup_axes(self):
         deform = self._deform
@@ -279,18 +165,19 @@ class MatrixBase(_Base):
                     hspace=deform.hspace
                 )
 
-    def _render_dendrogram(self):
-        deform = self._deform
-        for den in (self._row_den + self._col_den):
-            if den['show']:
-                ax = self.grid.get_ax(den['name'])
-                ax.set_axis_off()
-                spacing = deform.hspace
-                den_obj = deform.get_row_dendrogram()
-                if den['pos'] == "col":
-                    spacing = deform.wspace
-                    den_obj = deform.get_col_dendrogram()
-                den_obj.draw(ax, orient=den['side'], spacing=spacing)
+    def set_title(self, row=None, col=None, main=None):
+        pass
+
+    def get_ax(self, name):
+        """Get a specific axes by name when available"""
+        return self.grid.get_ax(name)
+
+    def get_main_ax(self):
+        """Return the main axes, like the heatmap axes"""
+        return self.main_axes
+
+    def get_deform(self):
+        return self._deform
 
     def _render_plan(self):
         deform = self._deform
@@ -312,8 +199,66 @@ class MatrixBase(_Base):
             axes = self.grid.get_canvas_ax(plan.name)
             plan.render(axes)
 
-    def get_deform(self):
-        return self._deform
+
+class MatrixBase(_Base):
+    _row_reindex: List[int] = None
+    _col_reindex: List[int] = None
+
+    def __init__(self, cluster_data, w=None, h=None, data_aspect=1):
+        super().__init__(w=w, h=h, data_aspect=data_aspect)
+        self._row_den = []
+        self._col_den = []
+        self._cluster_data = cluster_data
+        self._deform.set_data(cluster_data)
+
+    def add_dendrogram(self, side, name=None, method=None, metric=None,
+                       show=True, size=0.5):
+        """
+
+        .. notes::
+            Notice that we only use method and metric
+            when you add the first dendrogram.
+
+        Parameters
+        ----------
+        side
+        name
+        method
+        metric
+        show
+        size
+
+        Returns
+        -------
+
+        """
+        plot_name = self._get_plot_name(name, side, Chart.Dendrogram)
+        if show:
+            self.grid.add_ax(side, name=plot_name, size=size)
+
+        if side in ["right", "left"]:
+            self._row_den.append(dict(name=plot_name, show=show,
+                                      pos="row", side=side))
+            self._deform.set_cluster(row=True)
+            self._deform.set_row_cluster_params(method=method, metric=metric)
+        else:
+            self._col_den.append(dict(name=plot_name, show=show,
+                                      pos="col", side=side))
+            self._deform.set_cluster(col=True)
+            self._deform.set_col_cluster_params(method=method, metric=metric)
+
+    def _render_dendrogram(self):
+        deform = self._deform
+        for den in (self._row_den + self._col_den):
+            if den['show']:
+                ax = self.grid.get_ax(den['name'])
+                ax.set_axis_off()
+                spacing = deform.hspace
+                den_obj = deform.get_row_dendrogram()
+                if den['pos'] == "col":
+                    spacing = deform.wspace
+                    den_obj = deform.get_col_dendrogram()
+                den_obj.draw(ax, orient=den['side'], spacing=spacing)
 
     def auto_legend(self, side):
         """Draw legend based on the order of annotation"""

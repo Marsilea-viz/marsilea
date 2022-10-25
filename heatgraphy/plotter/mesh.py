@@ -1,9 +1,10 @@
 import warnings
 from itertools import cycle
+from typing import Mapping, Iterable
 
 import numpy as np
-from matplotlib import cm, pyplot as plt
-from matplotlib.artist import Artist
+from matplotlib import cm
+from matplotlib.axes import Axes
 from matplotlib.colors import ListedColormap, TwoSlopeNorm, Normalize
 from matplotlib.offsetbox import AnchoredText
 
@@ -19,7 +20,15 @@ ECHARTS16 = [
 ]
 
 
+def _empty(x):
+    return x
+
+
 class _MeshBase:
+    annot = False
+    annotated_texts = None
+    fmt = "0"
+    annot_kws = {}
 
     def _process_cmap(self, data, vmin, vmax,
                       cmap, norm, center, robust):
@@ -45,8 +54,7 @@ class _MeshBase:
             norm = TwoSlopeNorm(center, vmin=vmin, vmax=vmax)
             self.norm = norm
 
-    @staticmethod
-    def _annotate_text(ax, mesh, texts, fmt, **annot_kws):
+    def _annotate_text(self, ax, mesh, texts):
         """Add textual labels with the value in each cell."""
         mesh.update_scalarmappable()
         height, width = texts.shape
@@ -57,31 +65,46 @@ class _MeshBase:
             if m is not np.ma.masked:
                 lum = relative_luminance(color)
                 text_color = ".15" if lum > .408 else "w"
-                annotation = ("{:" + fmt + "}").format(val)
+                annotation = ("{:" + self.fmt + "}").format(val)
                 text_kwargs = dict(color=text_color, ha="center", va="center")
-                text_kwargs.update(annot_kws)
-                ax.text_obj(x, y, annotation, **text_kwargs)
+                text_kwargs.update(self.annot_kws)
+                ax.text(x, y, annotation, **text_kwargs)
 
 
 class ColorMesh(RenderPlan, _MeshBase):
 
     def __init__(self, data, cmap=None, norm=None, vmin=None, vmax=None,
                  center=None, robust=None, alpha=None,
-                 linewidth=None, edgecolor=None):
+                 linewidth=None, linecolor=None,
+                 annot=None, fmt=None, annot_kws=None
+                 ):
         self.data = data
         self.alpha = alpha
         self.linewidth = linewidth
-        self.edgecolor = edgecolor
+        self.linecolor = linecolor
+        self.annotated_texts = data
+        if annot is not None:
+            if isinstance(annot, bool):
+                self.annot = annot
+            else:
+                self.annot = True
+                self.annotated_texts = annot
+        if fmt is not None:
+            self.fmt = fmt
+        if annot_kws is not None:
+            self.annot_kws = annot_kws
         self._process_cmap(data, vmin, vmax, cmap, norm, center, robust)
 
     def render_ax(self, ax, data):
-        print(data.shape)
+        values, texts = data
+        mesh = ax.pcolormesh(values, cmap=self.cmap,
+                             vmin=self.vmin, vmax=self.vmax,
+                             linewidth=self.linewidth,
+                             edgecolor=self.linecolor
+                             )
+        if self.annot:
+            self._annotate_text(ax, mesh, texts)
 
-        ax.pcolormesh(data, cmap=self.cmap,
-                      vmin=self.vmin, vmax=self.vmax,
-                      linewidth=self.linewidth,
-                      edgecolor=self.edgecolor
-                      )
         ax.invert_yaxis()
         ax.set_axis_off()
 
@@ -242,30 +265,60 @@ class Colors(RenderPlan):
                 self._add_label(axes)
 
 
-class Pieces:
+class LayersMesh(RenderPlan):
 
-    def draw(self, x, y, w, h) -> Artist:
-        raise NotImplemented
+    def __init__(self,
+                 data=None,
+                 layers=None,
+                 pieces=None,
+                 shrink=(.9, .9)
+                 ):
+        # render one layer
+        # with different elements
+        if data is not None:
+            self.data = data
+            if not isinstance(pieces, Mapping):
+                msg = f"Expect pieces to be dict " \
+                      f"but found {type(pieces)} instead."
+                raise TypeError(msg)
+            self.pieces_mapper = pieces
+            self.mode = "cell"
+        # render multiple layers
+        # each layer is an elements
+        else:
+            self.data = layers
+            if not isinstance(pieces, Iterable):
+                msg = f"Expect pieces to be list " \
+                      f"but found {type(pieces)} instead."
+                raise TypeError(msg)
+            self.pieces = pieces
+            self.mode = "layer"
+        self.x_offset = (1 - shrink[0]) / 2
+        self.y_offset = (1 - shrink[1]) / 2
+        self.width = shrink[0]
+        self.height = shrink[1]
 
-    def legend(self, x, y, w, h) -> Artist:
-        return self.draw(x, y, w, h)
-
-    def legend_artist(self, legend, orig_handle, fontsize, handlebox):
-        x, y = handlebox.xdescent, handlebox.ydescent
-        w, h = handlebox.width, handlebox.height
-        p = self.legend(-x, -y, w, h)
-        handlebox.add_artist(p)
-        return p
-
-
-def preview(element: Pieces, figsize=(1, 1)):
-    figure = plt.figure(figsize=figsize)
-    ax = figure.add_axes([0, 0, 1, 1])
-    close_ticks(ax)
-    arts = element.draw(0, 0, 1, 1)
-    ax.add_artist(arts)
-
-
-class CatMesh:
-    """Mesh with custom graphic elements"""
-    pass
+    def render_ax(self, ax: Axes, data):
+        if self.mode == "layer":
+            Y, X = data[0].shape
+        else:
+            Y, X = data.shape
+        ax.set_axis_off()
+        ax.set_xlim(0, X)
+        ax.set_ylim(0, Y)
+        if self.mode == "layer":
+            for layer, piece in zip(data, self.pieces):
+                for iy, row in enumerate(layer):
+                    for ix, v in enumerate(row):
+                        if v:
+                            art = piece.draw(ix + self.x_offset,
+                                             iy + self.y_offset,
+                                             self.width, self.height)
+                            ax.add_artist(art)
+        else:
+            for iy, row in enumerate(data):
+                for ix, v in enumerate(row):
+                    piece = self.pieces_mapper[v]
+                    art = piece.draw(ix + self.x_offset, iy + self.y_offset,
+                                     self.width, self.height)
+                    ax.add_artist(art)

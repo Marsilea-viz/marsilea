@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
-from typing import Any
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -13,30 +11,13 @@ from .plotter import ColorMesh, CircleMesh
 log = logging.getLogger("heatgraphy")
 
 
-@dataclass
-class ChunkData:
-    label: str
-    color: str
-
-
-class Plot:
-    ax: Any
-    legend: Any
-
-
-def _handle_ax(ax, side):
-    if side == "left":
-        ax.invert_xaxis()
-    if side == "bottom":
-        ax.invert_yaxis()
-
-
 class Heatmap(MatrixBase):
 
     def __init__(self, data: np.ndarray, vmin=None, vmax=None,
                  cmap=None, norm=None, center=None, robust=None,
-                 mask=None, alpha=None, linewidth=None, edgecolor=None,
-                 square=False,
+                 mask=None, alpha=None, linewidth=0, linecolor="white",
+                 annot=None, fmt=None, annot_kws=None,
+                 square=False
                  ):
         if mask is not None:
             data = np.ma.masked_where(np.asarray(mask), data).filled(np.nan)
@@ -49,7 +30,12 @@ class Heatmap(MatrixBase):
             data_aspect = Y / X
         super().__init__(data, data_aspect=data_aspect)
         self._mesh = ColorMesh(data, vmin=vmin, vmax=vmax, cmap=cmap,
-                               norm=norm, center=center, robust=robust)
+                               norm=norm, center=center, robust=robust,
+                               alpha=alpha, linewidth=linewidth,
+                               linecolor=linecolor,
+                               annot=annot, fmt=fmt,
+                               annot_kws=annot_kws
+                               )
 
     def render(self, figure=None, aspect=1):
         if figure is None:
@@ -58,9 +44,14 @@ class Heatmap(MatrixBase):
             self.figure = figure
 
         deform = self.get_deform()
-        self._mesh.set_render_data(
-            deform.transform(self.data)
-        )
+        trans_data = deform.transform(self.data)
+        trans_texts = deform.transform(self._mesh.annotated_texts)
+        if deform.is_split:
+            self._mesh.set_render_data(
+                [d for d in zip(trans_data, trans_texts)]
+            )
+        else:
+            self._mesh.set_render_data((trans_data, trans_texts))
 
         # Make sure all axes is split
         self._setup_axes()
@@ -85,9 +76,7 @@ class DotHeatmap(MatrixBase):
         y, x = cluster_data.shape
         super().__init__(cluster_data, data_aspect=y / x)
 
-        self._mesh = CircleMesh(
-            size=size, color=color
-        )
+        self._mesh = CircleMesh(size=size, color=color)
         self._bg_mesh = None
 
     def add_matrix(self, data: np.ndarray, vmin=None, vmax=None, cmap=None,

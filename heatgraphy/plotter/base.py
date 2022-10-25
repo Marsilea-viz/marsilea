@@ -18,6 +18,9 @@ class RenderPlan:
         for k, v in kwargs.items():
             self.__setattr__(k, v)
 
+    def set_side(self, side):
+        self.side = side
+
     def set_render_data(self, data):
         self.render_data = data
 
@@ -58,7 +61,7 @@ class RenderPlan:
             ylim_up = []
             for ax in axes:
                 low, up = ax.get_ylim()
-                if ax.yaxis_inveted():
+                if ax.yaxis_inverted():
                     is_inverted = True
                     low, up = up, low
                 ylim_up.append(up)
@@ -74,7 +77,7 @@ class RenderPlan:
             xlim_up = []
             for ax in axes:
                 low, up = ax.get_xlim()
-                if ax.yaxis_inveted():
+                if ax.xaxis_inverted():
                     is_inverted = True
                     low, up = up, low
                 xlim_up.append(up)

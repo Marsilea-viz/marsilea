@@ -9,6 +9,7 @@ from matplotlib.gridspec import GridSpec, GridSpecFromSubplotSpec
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 import logging
+
 log = logging.getLogger("heatgraphy")
 
 
@@ -363,9 +364,9 @@ class Grid:
                 w_ratios[gb.col] = offset
 
         figure.set_size_inches(fig_w, fig_h)
-        print(f"Setting figure size: {fig_w}, {fig_h}")
-        print(f"width ratios: {w_ratios}")
-        print(f"height ratios: {h_ratios}")
+        # print(f"Setting figure size: {fig_w}, {fig_h}")
+        # print(f"width ratios: {w_ratios}")
+        # print(f"height ratios: {h_ratios}")
 
         gs = GridSpec(self.nrow, self.ncol,
                       figure=figure,
@@ -388,6 +389,7 @@ class Grid:
                     width_ratios=sub_layout.w_ratios,
                     height_ratios=sub_layout.h_ratios)
                 axes = []
+
                 num = 0
                 for ix in range(sub_layout.row):
                     for iy in range(sub_layout.col):

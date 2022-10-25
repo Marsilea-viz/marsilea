@@ -13,9 +13,13 @@ class _DendrogramBase:
 
     def __init__(self,
                  data,
-                 method='single',
-                 metric='euclidean'
+                 method=None,
+                 metric=None
                  ):
+        if method is None:
+            method = "single"
+        if metric is None:
+            metric = "euclidean"
         self.Z = linkage(data, method=method, metric=metric)
         self._plot_data = dendrogram(self.Z, no_plot=True)
 
@@ -102,8 +106,8 @@ class Dendrogram(_DendrogramBase):
 
     def __init__(self,
                  data: np.ndarray,
-                 method='single',
-                 metric='euclidean'
+                 method=None,
+                 metric=None
                  ):
         super().__init__(data, method=method, metric=metric)
 
@@ -140,8 +144,8 @@ class Dendrogram(_DendrogramBase):
 class GroupDendrogram(_DendrogramBase):
     def __init__(self,
                  dens: List[Dendrogram],
-                 method='single',
-                 metric='euclidean'
+                 method=None,
+                 metric=None
                  ):
         data = np.asarray([d.center for d in dens])
         super().__init__(data, method=method, metric=metric)

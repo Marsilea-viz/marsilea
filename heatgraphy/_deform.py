@@ -3,19 +3,15 @@ from itertools import tee
 import numpy as np
 
 from .dendrogram import Dendrogram, GroupDendrogram
-
-
-def pairwise(iterable):
-    a, b = tee(iterable)
-    next(b, None)
-    return zip(a, b)
+from .utils import pairwise
 
 
 class Deformation:
     """A helper class that does:
         1. Split the data based on index
-        2. Reorder data chunks and data within chunk
-        3. Compute the ratio to split axes that match with data
+        2. Reorder the data based on label order
+        2. Reorder the data based on cluster order
+        4. Compute the ratio to split axes that match with data
     """
     is_row_split = False
     is_col_split = False
@@ -23,6 +19,9 @@ class Deformation:
     is_col_cluster = False
     _row_clustered = False
     _col_clustered = False
+
+    data_row_reindex = None
+    data_col_reindex = None
 
     row_ratios = None
     col_ratios = None
@@ -43,9 +42,50 @@ class Deformation:
     wspace = 0
     hspace = 0
 
-    def __init__(self, data):
+    row_cluster_kws = {}
+    col_cluster_kws = {}
+
+    data = None
+    _nrow = None
+    _ncol = None
+
+    def __init__(self, data=None):
+        if data is not None:
+            self.set_data(data)
+
+    def set_data(self, data):
         self.data = data
         self._nrow, self._ncol = data.shape
+
+    def set_data_row_reindex(self, reindex):
+        if len(reindex) != self._nrow:
+            msg = f"Length of reindex ({len(reindex)}) should match " \
+                  f"data row with {self._nrow} elements"
+            raise ValueError(msg)
+        self.data_row_reindex = reindex
+        self._row_clustered = False
+
+    def set_data_col_reindex(self, reindex):
+        if len(reindex) != self._ncol:
+            msg = f"Length of reindex ({len(reindex)}) should match " \
+                  f"data col with {self._ncol} elements"
+            raise ValueError(msg)
+        self.data_col_reindex = reindex
+        self._col_clustered = False
+
+    def set_cluster(self, col=None, row=None):
+        if col is not None:
+            self.is_col_cluster = col
+        if row is not None:
+            self.is_row_cluster = row
+
+    def get_data(self):
+        data = self.data
+        if self.data_row_reindex is not None:
+            data = data[self.data_row_reindex]
+        if self.data_col_reindex is not None:
+            data = data[:, self.data_col_reindex]
+        return data
 
     def set_split_row(self, breakpoints=None):
         if breakpoints is not None:
@@ -104,28 +144,38 @@ class Deformation:
         return data
 
     def cluster_row(self):
-        row_data = self.split_by_row(self.data)
+        row_data = self.split_by_row(self.get_data())
         if self.is_row_split:
-            dens = [Dendrogram(chunk) for chunk in row_data]
-            dg = GroupDendrogram(dens)
+            dens = [Dendrogram(
+                chunk, **self.row_cluster_kws) for chunk in row_data]
+            dg = GroupDendrogram(dens, **self.row_cluster_kws)
             self.row_chunk_index = dg.reorder_index
             self.row_reorder_index = [d.reorder_index for d in dens]
         else:
-            dg = Dendrogram(row_data)
+            dg = Dendrogram(row_data, **self.row_cluster_kws)
             self.row_reorder_index = dg.reorder_index
         self.row_dendrogram = dg
 
     def cluster_col(self):
-        col_data = self.split_by_col(self.data)
+        col_data = self.split_by_col(self.get_data())
         if self.is_col_split:
-            dens = [Dendrogram(chunk.T) for chunk in col_data]
-            dg = GroupDendrogram(dens)
+            dens = [Dendrogram(
+                chunk.T, **self.col_cluster_kws) for chunk in col_data]
+            dg = GroupDendrogram(dens, **self.col_cluster_kws)
             self.col_chunk_index = dg.reorder_index
             self.col_reorder_index = [d.reorder_index for d in dens]
         else:
-            dg = Dendrogram(col_data.T)
+            dg = Dendrogram(col_data.T, **self.col_cluster_kws)
             self.col_reorder_index = dg.reorder_index
         self.col_dendrogram = dg
+
+    def set_row_cluster_params(self, **kws):
+        self.row_cluster_kws = {**kws}
+        self._row_clustered = False
+
+    def set_col_cluster_params(self, **kws):
+        self.col_cluster_kws = {**kws}
+        self._col_clustered = False
 
     def _run_cluster(self):
         """Calculation of dendrogram is expensive,
@@ -207,6 +257,10 @@ class Deformation:
             msg = f"The shape of input data {data.shape} does not align with" \
                   f" the shape of cluster data {(self._nrow, self._ncol)}"
             raise ValueError(msg)
+        if self.data_row_reindex is not None:
+            data = data[self.data_row_reindex]
+        if self.data_col_reindex is not None:
+            data = data[:, self.data_col_reindex]
         trans_data = self.split_cross(data)
         trans_data = self.reorder_by_row(trans_data, split="both")
         trans_data = self.reorder_by_col(trans_data, split="both")
@@ -224,6 +278,9 @@ class Deformation:
         else:
             assert data.shape[1] == self._nrow
 
+        if self.data_row_reindex is not None:
+            data = data[self.data_row_reindex]
+
         trans_data = self.split_by_row(data)
         trans_data = self.reorder_by_row(trans_data, split="row")
         return trans_data
@@ -233,6 +290,12 @@ class Deformation:
             assert len(data) == self._ncol
         else:
             assert data.shape[1] == self._ncol
+
+        if self.data_col_reindex is not None:
+            if data.ndim == 2:
+                data = data[:, self.data_col_reindex]
+            else:
+                data = data[self.data_col_reindex]
 
         trans_data = self.split_by_col(data)
         trans_data = self.reorder_by_col(trans_data, split="col")

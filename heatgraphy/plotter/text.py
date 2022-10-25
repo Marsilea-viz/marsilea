@@ -1,32 +1,17 @@
 from __future__ import annotations
+
 import warnings
 from dataclasses import dataclass
+from itertools import cycle
 from typing import List
-from itertools import tee, cycle
-from enum import Enum
 
 import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib.axes import Axes
 from matplotlib.text import Text
-import numpy as np
 
 from .base import RenderPlan
-
-
-def pairwise(iterable):
-    """This is not available in itertools until 3.10"""
-    a, b = tee(iterable)
-    next(b, None)
-    return zip(a, b)
-
-
-class Relation(Enum):
-    Right = 1
-    Left = 2
-    CrossRight = 3
-    CrossLeft = 4
-    Inside = 5
-    Contain = 6
+from ..utils import pairwise
 
 
 class Segment:
@@ -261,8 +246,30 @@ class _LabelBase(RenderPlan):
     va = None
     ha = None
     rotation = None
+    connectionstyle = None
+    relpos = None
+    expand = None
     canvas_size = None
     canvas_size_unknown = True
+
+    def set_side(self, side):
+        self.side = side
+        self._default_text_config()
+
+    def _default_text_config(self):
+        text_config = side_mapper[self.side]
+        if self.va is None:
+            self.va = text_config.va
+        if self.ha is None:
+            self.ha = text_config.ha
+        if self.rotation is None:
+            self.rotation = text_config.rotation
+        if self.connectionstyle is None:
+            self.connectionstyle = text_config.connectionstyle
+        if self.relpos is None:
+            self.relpos = text_config.relpos
+        if self.expand is None:
+            self.expand = text_config.expand
 
     @staticmethod
     def get_axes_coords(labels):
@@ -316,22 +323,7 @@ class AnnoLabels(_LabelBase):
         self.rotation = rotation
         self.connectionstyle = connectionstyle
         self.relpos = relpos
-
         self.options = options
-
-        text_config = side_mapper[self.side]
-        if self.va is None:
-            self.va = text_config.va
-        if self.ha is None:
-            self.ha = text_config.ha
-
-        if self.rotation is None:
-            self.rotation = text_config.rotation
-        if self.connectionstyle is None:
-            self.connectionstyle = text_config.connectionstyle
-        if self.relpos is None:
-            self.relpos = text_config.relpos
-        self.expand = text_config.expand
 
     def get_canvas_size(self):
         self.silent_render()
@@ -403,7 +395,7 @@ class Labels(_LabelBase):
     def __init__(self, labels, align=None, side="right",
                  va=None, ha=None, rotation=None,
                  **options):
-        self.data = labels
+        self.data = np.asarray(labels)
         self.align = align
         self.canvas_size = None
         self.va = va
@@ -412,15 +404,6 @@ class Labels(_LabelBase):
         self.side = side
         self.options = options
 
-        text_config = side_mapper[self.side]
-        if self.va is None:
-            self.va = text_config.va
-        if self.ha is None:
-            self.ha = text_config.ha
-
-        if self.rotation is None:
-            self.rotation = text_config.rotation
-
     def get_canvas_size(self):
         self.silent_render()
         return self.canvas_size
@@ -428,13 +411,10 @@ class Labels(_LabelBase):
     def render_ax(self, ax: Axes, data):
         ax.set_axis_off()
         coords = self.get_axes_coords(data)
+        if self.h:
+            coords = coords[::-1]
         for s, c in zip(data, coords):
             x, y = (0, c) if self.h else (c, 0)
             ax.text(x, y, s=s, va=self.va, ha=self.ha,
                     rotation=self.rotation, transform=ax.transAxes,
                     **self.options)
-
-        if self.side != "top":
-            ax.invert_yaxis()
-        if self.side == "left":
-            ax.invert_xaxis()
