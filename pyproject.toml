@@ -1,0 +1,31 @@
+[build-system]
+requires = ["flit_core >=3.2,<4"]
+build-backend = "flit_core.buildapi"
+
+[project]
+name = "heatgraphy"
+description = "Create annotated matrix plot"
+authors = [{name = "Mr-Milk", email = "yb97643@um.edu.mo"}]
+license = {file = "LICENSE"}
+readme = "README.md"
+classifiers = ["License :: OSI Approved :: MIT License"]
+dynamic = ["version"]
+urls = {Home="https://github.com/mr-milk/heatgraphy"}
+dependencies = [
+    "numpy",
+    "pandas",
+    "matplotlib",
+    "seaborn",
+    "scipy",
+    "legendkit",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest"
+]
+doc = [
+    "sphinx",
+    "numpydoc",
+    "sphinx-book-theme"
+]
