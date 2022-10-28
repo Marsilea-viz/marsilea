@@ -70,7 +70,7 @@ class Heatmap(MatrixBase):
 
 class DotHeatmap(MatrixBase):
 
-    def __init__(self, size, color, sizes=(1, 200),
+    def __init__(self, size, color, cluster_data=None, sizes=(1, 200),
                  alpha=1.0, cmap=None, norm=None):
         cluster_data = color
         y, x = cluster_data.shape

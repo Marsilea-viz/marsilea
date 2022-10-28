@@ -1,5 +1,9 @@
+from __future__ import annotations
+
+from copy import deepcopy
 from dataclasses import dataclass, field
-from typing import Any, Iterable
+from typing import Any, Iterable, Dict, List
+from uuid import uuid4
 
 import numpy as np
 from matplotlib import pyplot as plt
@@ -9,6 +13,8 @@ from matplotlib.gridspec import GridSpec, GridSpecFromSubplotSpec
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 import logging
+
+from .utils import pairwise
 
 log = logging.getLogger("heatgraphy")
 
@@ -27,13 +33,32 @@ class SubLayout:
 
 
 @dataclass
-class GridBlock:
+class BaseCell:
     row: int
     col: int
-    hsize: float
-    wsize: float
-    side: str
-    is_split: bool = field(default=False)
+    height: float
+    width: float
+    side: str  # For debug purpose
+    attach_main: str  # the main canvas it attaches to
+
+
+@dataclass
+class Pad(BaseCell):
+    pass
+
+
+@dataclass
+class GridCell(BaseCell):
+    name: str
+    # row: int  # left-most
+    # col: int  # top-most
+    # height: float
+    # width: float
+    # attach_main: str
+    # side: str
+    row_span: int = 1
+    col_span: int = 1
+    is_split: bool = False
     sub_layout: SubLayout = field(default_factory=SubLayout)
     ax: Any = field(default=None, repr=False)
     ax_masks: Any = field(default_factory=list)
@@ -51,10 +76,15 @@ class GridBlock:
             return None
         return self.ax[~self.ax_masks]
 
+    def create_subplotspec(self, gs: GridSpec):
+        row_slice = slice(self.row, self.row + self.row_span)
+        col_slice = slice(self.col, self.col + self.col_span)
+        return gs[row_slice, col_slice]
 
-class Grid:
+
+class CrossGrid:
     """
-    A grid layout system
+    A grid layout system that can be expanded at four direction
 
     - Everything is drawn within axes
     - No ticks, no ticklabels, no label, no title etc.
@@ -67,17 +97,12 @@ class Grid:
     ncol: int = 1
     gs: GridSpec = None
 
-    def __init__(self, w=5, h=5, name="main", aspect="auto"):
-        self._adjust_render_size = []
-        self.nrow = 1
-        self.ncol = 1
-        if aspect == "auto":
-            self.aspect = None
-        elif aspect == "equal":
-            self.aspect = 1
-        else:
-            self.aspect = aspect
+    def __init__(self, w=5, h=5, name=None):
+        if name is None:
+            # add uuid to name to avoid collide
+            name = f"main-{uuid4().hex}"
 
+        # track the index of center axes
         self.crow_ix = 0
         self.ccol_ix = 0
 
@@ -85,12 +110,15 @@ class Grid:
         self.main_h = h
         self.main_name = name
 
-        self.h_ratios = [h]
-        self.w_ratios = [w]
-
+        self.side_ratios = {"right": [], "left": [], "top": [], "bottom": []}
         self.side_tracker = {"right": [], "left": [], "top": [], "bottom": []}
-        self.layout = {name: GridBlock(row=self.crow_ix, col=self.ccol_ix,
-                                       side="main", hsize=h, wsize=w)}
+        self.main_cell = GridCell(name=self.main_name,
+                                  row=self.crow_ix, col=self.ccol_ix,
+                                  side="main", height=h, width=w,
+                                  attach_main=self.main_name)
+        self.layout = {name: self.main_cell}
+        self._pad = []
+        self._adjust_render_size = []
 
     def __repr__(self):
         return f"{self.nrow}*{self.ncol} Grid"
@@ -103,15 +131,274 @@ class Grid:
         """Define behavior that vertical appends two grid"""
         pass
 
-    def append_horizontal(self):
-        pass
+    def set_side_tracker(self, **kws):
+        for k, v in kws.items():
+            self.side_tracker[k] = v
 
-    def append_vertical(self):
-        pass
+    def set_side_ratios(self, **kws):
+        for k, v in kws.items():
+            self.side_ratios[k] = v
+
+    def get_gridlines(self, other, side):
+        ratios1 = self.side_ratios[side]
+        ratios2 = other.side_ratios[side]
+
+        g1 = np.cumsum(ratios1)
+        g2 = np.cumsum(ratios2)
+
+        gridlines = np.concatenate((g1, g2))
+        gridlines = np.sort(np.unique(gridlines))
+        ratios = [gridlines[0]] + [i2 - i1 for i1, i2 in pairwise(gridlines)]
+
+        n_grid = len(gridlines)
+        # how much to move for current grid
+        offset_current = n_grid - len(ratios1)
+        # how much to move for other grid
+        offset_other = n_grid - len(ratios2)
+
+        return gridlines, ratios, offset_current, offset_other
+
+    @staticmethod
+    def group_cells(cells: List[GridCell | Pad]):
+        container = {}
+        for cell in cells:
+            name = cell.attach_main
+            if container.get(name) is None:
+                container[name] = [cell]
+            else:
+                container[name].append(cell)
+        return container
+
+    @staticmethod
+    def sort_cells(cells: List[GridCell | Pad], by="row", ascending=True):
+        if by == "row":
+            key = lambda cell: cell.row
+        else:
+            key = lambda cell: cell.col
+        return sorted(cells, key=key, reverse=not ascending)
+
+    def set_id_span(self, cells: List[GridCell | Pad], gridlines,
+                    side="top", start_ix=0):
+        side_v = side in ["top", "bottom"]
+        side_first = side in ["top", "left"]
+        attr = "height" if side_v else "width"
+        by = "row" if side_v else "col"
+        ascending = not side_first
+
+        group_cells = self.group_cells(cells)
+
+        for group, cells in group_cells.items():
+            sorted_cells = self.sort_cells(cells, by=by, ascending=ascending)
+            segments = [getattr(cell, attr) for cell in sorted_cells]
+            it = enumerate(gridlines)
+            pre_add = 0
+            ixs = []
+            for s in segments:
+                while True:
+                    ix, g = next(it)
+                    if (s + pre_add) == g:
+                        ixs.append(ix)
+                        pre_add += s
+                        break
+            spans = np.array(
+                [i2 - i1 for ix, (i1, i2) in enumerate(pairwise(ixs))])
+            if side_first:
+                ordered_ixs = len(gridlines) - np.array(ixs) - 1
+            else:
+                ordered_ixs = start_ix + 1 + np.array(ixs)[1::] - (spans - 1)
+                ordered_ixs = [start_ix + 1, *ordered_ixs]
+            spans = [ixs[0] + 1, *spans]
+            for cell, ix, span in zip(cells, ordered_ixs, spans):
+                if side_v:
+                    cell.row = ix
+                    cell.row_span = span
+                else:
+                    cell.col = ix
+                    cell.col_span = span
+
+    def _check_duplicated_names(self, other: CrossGrid):
+        # check for unique name for each heatmap
+        current_names = set(self.layout.keys())
+        other_names = set(other.layout.keys())
+        duplicated_names = set(current_names).intersection(other_names)
+        if len(duplicated_names) > 0:
+            msg = f"Found exist axes with same name {duplicated_names} " \
+                  f"in '{self.main_name}'."
+            raise NameError(msg)
+
+    @staticmethod
+    def _adjust_head(offset_current, offset_other, current_cells,
+                     other_cells, other_main, append="v"):
+        attr = "col" if append == "v" else "row"
+        if offset_current > 0:
+            for _, cells in current_cells.items():
+                for cell in cells:
+                    setattr(cell, attr, getattr(cell, attr) + offset_current)
+        if offset_other > 0:
+            for _, cells in other_cells.items():
+                for cell in cells:
+                    setattr(cell, attr, getattr(cell, attr) + offset_other)
+            setattr(other_main, attr, getattr(other_main, attr) + offset_other)
+
+    @staticmethod
+    def _adjust_tail(offset_current, offset_other, current_cells,
+                     other_cells, append="v"):
+        attr, side = ("col", "right") if append == "v" else ("row", "bottom")
+        if offset_current > 0:
+            for cell in current_cells.get(side):
+                setattr(cell, attr, getattr(cell, attr) + offset_current)
+        if offset_other > 0:
+            for cell in other_cells.get(side):
+                setattr(cell, attr, getattr(cell, attr) + offset_other)
+
+    def _setup_new_grid(self, other_main):
+        self.nrow = len(self.side_ratios['top']) + len(
+            self.side_ratios['bottom']) + 1
+        self.ncol = len(self.side_ratios['left']) + len(
+            self.side_ratios['right']) + 1
+
+        total_cells = (self.side_tracker['top'] +
+                       self.side_tracker['bottom'] +
+                       self.side_tracker['left'] +
+                       self.side_tracker['right'])
+
+        for cell in total_cells:
+            if isinstance(cell, GridCell):
+                self.layout[cell.name] = cell
+                if cell.render_size is not None:
+                    self._adjust_render_size.append(cell)
+            elif isinstance(cell, Pad):
+                self._pad.append(cell)
+        self.layout[other_main.name] = other_main
+
+    def append_horizontal(self, other: CrossGrid) -> CrossGrid:
+
+        self._check_duplicated_names(other)
+        assert self.main_h == other.main_h
+
+        # return as new grid
+        new_grid = CrossGrid(self.main_w,
+                             self.main_h,
+                             name=self.main_name)
+
+        horizontal_offset = self.ncol
+        current_cells = deepcopy(self.side_tracker)
+        other_cells = deepcopy(other.side_tracker)
+        other_main = deepcopy(other.main_cell)
+        # move other cells right
+        for _, cells in other_cells.items():
+            for cell in cells:
+                cell.col += horizontal_offset
+        other_main.col += horizontal_offset
+
+        # handle top
+        gridlines, top_ratios, voffset_current, voffset_other = \
+            self.get_gridlines(other, "top")
+
+        self._adjust_head(voffset_current, voffset_other, current_cells,
+                          other_cells, other_main, "h")
+
+        # move main cell
+        new_grid.main_cell.row = len(top_ratios)
+        new_grid.main_cell.col = len(self.side_tracker['left'])
+
+        top_cells = other_cells['top'] + current_cells['top']
+        self.set_id_span(top_cells, gridlines, side="top")
+
+        # handle bottom
+        gridlines, bottom_ratios, voffset_current, voffset_other = \
+            self.get_gridlines(other, "bottom")
+
+        # increase the row count for only bottom cell
+        self._adjust_tail(voffset_current, voffset_other, current_cells,
+                          other_cells, "h")
+
+        bottom_cells = other_cells['bottom'] + current_cells['bottom']
+        self.set_id_span(bottom_cells, gridlines, side="bottom",
+                         start_ix=len(top_ratios))
+
+        # setup new_grid
+        left_cells = current_cells['left']
+        right_cells = (current_cells['right'] + other_cells['left'] +
+                       [other_main] + other_cells['right'])
+
+        left_ratios = deepcopy(self.side_ratios['left'])
+        right_ratios = (self.side_ratios['right'] + other.side_ratios['left'] +
+                        [other.main_w] + other.side_ratios['right'])
+
+        new_grid.set_side_tracker(top=top_cells, bottom=bottom_cells,
+                                  left=left_cells, right=right_cells)
+        new_grid.set_side_ratios(top=top_ratios, bottom=bottom_ratios,
+                                 left=left_ratios, right=right_ratios)
+        new_grid._setup_new_grid(other_main)
+        return new_grid
+
+    def append_vertical(self, other: CrossGrid) -> CrossGrid:
+
+        self._check_duplicated_names(other)
+        assert self.main_w == other.main_w
+
+        # return as new grid
+        new_grid = CrossGrid(self.main_w,
+                             self.main_h,
+                             name=self.main_name)
+
+        vertical_offset = self.nrow
+        current_cells = deepcopy(self.side_tracker)
+        other_cells = deepcopy(other.side_tracker)
+        other_main = deepcopy(other.main_cell)
+        # move other cells down
+        for _, cells in other_cells.items():
+            for cell in cells:
+                cell.row += vertical_offset
+        other_main.row += vertical_offset
+
+        # handle left
+        gridlines, left_ratios, hoffset_current, hoffset_other = \
+            self.get_gridlines(other, "left")
+
+        self._adjust_head(hoffset_current, hoffset_other, current_cells,
+                          other_cells, other_main, "v")
+
+        # move main cell
+        new_grid.main_cell.col = len(left_ratios)
+        new_grid.main_cell.row = len(self.side_tracker['top'])
+
+        left_cells = other_cells['left'] + current_cells['left']
+        self.set_id_span(left_cells, gridlines, side="left")
+
+        # handle right
+        gridlines, right_ratios, hoffset_current, hoffset_other = \
+            self.get_gridlines(other, "right")
+
+        # increase the col count for only right cell
+        self._adjust_tail(hoffset_current, hoffset_other, current_cells,
+                          other_cells, "v")
+
+        right_cells = other_cells['right'] + current_cells['right']
+        self.set_id_span(right_cells, gridlines, side="right",
+                         start_ix=len(left_ratios))
+
+        # setup new_grid
+        top_cells = current_cells['top']
+        bottom_cells = (current_cells['bottom'] + other_cells['top'] +
+                        [other_main] + other_cells['bottom'])
+
+        top_ratios = deepcopy(self.side_ratios['top'])
+        bottom_ratios = (
+                    self.side_ratios['bottom'] + other.side_ratios['top'] +
+                    [other.main_w] + other.side_ratios['bottom'])
+
+        new_grid.set_side_tracker(top=top_cells, bottom=bottom_cells,
+                                  left=left_cells, right=right_cells)
+        new_grid.set_side_ratios(top=top_ratios, bottom=bottom_ratios,
+                                 left=left_ratios, right=right_ratios)
+        new_grid._setup_new_grid(other_main)
+        return new_grid
 
     def _check_name(self, name):
         if self.layout.get(name) is not None:
-            raise NameError(f"{name} has been used.")
+            raise NameError(f"Axes with name '{name}' already exist.")
 
     def add_ax(self, side, name, size=1, pad=0.):
         if side == "top":
@@ -129,60 +416,98 @@ class Grid:
         self._check_name(name)
 
         gain = 2 if pad > 0 else 1
-        ratios_append = [size, pad] if pad > 0 else [size]
-
         self.nrow += gain
         self.crow_ix += gain
-
         for _, gb in self.layout.items():
             gb.row += gain
+        for pb in self._pad:
+            pb.row += gain
 
-        self.layout[name] = GridBlock(row=0, col=self.ccol_ix, side="top",
-                                      hsize=size, wsize=self.main_w)
-        self.h_ratios = [*ratios_append, *self.h_ratios]
-        self.side_tracker['top'].append(name)
+        if pad > 0:
+            self.side_ratios['top'].append(pad)
+            pad_block = Pad(row=1, col=self.ccol_ix, side="top",
+                            height=pad, width=self.main_w,
+                            attach_main=self.main_name)
+            self._pad.append(pad_block)
+            self.side_tracker['top'].append(pad_block)
+
+        gb = GridCell(name=name, row=0, col=self.ccol_ix, side="top",
+                      height=size, width=self.main_w,
+                      attach_main=self.main_name)
+        self.layout[name] = gb
+        self.side_tracker['top'].append(gb)
+        self.side_ratios['top'].append(size)
 
     def bottom(self, name, size=1., pad=0.):
         self._check_name(name)
-        gain = 2 if pad > 0 else 1
-        ratios_append = [pad, size] if pad > 0 else [size]
 
+        gain = 2 if pad > 0 else 1
         self.nrow += gain
 
-        self.layout[name] = GridBlock(row=self.nrow - 1, col=self.ccol_ix,
-                                      side="bottom",
-                                      hsize=size, wsize=self.main_w)
-        self.h_ratios = [*self.h_ratios, *ratios_append]
-        self.side_tracker['bottom'].append(name)
+        if pad > 0:
+            self.side_ratios['bottom'].append(pad)
+
+            pad_block = Pad(row=self.nrow - 2, col=self.ccol_ix, side="bottom",
+                            height=pad, width=self.main_w,
+                            attach_main=self.main_name)
+            self._pad.append(pad_block)
+            self.side_tracker['bottom'].append(pad_block)
+
+        gb = GridCell(name=name, row=self.nrow - 1, col=self.ccol_ix,
+                      side="bottom", height=size, width=self.main_w,
+                      attach_main=self.main_name)
+        self.layout[name] = gb
+        self.side_tracker['bottom'].append(gb)
+        self.side_ratios['bottom'].append(size)
 
     def left(self, name, size=1., pad=0.):
         self._check_name(name)
-        gain = 2 if pad > 0 else 1
-        ratios_append = [size, pad] if pad > 0 else [size]
 
+        gain = 2 if pad > 0 else 1
         self.ncol += gain
         self.ccol_ix += gain
-
         for _, gb in self.layout.items():
             gb.col += gain
+        for pb in self._pad:
+            pb.col += gain
 
-        self.layout[name] = GridBlock(row=self.crow_ix, col=0, side="left",
-                                      hsize=self.main_h, wsize=size)
-        self.w_ratios = [*ratios_append, *self.w_ratios]
-        self.side_tracker['left'].append(name)
+        if pad > 0:
+            self.side_ratios['left'].append(pad)
+
+            pad_block = Pad(row=self.crow_ix, col=1, side="left",
+                            height=self.main_h, width=size,
+                            attach_main=self.main_name)
+            self._pad.append(pad_block)
+            self.side_tracker['left'].append(pad_block)
+
+        gb = GridCell(name=name, row=self.crow_ix, col=0, side="left",
+                      height=self.main_h, width=size,
+                      attach_main=self.main_name)
+        self.layout[name] = gb
+        self.side_tracker['left'].append(gb)
+        self.side_ratios['left'].append(size)
 
     def right(self, name, size=1., pad=0.):
         self._check_name(name)
-        gain = 2 if pad > 0 else 1
-        ratios_append = [pad, size] if pad > 0 else [size]
 
+        gain = 2 if pad > 0 else 1
         self.ncol += gain
 
-        self.layout[name] = GridBlock(row=self.crow_ix, col=self.ncol - 1,
-                                      side="right",
-                                      hsize=self.main_h, wsize=size)
-        self.w_ratios = [*self.w_ratios, *ratios_append]
-        self.side_tracker['right'].append(name)
+        if pad > 0:
+            self.side_ratios['right'].append(pad)
+
+            pad_block = Pad(row=self.crow_ix, col=self.ncol - 2, side="right",
+                            height=self.main_h, width=size,
+                            attach_main=self.main_name)
+            self._pad.append(pad_block)
+            self.side_tracker["right"].append(pad_block)
+
+        gb = GridCell(name=name, row=self.crow_ix, col=self.ncol - 1,
+                      side="right", height=self.main_h, width=size,
+                      attach_main=self.main_name)
+        self.layout[name] = gb
+        self.side_tracker['right'].append(gb)
+        self.side_ratios['right'].append(size)
 
     def split(self, name, w_ratios=None, h_ratios=None,
               wspace=0.05, hspace=0.05, mode="placeholder"):
@@ -306,8 +631,8 @@ class Grid:
     def freeze(self, figure,
                debug=False, aspect: float = None, enlarge=1.1):
 
-        h_ratios = np.asarray(self.h_ratios)
-        w_ratios = np.asarray(self.w_ratios)
+        h_ratios = self.get_height_ratios()
+        w_ratios = self.get_width_ratios()
 
         offset_w = []
         offset_w_gb = []
@@ -376,7 +701,7 @@ class Grid:
         self.gs = gs
 
         for block, gb in self.layout.items():
-            ax_loc = gs[gb.row, gb.col]
+            ax_loc = gb.create_subplotspec(gs)
             if gb.is_split:
                 sub_layout = gb.sub_layout
 
@@ -409,7 +734,7 @@ class Grid:
                                     rotation = -90
                                 ax.text(0.5, 0.5, f"{block} ({ix}-{iy})",
                                         va="center", ha="center",
-                                        rotation=rotation
+                                        rotation=rotation, fontsize=6,
                                         )
 
                         num += 1
@@ -428,16 +753,21 @@ class Grid:
                         rotation = 90
                     elif gb.side == "right":
                         rotation = -90
-                    ax.text(0.5, 0.5, block,
+                    ax.text(0.5, 0.5, block, fontsize=6,
                             va="center", ha="center",
                             rotation=rotation)
 
-    @staticmethod
-    def _set_axis_dir(gi, ax):
-        if gi.side == "left":
-            ax.invert_xaxis()
-        if gi.side == "bottom":
-            ax.invert_yaxis()
+    def get_height_ratios(self):
+        top_h = self.side_ratios['top'][::-1]
+        bottom_h = self.side_ratios['bottom']
+        main_h = self.main_h
+        return np.array([*top_h, main_h, *bottom_h])
+
+    def get_width_ratios(self):
+        left_w = self.side_ratios['left'][::-1]
+        right_w = self.side_ratios['right']
+        main_w = self.main_w
+        return np.array([*left_w, main_w, *right_w])
 
     def get_ax(self, name) -> Axes:
         gb = self.layout[name]
@@ -459,6 +789,10 @@ class Grid:
         gb.render_size = size
         self._adjust_render_size.append(gb)
 
+    @property
+    def name(self):
+        return self.main_name
+
 
 def close_ticks(ax):
     ax.tick_params(bottom=False, top=False, left=False, right=False,
@@ -466,33 +800,32 @@ def close_ticks(ax):
                    labelleft=False, labelright=False,
                    )
 
-
-class GridLayout:
-
-    def __init__(self, figure: Figure = None, aspect="auto", name="main"):
-        if figure is None:
-            figure = plt.figure()
-        else:
-            figure.clear()
-        ax = Axes(figure, (0, 0, 1, 1), label=name)
-        ax.set_aspect(aspect)
-        figure.add_axes(ax)
-        self._main = ax
-        self._divider = make_axes_locatable(ax)
-        self._ax_mapper = {name: ax}
-
-    def add(self, name, side, size=1., pad=0, ):
-        ax = self._divider.append_axes(side, size=size,
-                                       pad=pad, label=name)
-        self._ax_mapper[name] = ax
-
-    def set_main_ax(self, name):
-        self._divider = make_axes_locatable(self._ax_mapper[name])
-
-    def __add__(self, other):
-        """Define behavior that horizontal appends two grid"""
-        pass
-
-    def __truediv__(self, other):
-        """Define behavior that vertical appends two grid"""
-        pass
+# class Grid:
+#
+#     def __init__(self, figure: Figure = None, aspect="auto", name="main"):
+#         if figure is None:
+#             figure = plt.figure()
+#         else:
+#             figure.clear()
+#         ax = Axes(figure, (0, 0, 1, 1), label=name)
+#         ax.set_aspect(aspect)
+#         figure.add_axes(ax)
+#         self._main = ax
+#         self._divider = make_axes_locatable(ax)
+#         self._ax_mapper = {name: ax}
+#
+#     def add(self, name, side, size=1., pad=0, ):
+#         ax = self._divider.append_axes(side, size=size,
+#                                        pad=pad, label=name)
+#         self._ax_mapper[name] = ax
+#
+#     def set_main_ax(self, name):
+#         self._divider = make_axes_locatable(self._ax_mapper[name])
+#
+#     def __add__(self, other):
+#         """Define behavior that horizontal appends two grid"""
+#         pass
+#
+#     def __truediv__(self, other):
+#         """Define behavior that vertical appends two grid"""
+#         pass

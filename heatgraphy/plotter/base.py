@@ -9,7 +9,7 @@ class RenderPlan:
     data: Any
     size: float = 1.
     side: str = "top"
-    no_split: bool = False
+    no_split: bool = False  # TODO: remove if no usage
     canvas_size_unknown: bool = False
 
     render_data = None

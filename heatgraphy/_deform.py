@@ -49,13 +49,14 @@ class Deformation:
     _nrow = None
     _ncol = None
 
-    def __init__(self, data=None):
-        if data is not None:
-            self.set_data(data)
+    def __init__(self, data):
+        self.set_data(data)
 
     def set_data(self, data):
         self.data = data
         self._nrow, self._ncol = data.shape
+        self._col_clustered = False
+        self._row_clustered = False
 
     def set_data_row_reindex(self, reindex):
         if len(reindex) != self._nrow:

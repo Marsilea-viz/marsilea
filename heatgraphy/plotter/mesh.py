@@ -74,7 +74,9 @@ class _MeshBase:
 class ColorMesh(RenderPlan, _MeshBase):
 
     def __init__(self, data, cmap=None, norm=None, vmin=None, vmax=None,
-                 center=None, robust=None, alpha=None,
+                 center=None, robust=None, palette=None,
+                 label=None, label_loc=None,
+                 alpha=None,
                  linewidth=None, linecolor=None,
                  annot=None, fmt=None, annot_kws=None
                  ):

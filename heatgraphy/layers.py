@@ -1,28 +1,34 @@
+import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.artist import Artist
 from matplotlib.patches import Rectangle, Polygon
 
 from .plotter import LayersMesh
-from .base import MatrixBase, _Base
+from .base import MatrixBase
 from .layout import close_ticks
 
 
-class Layers(_Base):
+class Layers(MatrixBase):
 
     def __init__(self,
                  data=None,
                  layers=None,
                  pieces=None,
+                 cluster_data=None,
                  shrink=(.9, .9)
                  ):
-        super().__init__()
         self._mesh = LayersMesh(data=data, layers=layers, pieces=pieces,
                                 shrink=shrink)
-        deform = self.get_deform()
-        if self._mesh.mode == "cell":
-            deform.set_data(self._mesh.data)
-        else:
-            deform.set_data(self._mesh.data[0])
+        if cluster_data is None:
+            self._allow_cluster = False
+            if self._mesh.mode == "cell":
+                data_shape = self._mesh.data.shape
+            else:
+                data_shape = self._mesh.data[0].shape
+            # create numeric data explicitly
+            # in case user input string data
+            cluster_data = np.random.randn(*data_shape)
+        super().__init__(cluster_data)
 
     def render(self, figure=None, aspect=1):
         if figure is None:
@@ -49,6 +55,7 @@ class Layers(_Base):
 
         self._mesh.render(self.main_axes)
         # render other plots
+        self._render_dendrogram()
         self._render_plan()
 
 

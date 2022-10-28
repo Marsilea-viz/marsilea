@@ -8,7 +8,7 @@ from matplotlib.figure import Figure
 
 from ._deform import Deformation
 from ._plotter import Chart
-from .layout import Grid
+from .layout import CrossGrid
 from .plotter import RenderPlan
 from .utils import pairwise
 
@@ -68,7 +68,7 @@ def get_breakpoints(arr):
 
 
 class _Base:
-    gird: Grid
+    gird: CrossGrid
     figure: Figure
     main_axes: Axes | List[Axes]
     _row_plan: List[RenderPlan]
@@ -76,11 +76,10 @@ class _Base:
 
     def __init__(self, w=None, h=None, data_aspect=1):
         w, h = getaspect(data_aspect, w=w, h=h)
-        self.grid = Grid(w=w, h=h)
+        self.grid = CrossGrid(w=w, h=h)
         self._side_count = {"right": 0, "left": 0, "top": 0, "bottom": 0}
         self._col_plan = []
         self._row_plan = []
-        self._deform = Deformation()
 
     def _get_plot_name(self, name, side, chart):
         self._side_count[side] += 1
@@ -108,6 +107,70 @@ class _Base:
             self.grid.set_render_size_inches(plot_name, s)
 
         plan.append(plot)
+
+    def set_title(self, row=None, col=None, main=None):
+        pass
+
+    def get_ax(self, name):
+        """Get a specific axes by name when available"""
+        return self.grid.get_ax(name)
+
+    def get_main_ax(self):
+        """Return the main axes, like the heatmap axes"""
+        return self.main_axes
+
+
+class MatrixBase(_Base):
+    _row_reindex: List[int] = None
+    _col_reindex: List[int] = None
+    _allow_cluster: bool = True
+
+    def __init__(self, cluster_data, w=None, h=None, data_aspect=1):
+        super().__init__(w=w, h=h, data_aspect=data_aspect)
+        self._row_den = []
+        self._col_den = []
+        self._cluster_data = cluster_data
+        self._deform = Deformation(cluster_data)
+
+    def add_dendrogram(self, side, name=None, method=None, metric=None,
+                       show=True, size=0.5):
+        """
+
+        .. notes::
+            Notice that we only use method and metric
+            when you add the first dendrogram.
+
+        Parameters
+        ----------
+        side
+        name
+        method
+        metric
+        show
+        size
+
+        Returns
+        -------
+
+        """
+        if not self._allow_cluster:
+            msg = f"Please specify cluster data when initialize " \
+                  f"'{self.__class__.__name__}' class."
+            raise ValueError(msg)
+        plot_name = self._get_plot_name(name, side, Chart.Dendrogram)
+        if show:
+            self.grid.add_ax(side, name=plot_name, size=size)
+
+        if side in ["right", "left"]:
+            self._row_den.append(dict(name=plot_name, show=show,
+                                      pos="row", side=side))
+            self._deform.set_cluster(row=True)
+            self._deform.set_row_cluster_params(method=method, metric=metric)
+        else:
+            self._col_den.append(dict(name=plot_name, show=show,
+                                      pos="col", side=side))
+            self._deform.set_cluster(col=True)
+            self._deform.set_col_cluster_params(method=method, metric=metric)
 
     def split_row(self, cut=None, labels=None, order=None, spacing=0.01):
         self._deform.hspace = spacing
@@ -165,19 +228,18 @@ class _Base:
                     hspace=deform.hspace
                 )
 
-    def set_title(self, row=None, col=None, main=None):
-        pass
-
-    def get_ax(self, name):
-        """Get a specific axes by name when available"""
-        return self.grid.get_ax(name)
-
-    def get_main_ax(self):
-        """Return the main axes, like the heatmap axes"""
-        return self.main_axes
-
-    def get_deform(self):
-        return self._deform
+    def _render_dendrogram(self):
+        deform = self._deform
+        for den in (self._row_den + self._col_den):
+            if den['show']:
+                ax = self.grid.get_ax(den['name'])
+                ax.set_axis_off()
+                spacing = deform.hspace
+                den_obj = deform.get_row_dendrogram()
+                if den['pos'] == "col":
+                    spacing = deform.wspace
+                    den_obj = deform.get_col_dendrogram()
+                den_obj.draw(ax, orient=den['side'], spacing=spacing)
 
     def _render_plan(self):
         deform = self._deform
@@ -199,66 +261,8 @@ class _Base:
             axes = self.grid.get_canvas_ax(plan.name)
             plan.render(axes)
 
-
-class MatrixBase(_Base):
-    _row_reindex: List[int] = None
-    _col_reindex: List[int] = None
-
-    def __init__(self, cluster_data, w=None, h=None, data_aspect=1):
-        super().__init__(w=w, h=h, data_aspect=data_aspect)
-        self._row_den = []
-        self._col_den = []
-        self._cluster_data = cluster_data
-        self._deform.set_data(cluster_data)
-
-    def add_dendrogram(self, side, name=None, method=None, metric=None,
-                       show=True, size=0.5):
-        """
-
-        .. notes::
-            Notice that we only use method and metric
-            when you add the first dendrogram.
-
-        Parameters
-        ----------
-        side
-        name
-        method
-        metric
-        show
-        size
-
-        Returns
-        -------
-
-        """
-        plot_name = self._get_plot_name(name, side, Chart.Dendrogram)
-        if show:
-            self.grid.add_ax(side, name=plot_name, size=size)
-
-        if side in ["right", "left"]:
-            self._row_den.append(dict(name=plot_name, show=show,
-                                      pos="row", side=side))
-            self._deform.set_cluster(row=True)
-            self._deform.set_row_cluster_params(method=method, metric=metric)
-        else:
-            self._col_den.append(dict(name=plot_name, show=show,
-                                      pos="col", side=side))
-            self._deform.set_cluster(col=True)
-            self._deform.set_col_cluster_params(method=method, metric=metric)
-
-    def _render_dendrogram(self):
-        deform = self._deform
-        for den in (self._row_den + self._col_den):
-            if den['show']:
-                ax = self.grid.get_ax(den['name'])
-                ax.set_axis_off()
-                spacing = deform.hspace
-                den_obj = deform.get_row_dendrogram()
-                if den['pos'] == "col":
-                    spacing = deform.wspace
-                    den_obj = deform.get_col_dendrogram()
-                den_obj.draw(ax, orient=den['side'], spacing=spacing)
+    def get_deform(self):
+        return self._deform
 
     def auto_legend(self, side):
         """Draw legend based on the order of annotation"""
