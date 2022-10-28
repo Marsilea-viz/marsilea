@@ -50,10 +50,11 @@ class Layers(MatrixBase):
                 self._mesh.set_render_data(trans_layers)
 
         self._setup_axes()
-        self.grid.freeze(figure=self.figure, aspect=aspect)
-        self.main_axes = self.grid.get_main_ax()
+        if not self.grid.is_freeze:
+            self.grid.freeze(figure=self.figure, aspect=aspect)
+        main_axes = self.get_main_ax()
 
-        self._mesh.render(self.main_axes)
+        self._mesh.render(main_axes)
         # render other plots
         self._render_dendrogram()
         self._render_plan()

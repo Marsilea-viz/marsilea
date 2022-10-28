@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+from copy import deepcopy
 from typing import List
+from uuid import uuid4
 
 import numpy as np
+from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 
@@ -70,13 +73,13 @@ def get_breakpoints(arr):
 class _Base:
     gird: CrossGrid
     figure: Figure
-    main_axes: Axes | List[Axes]
     _row_plan: List[RenderPlan]
     _col_plan: List[RenderPlan]
 
-    def __init__(self, w=None, h=None, data_aspect=1):
+    def __init__(self, w=None, h=None, data_aspect=1, name=None):
         w, h = getaspect(data_aspect, w=w, h=h)
-        self.grid = CrossGrid(w=w, h=h)
+        self.grid = CrossGrid(w=w, h=h, name=name)
+        self.main_name = self.grid.main_name
         self._side_count = {"right": 0, "left": 0, "top": 0, "bottom": 0}
         self._col_plan = []
         self._row_plan = []
@@ -84,7 +87,7 @@ class _Base:
     def _get_plot_name(self, name, side, chart):
         self._side_count[side] += 1
         if name is None:
-            return f"{chart}-{side}-{self._side_count[side]}"
+            return f"{chart}-{side}-{uuid4().hex}"
         else:
             return name
 
@@ -108,16 +111,19 @@ class _Base:
 
         plan.append(plot)
 
+    def add_pad(self, side, size):
+        self.grid.add_pad(side, size)
+
     def set_title(self, row=None, col=None, main=None):
         pass
 
     def get_ax(self, name):
         """Get a specific axes by name when available"""
-        return self.grid.get_ax(name)
+        return self.grid.get_canvas_ax(name)
 
     def get_main_ax(self):
         """Return the main axes, like the heatmap axes"""
-        return self.main_axes
+        return self.get_ax(self.main_name)
 
 
 class MatrixBase(_Base):
@@ -203,7 +209,7 @@ class MatrixBase(_Base):
         # split the main axes
         if deform.is_split:
             self.grid.split(
-                "main",
+                self.main_name,
                 w_ratios=deform.col_ratios,
                 h_ratios=deform.row_ratios,
                 wspace=deform.wspace,
@@ -275,3 +281,92 @@ class MatrixBase(_Base):
     @property
     def col_cluster(self):
         return len(self._col_den) > 0
+
+    def __add__(self, other):
+        """Define behavior that horizontal appends two grid"""
+        # if add a number it will represent the size of the pad
+        if isinstance(other, (int, float)):
+            new_self = deepcopy(self)
+            new_self.add_pad("right", other)
+            return new_self
+        return self.append_horizontal(other)
+
+    def __truediv__(self, other):
+        """Define behavior that vertical appends two grid"""
+        if isinstance(other, (int, float)):
+            self.add_pad("bottom", other)
+            return self
+        return self.append_vertical(other)
+
+    def append_horizontal(self, other: MatrixBase) -> MatrixList:
+        new_grid = self.grid.append_horizontal(other.grid)
+        new_list = MatrixList(new_grid)
+        new_list.add_matrix(self)
+        new_list.add_matrix(other)
+        return new_list
+
+    def append_vertical(self, other: MatrixBase) -> MatrixList:
+        new_grid = self.grid.append_vertical(other.grid)
+        new_list = MatrixList(new_grid)
+        new_list.add_matrix(self)
+        new_list.add_matrix(other)
+        return new_list
+
+
+class MatrixList:
+
+    grid: CrossGrid
+    figure: Figure
+
+    def __init__(self, new_grid):
+        self.grid = new_grid
+        self._matrix_list = []
+
+    def add_matrices(self, matrices):
+        for m in matrices:
+            new_m = deepcopy(m)
+            self._matrix_list.append(new_m)
+
+    def add_matrix(self, matrix):
+        # make deepcopy so we don't change the previous one
+        matrix = deepcopy(matrix)
+        self._matrix_list.append(matrix)
+
+    def __add__(self, other):
+        """Define behavior that horizontal appends two grid"""
+        if isinstance(other, (int, float)):
+            self.grid.add_pad("right", other)
+            return self
+        return self.append_horizontal(other)
+
+    def __truediv__(self, other):
+        """Define behavior that vertical appends two grid"""
+        if isinstance(other, (int, float)):
+            self.grid.add_pad("bottom", other)
+            return self
+        return self.append_vertical(other)
+
+    def append_horizontal(self, other: MatrixBase) -> MatrixList:
+        new_grid = self.grid.append_horizontal(other.grid)
+        new_list = MatrixList(new_grid)
+        new_list.add_matrices(self._matrix_list)
+        new_list.add_matrix(other)
+        return new_list
+
+    def append_vertical(self, other: MatrixBase) -> MatrixList:
+        new_grid = self.grid.append_vertical(other.grid)
+        new_list = MatrixList(new_grid)
+        new_list.add_matrices(self._matrix_list)
+        new_list.add_matrix(other)
+        return new_list
+
+    def render(self, figure=None, aspect=1):
+        if figure is None:
+            self.figure = plt.figure()
+        else:
+            self.figure = figure
+
+        for m in self._matrix_list:
+            m.grid = self.grid
+            m.render(figure=self.figure, aspect=aspect)
+

@@ -57,9 +57,10 @@ class Heatmap(MatrixBase):
         self._setup_axes()
         # Place axes
         aspect = 1 if self.square else aspect
-        self.grid.freeze(figure=self.figure, aspect=aspect)
-        self.main_axes = self.grid.get_main_ax()
-        self._mesh.render(self.main_axes)
+        if not self.grid.is_freeze:
+            self.grid.freeze(figure=self.figure, aspect=aspect)
+        main_axes = self.get_main_ax()
+        self._mesh.render(main_axes)
 
         # add row and col dendrogram
         self._render_dendrogram()
@@ -112,11 +113,14 @@ class DotHeatmap(MatrixBase):
         # Make sure all axes is split
         self._setup_axes()
         # Place axes
-        self.grid.freeze(figure=self.figure, aspect=aspect)
-        self.main_axes = self.grid.get_main_ax()
+        # If freeze by other instance, we just draw on it
+        # freeze again will clear the figure
+        if not self.grid.is_freeze:
+            self.grid.freeze(figure=self.figure, aspect=aspect)
+        main_axes = self.get_main_ax()
         if self._bg_mesh is not None:
-            self._bg_mesh.render(self.main_axes)
-        self._mesh.render(self.main_axes)
+            self._bg_mesh.render(main_axes)
+        self._mesh.render(main_axes)
 
         self._render_dendrogram()
         self._render_plan()

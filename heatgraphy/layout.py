@@ -6,6 +6,7 @@ from typing import Any, Iterable, Dict, List
 from uuid import uuid4
 
 import numpy as np
+from icecream import ic
 from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure, figaspect
@@ -82,6 +83,13 @@ class GridCell(BaseCell):
         return gs[row_slice, col_slice]
 
 
+def _check_side(side):
+    options = ["top", "bottom", "right", "left"]
+    if side not in options:
+        msg = f"Cannot add at '{side}', try one of {options}"
+        raise ValueError(msg)
+
+
 class CrossGrid:
     """
     A grid layout system that can be expanded at four direction
@@ -119,17 +127,18 @@ class CrossGrid:
         self.layout = {name: self.main_cell}
         self._pad = []
         self._adjust_render_size = []
+        self._has_freeze = False
 
     def __repr__(self):
         return f"{self.nrow}*{self.ncol} Grid"
 
     def __add__(self, other):
         """Define behavior that horizontal appends two grid"""
-        pass
+        return self.append_horizontal(other)
 
     def __truediv__(self, other):
         """Define behavior that vertical appends two grid"""
-        pass
+        return self.append_vertical(other)
 
     def set_side_tracker(self, **kws):
         for k, v in kws.items():
@@ -148,15 +157,17 @@ class CrossGrid:
 
         gridlines = np.concatenate((g1, g2))
         gridlines = np.sort(np.unique(gridlines))
-        ratios = [gridlines[0]] + [i2 - i1 for i1, i2 in pairwise(gridlines)]
-
         n_grid = len(gridlines)
-        # how much to move for current grid
-        offset_current = n_grid - len(ratios1)
-        # how much to move for other grid
-        offset_other = n_grid - len(ratios2)
+        if n_grid > 0:
+            ratios = [gridlines[0]] + [i2 - i1 for i1, i2 in pairwise(gridlines)]
+            # how much to move for current grid
+            offset_current = n_grid - len(ratios1)
+            # how much to move for other grid
+            offset_other = n_grid - len(ratios2)
 
-        return gridlines, ratios, offset_current, offset_other
+            return gridlines, ratios, offset_current, offset_other
+        else:
+            return np.array([]), [], 0, 0
 
     @staticmethod
     def group_cells(cells: List[GridCell | Pad]):
@@ -396,41 +407,44 @@ class CrossGrid:
         new_grid._setup_new_grid(other_main)
         return new_grid
 
-    def _check_name(self, name):
-        if self.layout.get(name) is not None:
-            raise NameError(f"Axes with name '{name}' already exist.")
+    def _check_added(self, name=None, size=None):
+        if name is not None:
+            if self.layout.get(name) is not None:
+                raise NameError(f"Axes with name '{name}' already exist.")
+
+        if size is not None:
+            if size <= 0:
+                raise ValueError("Added size must be > 0")
 
     def add_ax(self, side, name, size=1, pad=0.):
-        if side == "top":
-            self.top(name, size=size, pad=pad)
-        elif side == "bottom":
-            self.bottom(name, size=size, pad=pad)
-        elif side == "right":
-            self.right(name, size=size, pad=pad)
-        elif side == "left":
-            self.left(name, size=size, pad=pad)
-        else:
-            raise ValueError(f"Cannot add axes at {side}")
+        _check_side(side)
+        getattr(self, side).__call__(name, size=size, pad=pad)
+
+    def add_pad(self, side, pad):
+        _check_side(side)
+        getattr(self, f"{side}_pad").__call__(pad)
+
+    def _adjust_top(self):
+        self.nrow += 1
+        self.crow_ix += 1
+        for _, gb in self.layout.items():
+            gb.row += 1
+        for pb in self._pad:
+            pb.row += 1
+
+    def _adjust_left(self):
+        self.ncol += 1
+        self.ccol_ix += 1
+        for _, gb in self.layout.items():
+            gb.col += 1
+        for pb in self._pad:
+            pb.col += 1
 
     def top(self, name, size=1., pad=0.):
-        self._check_name(name)
+        self._check_added(name, size=size)
+        self.top_pad(pad)
 
-        gain = 2 if pad > 0 else 1
-        self.nrow += gain
-        self.crow_ix += gain
-        for _, gb in self.layout.items():
-            gb.row += gain
-        for pb in self._pad:
-            pb.row += gain
-
-        if pad > 0:
-            self.side_ratios['top'].append(pad)
-            pad_block = Pad(row=1, col=self.ccol_ix, side="top",
-                            height=pad, width=self.main_w,
-                            attach_main=self.main_name)
-            self._pad.append(pad_block)
-            self.side_tracker['top'].append(pad_block)
-
+        self._adjust_top()
         gb = GridCell(name=name, row=0, col=self.ccol_ix, side="top",
                       height=size, width=self.main_w,
                       attach_main=self.main_name)
@@ -438,48 +452,45 @@ class CrossGrid:
         self.side_tracker['top'].append(gb)
         self.side_ratios['top'].append(size)
 
+    def top_pad(self, pad):
+        if pad <= 0:
+            return
+        self._adjust_top()
+        pad_block = Pad(row=1, col=self.ccol_ix, side="top",
+                        height=pad, width=self.main_w,
+                        attach_main=self.main_name)
+        self._pad.append(pad_block)
+        self.side_tracker['top'].append(pad_block)
+        self.side_ratios['top'].append(pad)
+
     def bottom(self, name, size=1., pad=0.):
-        self._check_name(name)
+        self._check_added(name, size=size)
+        self.bottom_pad(pad)
 
-        gain = 2 if pad > 0 else 1
-        self.nrow += gain
-
-        if pad > 0:
-            self.side_ratios['bottom'].append(pad)
-
-            pad_block = Pad(row=self.nrow - 2, col=self.ccol_ix, side="bottom",
-                            height=pad, width=self.main_w,
-                            attach_main=self.main_name)
-            self._pad.append(pad_block)
-            self.side_tracker['bottom'].append(pad_block)
-
-        gb = GridCell(name=name, row=self.nrow - 1, col=self.ccol_ix,
+        gb = GridCell(name=name, row=self.nrow, col=self.ccol_ix,
                       side="bottom", height=size, width=self.main_w,
                       attach_main=self.main_name)
         self.layout[name] = gb
         self.side_tracker['bottom'].append(gb)
         self.side_ratios['bottom'].append(size)
+        self.nrow += 1
+
+    def bottom_pad(self, pad):
+        if pad <= 0:
+            return
+        pad_block = Pad(row=self.nrow, col=self.ccol_ix, side="bottom",
+                        height=pad, width=self.main_w,
+                        attach_main=self.main_name)
+        self._pad.append(pad_block)
+        self.side_tracker['bottom'].append(pad_block)
+        self.side_ratios['bottom'].append(pad)
+        self.nrow += 1
 
     def left(self, name, size=1., pad=0.):
-        self._check_name(name)
+        self._check_added(name, size=size)
+        self.left_pad(pad)
 
-        gain = 2 if pad > 0 else 1
-        self.ncol += gain
-        self.ccol_ix += gain
-        for _, gb in self.layout.items():
-            gb.col += gain
-        for pb in self._pad:
-            pb.col += gain
-
-        if pad > 0:
-            self.side_ratios['left'].append(pad)
-
-            pad_block = Pad(row=self.crow_ix, col=1, side="left",
-                            height=self.main_h, width=size,
-                            attach_main=self.main_name)
-            self._pad.append(pad_block)
-            self.side_tracker['left'].append(pad_block)
-
+        self._adjust_left()
         gb = GridCell(name=name, row=self.crow_ix, col=0, side="left",
                       height=self.main_h, width=size,
                       attach_main=self.main_name)
@@ -487,27 +498,39 @@ class CrossGrid:
         self.side_tracker['left'].append(gb)
         self.side_ratios['left'].append(size)
 
+    def left_pad(self, pad):
+        if pad <= 0:
+            return
+        self._adjust_left()
+        pad_block = Pad(row=self.crow_ix, col=1, side="left",
+                        height=self.main_h, width=pad,
+                        attach_main=self.main_name)
+        self._pad.append(pad_block)
+        self.side_tracker['left'].append(pad_block)
+        self.side_ratios['left'].append(pad)
+
     def right(self, name, size=1., pad=0.):
-        self._check_name(name)
+        self._check_added(name, size=size)
+        self.right_pad(pad)
 
-        gain = 2 if pad > 0 else 1
-        self.ncol += gain
-
-        if pad > 0:
-            self.side_ratios['right'].append(pad)
-
-            pad_block = Pad(row=self.crow_ix, col=self.ncol - 2, side="right",
-                            height=self.main_h, width=size,
-                            attach_main=self.main_name)
-            self._pad.append(pad_block)
-            self.side_tracker["right"].append(pad_block)
-
-        gb = GridCell(name=name, row=self.crow_ix, col=self.ncol - 1,
+        gb = GridCell(name=name, row=self.crow_ix, col=self.ncol,
                       side="right", height=self.main_h, width=size,
                       attach_main=self.main_name)
         self.layout[name] = gb
         self.side_tracker['right'].append(gb)
         self.side_ratios['right'].append(size)
+        self.ncol += 1
+
+    def right_pad(self, pad):
+        if pad <= 0:
+            return
+        pad_block = Pad(row=self.crow_ix, col=self.ncol, side="right",
+                        height=self.main_h, width=pad,
+                        attach_main=self.main_name)
+        self._pad.append(pad_block)
+        self.side_tracker["right"].append(pad_block)
+        self.side_ratios['right'].append(pad)
+        self.ncol += 1
 
     def split(self, name, w_ratios=None, h_ratios=None,
               wspace=0.05, hspace=0.05, mode="placeholder"):
@@ -630,7 +653,7 @@ class CrossGrid:
 
     def freeze(self, figure,
                debug=False, aspect: float = None, enlarge=1.1):
-
+        self._has_freeze = True
         h_ratios = self.get_height_ratios()
         w_ratios = self.get_width_ratios()
 
@@ -792,6 +815,10 @@ class CrossGrid:
     @property
     def name(self):
         return self.main_name
+
+    @property
+    def is_freeze(self):
+        return self._has_freeze
 
 
 def close_ticks(ax):
