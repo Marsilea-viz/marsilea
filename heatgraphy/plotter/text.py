@@ -255,6 +255,7 @@ class _LabelBase(RenderPlan):
     def set_side(self, side):
         self.side = side
         self._default_text_config()
+        self._update_deform_func()
 
     def _default_text_config(self):
         text_config = side_mapper[self.side]

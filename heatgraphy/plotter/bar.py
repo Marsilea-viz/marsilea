@@ -63,7 +63,6 @@ def simple_bar(data,
                orient="v",
                width=.8,
                show_values=None,
-
                ):
     if ax is None:
         ax = plt.gca()

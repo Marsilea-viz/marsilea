@@ -1,16 +1,18 @@
 from __future__ import annotations
 
 from copy import deepcopy
-from typing import List
+from typing import List, Dict
 from uuid import uuid4
 
 import numpy as np
 from matplotlib import pyplot as plt
+from matplotlib.artist import Artist
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
+from legendkit.layout import vstack, hstack, stack
 
 from ._deform import Deformation
-from ._plotter import Chart
+from .exceptions import SplitTwice
 from .layout import CrossGrid
 from .plotter import RenderPlan
 from .utils import pairwise
@@ -129,7 +131,15 @@ class _Base:
 class MatrixBase(_Base):
     _row_reindex: List[int] = None
     _col_reindex: List[int] = None
+    # If cluster data need to be defined by user
     _allow_cluster: bool = True
+    _split_col: bool = False
+    _split_row: bool = False
+    _legend_grid: CrossGrid = None
+    _draw_legend: bool = False
+    _legend_box: List[Artist] = None
+    _legend_name: str = None
+    _legend_kws: Dict = {}
 
     def __init__(self, cluster_data, w=None, h=None, data_aspect=1):
         super().__init__(w=w, h=h, data_aspect=data_aspect)
@@ -163,7 +173,7 @@ class MatrixBase(_Base):
             msg = f"Please specify cluster data when initialize " \
                   f"'{self.__class__.__name__}' class."
             raise ValueError(msg)
-        plot_name = self._get_plot_name(name, side, Chart.Dendrogram)
+        plot_name = self._get_plot_name(name, side, "Dendrogram")
         if show:
             self.grid.add_ax(side, name=plot_name, size=size)
 
@@ -179,6 +189,10 @@ class MatrixBase(_Base):
             self._deform.set_col_cluster_params(method=method, metric=metric)
 
     def split_row(self, cut=None, labels=None, order=None, spacing=0.01):
+        if self._split_row:
+            raise SplitTwice(axis="row")
+        self._split_row = True
+
         self._deform.hspace = spacing
         if cut is not None:
             self._deform.set_split_row(breakpoints=cut)
@@ -192,6 +206,10 @@ class MatrixBase(_Base):
             self._deform.set_split_row(breakpoints=breakpoints)
 
     def split_col(self, cut=None, labels=None, order=None, spacing=0.01):
+        if self._split_col:
+            raise SplitTwice(axis="col")
+        self._split_row = True
+
         self._deform.wspace = spacing
         if cut is not None:
             self._deform.set_split_col(breakpoints=cut)
@@ -205,7 +223,7 @@ class MatrixBase(_Base):
             self._deform.set_split_col(breakpoints=breakpoints)
 
     def _setup_axes(self):
-        deform = self._deform
+        deform = self.get_deform()
         # split the main axes
         if deform.is_split:
             self.grid.split(
@@ -234,8 +252,11 @@ class MatrixBase(_Base):
                     hspace=deform.hspace
                 )
 
+        if self._draw_legend:
+            self.grid.add_ax(**self._legend_kws)
+
     def _render_dendrogram(self):
-        deform = self._deform
+        deform = self.get_deform()
         for den in (self._row_den + self._col_den):
             if den['show']:
                 ax = self.grid.get_ax(den['name'])
@@ -248,12 +269,13 @@ class MatrixBase(_Base):
                 den_obj.draw(ax, orient=den['side'], spacing=spacing)
 
     def _render_plan(self):
-        deform = self._deform
+        deform = self.get_deform()
         for plan in self._col_plan:
-            render_data = plan.data
-            if not plan.no_split:
-                render_data = deform.transform_col(plan.data)
-            plan.set_render_data(render_data)
+            plan.set_deform(deform)
+            # render_data = plan.data
+            # if not plan.no_split:
+            #     render_data = deform.transform_col(plan.data)
+            # plan.set_render_data(render_data)
             axes = self.grid.get_canvas_ax(plan.name)
             plan.render(axes)
 
@@ -270,9 +292,54 @@ class MatrixBase(_Base):
     def get_deform(self):
         return self._deform
 
-    def auto_legend(self, side):
-        """Draw legend based on the order of annotation"""
-        pass
+    def get_main_legends(self):
+        raise NotImplemented
+
+    def get_legends(self):
+        legends = {}
+        for plan in self._col_plan + self._row_plan:
+            # Not every render plan has legend
+            legs = plan.get_legends()
+            if legs is not None:
+                if isinstance(legs, Artist):
+                    legs = [legs]
+                legends[plan.name] = legs
+        main_legends = self.get_main_legends()
+        if isinstance(main_legends, Artist):
+            main_legends = [main_legends]
+        legends[self.main_name] = main_legends
+        return legends
+
+    def add_legends(self, side="right", pad=0, order=None,
+                    direction=None, ncol=None, nrow=None):
+        """Draw legend based on the order of annotation
+        If legend is drawn, user may not get proper
+        legends if concatenate multiple plot
+        """
+        self._draw_legend = True
+        name = self._get_plot_name("Legend", side, "Legend")
+        self._legend_name = name
+        self._legend_kws = dict(
+            name=name,
+            side=side,
+            pad=pad,
+            size=0.01
+        )
+
+    def _render_legend(self):
+        if self._draw_legend:
+            legend_ax = self.grid.get_canvas_ax(self._legend_name)
+            legend_ax.set_axis_off()
+            legends = self.get_legends()
+            # TODO: How to pack legend? Allow user to define the packing
+            #       order of legends?
+            bboxes = []
+            for name, legs in legends.items():
+                box = hstack(legs, alignment="left")
+                bboxes.append(box)
+            legend_box = vstack(bboxes, loc="center left", alignment="left")
+            legend_ax.add_artist(legend_box)
+            self._legend_box = legend_box
 
     @property
     def row_cluster(self):
@@ -369,4 +436,10 @@ class MatrixList:
         for m in self._matrix_list:
             m.grid = self.grid
             m.render(figure=self.figure, aspect=aspect)
+
+    def add_legends(self):
+        raise NotImplemented
+
+    def get_legends(self):
+        raise NotImplemented
 

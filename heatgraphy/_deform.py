@@ -23,9 +23,6 @@ class Deformation:
     data_row_reindex = None
     data_col_reindex = None
 
-    row_ratios = None
-    col_ratios = None
-
     row_breakpoints = None
     col_breakpoints = None
 
@@ -93,18 +90,36 @@ class Deformation:
             self.is_row_split = True
             self.row_breakpoints = [0, *np.sort(np.asarray(breakpoints)),
                                     self._nrow]
-            self.row_ratios = np.array(
-                [ix2 - ix1 for ix1, ix2 in pairwise(self.row_breakpoints)]
-            )
 
     def set_split_col(self, breakpoints=None):
         if breakpoints is not None:
             self.is_col_split = True
             self.col_breakpoints = [0, *np.sort(np.asarray(breakpoints)),
                                     self._ncol]
-            self.col_ratios = np.array(
-                [ix2 - ix1 for ix1, ix2 in pairwise(self.col_breakpoints)]
-            )
+
+    @property
+    def row_ratios(self):
+        if self.row_breakpoints is None:
+            return None
+        ratios = np.array([
+            ix2 - ix1 for ix1, ix2 in pairwise(self.row_breakpoints)])
+
+        if self.row_chunk_index is not None:
+            return ratios[self.row_chunk_index]
+        else:
+            return ratios
+
+    @property
+    def col_ratios(self):
+        if self.col_breakpoints is None:
+            return None
+        ratios = np.array([
+            ix2 - ix1 for ix1, ix2 in pairwise(self.col_breakpoints)])
+
+        if self.col_chunk_index is not None:
+            return ratios[self.col_chunk_index]
+        else:
+            return ratios
 
     def set_row_chunk_order(self, order):
         self.row_chunk_index = order

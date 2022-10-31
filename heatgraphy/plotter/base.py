@@ -1,7 +1,13 @@
-from typing import Any
+from __future__ import annotations
+
+from typing import Any, List, Callable
 
 import numpy as np
+from matplotlib.artist import Artist
 from matplotlib.axes import Axes
+
+from .._deform import Deformation
+
 
 
 class RenderPlan:
@@ -13,22 +19,47 @@ class RenderPlan:
     canvas_size_unknown: bool = False
 
     render_data = None
+    deform: Deformation = None
+    deform_func = None
 
     def set(self, **kwargs):
         for k, v in kwargs.items():
-            self.__setattr__(k, v)
+            set_attr = getattr(self, f"set_{k}")
+            if isinstance(set_attr, Callable):
+                set_attr(v)
+            else:
+                self.__setattr__(k, v)
 
     def set_side(self, side):
         self.side = side
+        self._update_deform_func()
 
-    def set_render_data(self, data):
-        self.render_data = data
+    def set_size(self, size):
+        self.size = size
+
+    def _update_deform_func(self):
+        if self.is_deform:
+            if self.h:
+                trans = self.deform.transform_row
+            elif self.v:
+                trans = self.deform.transform_col
+            else:
+                trans = self.deform.transform
+            self.deform_func = trans
+
+    def set_deform(self, deform: Deformation):
+        self.deform = deform
+        self._update_deform_func()
+
+    @property
+    def is_deform(self):
+        return self.deform is not None
 
     def get_render_data(self):
-        if self.render_data is None:
-            return self.data
+        if self.is_deform:
+            return self.deform_func(self.data)
         else:
-            return self.render_data
+            return self.data
 
     @property
     def v(self):
@@ -91,3 +122,9 @@ class RenderPlan:
     @staticmethod
     def is_split(axes):
         return not isinstance(axes, Axes)
+
+    def get_legends(self) -> List[Artist] | None:
+        return None
+
+    def set_legends(self, *args, **kwargs):
+        raise NotImplemented

@@ -17,7 +17,7 @@ class Heatmap(MatrixBase):
                  cmap=None, norm=None, center=None, robust=None,
                  mask=None, alpha=None, linewidth=0, linecolor="white",
                  annot=None, fmt=None, annot_kws=None,
-                 square=False
+                 square=False,
                  ):
         if mask is not None:
             data = np.ma.masked_where(np.asarray(mask), data).filled(np.nan)
@@ -44,14 +44,15 @@ class Heatmap(MatrixBase):
             self.figure = figure
 
         deform = self.get_deform()
-        trans_data = deform.transform(self.data)
-        trans_texts = deform.transform(self._mesh.annotated_texts)
-        if deform.is_split:
-            self._mesh.set_render_data(
-                [d for d in zip(trans_data, trans_texts)]
-            )
-        else:
-            self._mesh.set_render_data((trans_data, trans_texts))
+        self._mesh.set_deform(deform)
+        # trans_data = deform.transform(self.data)
+        # trans_texts = deform.transform(self._mesh.annotated_texts)
+        # if deform.is_split:
+        #     self._mesh.set_render_data(
+        #         [d for d in zip(trans_data, trans_texts)]
+        #     )
+        # else:
+        #     self._mesh.set_render_data((trans_data, trans_texts))
 
         # Make sure all axes is split
         self._setup_axes()
@@ -67,6 +68,10 @@ class Heatmap(MatrixBase):
 
         # render other plots
         self._render_plan()
+        self._render_legend()
+
+    def get_main_legends(self):
+        return self._mesh.get_legends()
 
 
 class DotHeatmap(MatrixBase):
@@ -124,6 +129,12 @@ class DotHeatmap(MatrixBase):
 
         self._render_dendrogram()
         self._render_plan()
+
+    def get_main_legends(self):
+        if self._bg_mesh is None:
+            return self._mesh.get_legends()
+        else:
+            return [*self._mesh.get_legends(), self._bg_mesh.get_legends()]
 
 
 class CatHeatmap(_Base):

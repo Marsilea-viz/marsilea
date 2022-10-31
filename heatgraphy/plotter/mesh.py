@@ -7,6 +7,7 @@ from matplotlib import cm
 from matplotlib.axes import Axes
 from matplotlib.colors import ListedColormap, TwoSlopeNorm, Normalize
 from matplotlib.offsetbox import AnchoredText
+from legendkit import ColorArt
 
 from .base import RenderPlan
 from ..layout import close_ticks
@@ -51,8 +52,7 @@ class _MeshBase:
             self.vmax = np.nanmax(data) if vmax is None else vmax
 
         if center is not None:
-            norm = TwoSlopeNorm(center, vmin=vmin, vmax=vmax)
-            self.norm = norm
+            self.norm = TwoSlopeNorm(center, vmin=vmin, vmax=vmax)
 
     def _annotate_text(self, ax, mesh, texts):
         """Add textual labels with the value in each cell."""
@@ -78,7 +78,7 @@ class ColorMesh(RenderPlan, _MeshBase):
                  label=None, label_loc=None,
                  alpha=None,
                  linewidth=None, linecolor=None,
-                 annot=None, fmt=None, annot_kws=None
+                 annot=None, fmt=None, annot_kws=None, cbar_kws=None
                  ):
         self.data = data
         self.alpha = alpha
@@ -96,22 +96,38 @@ class ColorMesh(RenderPlan, _MeshBase):
         if annot_kws is not None:
             self.annot_kws = annot_kws
         self._process_cmap(data, vmin, vmax, cmap, norm, center, robust)
+        self._mesh = None
+        self._legend_kws = {}
+
+    def get_render_data(self):
+        data = self.deform_func(self.data)
+        texts = self.deform_func(self.annotated_texts)
+        if self.deform.is_split:
+            return [d for d in zip(data, texts)]
+        else:
+            return data, texts
 
     def render_ax(self, ax, data):
         values, texts = data
-        mesh = ax.pcolormesh(values, cmap=self.cmap,
+        mesh = ax.pcolormesh(values, cmap=self.cmap, norm=self.norm,
                              vmin=self.vmin, vmax=self.vmax,
                              linewidth=self.linewidth,
                              edgecolor=self.linecolor
                              )
         if self.annot:
             self._annotate_text(ax, mesh, texts)
+        # set the mesh for legend
+        self._mesh = mesh
 
         ax.invert_yaxis()
         ax.set_axis_off()
 
-    def get_legend(self):
-        pass
+    def set_legends(self, **kwargs):
+        self._legend_kws = kwargs
+
+    def get_legends(self):
+        return ColorArt(self._mesh, height=4, width=1, fontsize=12,
+                        **self._legend_kws)
 
 
 class CircleMesh(RenderPlan, _MeshBase):
