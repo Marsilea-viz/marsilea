@@ -282,10 +282,11 @@ class MatrixBase(_Base):
         # render other plots
         for plan in self._row_plan:
             # plan.data = plan.data.T
-            render_data = plan.data
-            if not plan.no_split:
-                render_data = deform.transform_row(plan.data)
-            plan.set_render_data(render_data)
+            # render_data = plan.data
+            # if not plan.no_split:
+            #     render_data = deform.transform_row(plan.data)
+            # plan.set_render_data(render_data)
+            plan.set_deform(deform)
             axes = self.grid.get_canvas_ax(plan.name)
             plan.render(axes)
 

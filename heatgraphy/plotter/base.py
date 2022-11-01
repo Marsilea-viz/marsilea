@@ -9,7 +9,6 @@ from matplotlib.axes import Axes
 from .._deform import Deformation
 
 
-
 class RenderPlan:
     name: str
     data: Any
@@ -24,9 +23,8 @@ class RenderPlan:
 
     def set(self, **kwargs):
         for k, v in kwargs.items():
-            set_attr = getattr(self, f"set_{k}")
-            if isinstance(set_attr, Callable):
-                set_attr(v)
+            if k == "side":
+                self.set_side(v)
             else:
                 self.__setattr__(k, v)
 

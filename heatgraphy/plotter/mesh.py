@@ -11,7 +11,7 @@ from legendkit import ColorArt
 
 from .base import RenderPlan
 from ..layout import close_ticks
-from ..utils import relative_luminance
+from ..utils import relative_luminance, get_colormap
 
 ECHARTS16 = [
     "#5470c6", "#91cc75", "#fac858", "#ee6666",
@@ -74,12 +74,14 @@ class _MeshBase:
 class ColorMesh(RenderPlan, _MeshBase):
 
     def __init__(self, data, cmap=None, norm=None, vmin=None, vmax=None,
-                 center=None, robust=None, palette=None,
-                 label=None, label_loc=None,
+                 center=None, robust=None,
                  alpha=None,
                  linewidth=None, linecolor=None,
                  annot=None, fmt=None, annot_kws=None, cbar_kws=None
                  ):
+        data = np.asarray(data)
+        if data.ndim == 1:
+            data = data.reshape(1, -1)
         self.data = data
         self.alpha = alpha
         self.linewidth = linewidth
@@ -130,6 +132,137 @@ class ColorMesh(RenderPlan, _MeshBase):
                         **self._legend_kws)
 
 
+class Colors(RenderPlan):
+    """Categorical colors/heatmap
+
+    Parameters
+    ----------
+    data : np.ndarray
+    label : str
+    label_loc : {'top', 'bottom', 'left', 'right'}
+    palette : dict, array-like
+        Could be a mapping of label and colors or an array match
+        the shape of data
+    cmap:
+
+    """
+    def __init__(self, data, palette=None, cmap=None,
+                 label=None, label_loc=None, props=None,):
+        data = np.asarray(data)
+        if data.ndim == 1:
+            data = data.reshape(1, -1)
+        self.data = data
+        self.label = label
+        self.label_loc = label_loc
+        self.props = props
+        # get unique color
+        if palette is not None:
+            if isinstance(palette, Mapping):
+                self.palette = palette
+            else:
+                self.palette = dict(zip(data.flat, palette.flat))
+
+            self.mapper = {}
+            colors = []
+            for i, (label, color) in enumerate(palette.items()):
+                self.mapper[label] = i
+                colors.append(color)
+            self.render_cmap = ListedColormap(colors)
+            self.vmax = len(colors)
+
+        else:
+            if cmap is not None:
+                colors = get_colormap(cmap).colors
+            else:
+                colors = ECHARTS16
+
+            # data to int
+            cats = np.unique(self.data)
+            self.vmax = len(cats)
+            # Inform the user if the same color
+            # will be used more than once
+            if len(colors) < self.vmax:
+                warnings.warn(f"Current colormap has only {cmap.N} colors "
+                              f"which is less that your input "
+                              f"with {self.vmax} elements")
+            self.mapper = {c: i for i, c in enumerate(cats)}
+            self.render_cmap = ListedColormap(
+                [c for c, _ in zip(cycle(colors), range(self.vmax))])
+        self.data = self._to_numeric(data)
+
+    # transform input data to numeric
+    def _to_numeric(self, arr):
+        orig_shape = arr.shape
+        re_arr = [self.mapper[e] for e in arr.flatten()]
+        re_arr = np.array(re_arr).reshape(orig_shape)
+        return re_arr
+
+    label_props = {
+        "left": dict(loc="center right", bbox_to_anchor=(0, 0.5)),
+        "right": dict(loc="center left", bbox_to_anchor=(1, 0.5)),
+        "top": dict(loc="lower center", bbox_to_anchor=(0.5, 1),
+                    prop=dict(rotation=90)),
+        "bottom": dict(loc="upper center", bbox_to_anchor=(0.5, 0),
+                       prop=dict(rotation=90)),
+    }
+
+    def _add_label(self, ax):
+        label_props = self.label_props[self.label_loc]
+        loc = label_props["loc"]
+        bbox_to_anchor = label_props['bbox_to_anchor']
+        prop = label_props.get('prop')
+        if self.props is not None:
+            prop = self.props
+
+        title = AnchoredText(self.label,
+                             loc=loc,
+                             bbox_to_anchor=bbox_to_anchor,
+                             prop=prop,
+                             pad=0.3,
+                             borderpad=0,
+                             bbox_transform=ax.transAxes,
+                             frameon=False)
+        ax.add_artist(title)
+
+    default_label_loc = {
+        "top": "right",
+        "bottom": "right",
+        "left": "bottom",
+        "right": "bottom",
+    }
+
+    def get_render_data(self):
+        if self.is_deform:
+            data = self.data
+            if self.h:
+                data = self.data.T
+            return self.deform_func(data)
+        else:
+            return self.data
+
+    def render_ax(self, ax: Axes, data):
+        ax.pcolormesh(data, cmap=self.render_cmap, vmin=0, vmax=self.vmax)
+        ax.set_axis_off()
+        if self.h:
+            ax.invert_yaxis()
+
+    def render(self, axes):
+        render_data = self.get_render_data()
+        if self.label_loc is None:
+            self.label_loc = self.default_label_loc[self.side]
+        if self.is_split(axes):
+            if self.label_loc in ["top", "left"]:
+                self._add_label(axes[0])
+            else:
+                self._add_label(axes[-1])
+            for hax, arr in zip(axes, render_data):
+                self.render_ax(hax, arr)
+        else:
+            self.render_ax(axes, render_data)
+            if self.label is not None:
+                self._add_label(axes)
+
+
 class CircleMesh(RenderPlan, _MeshBase):
 
     def __init__(self, size, color, cmap=None, norm=None,
@@ -169,118 +302,6 @@ class CircleMesh(RenderPlan, _MeshBase):
         ax.set_xlim(0, xticks[-1] + 0.5)
         ax.set_ylim(0, yticks[-1] + 0.5)
         ax.invert_yaxis()
-
-
-class Colors(RenderPlan):
-    def __init__(self, data, label=None, label_loc=None,
-                 color_mapping=None, cmap=None):
-        self.data = data
-        self.label = label
-        self.label_loc = label_loc
-        # get unique color
-        if color_mapping is not None:
-            self.mapper = {}
-            colors = []
-            for i, (label, color) in enumerate(color_mapping.items()):
-                self.mapper[label] = i
-                colors.append(color)
-            self.render_cmap = ListedColormap(colors)
-            self.vmax = len(colors)
-        else:
-            if cmap is not None:
-                if isinstance(cmap, str):
-                    colors = cm.get_cmap(cmap).colors
-                else:
-                    colors = cmap.colors
-            else:
-                colors = ECHARTS16
-
-            # data to int
-            cats = []
-            if isinstance(data, list):
-                for arr in data:
-                    cats += np.unique(arr).tolist()
-                cats = np.unique(cats)
-            else:
-                cats = np.unique(data)
-            self.vmax = len(cats)
-            # Inform the user if the same color
-            # will be used more than once
-            if len(colors) < self.vmax:
-                warnings.warn(f"Current colormap has only {cmap.N} colors "
-                              f"which is less that your input "
-                              f"with {self.vmax} elements")
-            self.mapper = {c: i for i, c in enumerate(cats)}
-            self.render_cmap = ListedColormap(
-                [c for c, _ in zip(cycle(colors), range(self.vmax))])
-
-    # transform input data to numeric
-    @staticmethod
-    def _remap(orig_arr, remapper):
-        orig_shape = orig_arr.shape
-        re_arr = [remapper[e] for e in orig_arr.flatten()]
-        re_arr = np.array(re_arr).reshape(orig_shape)
-        return re_arr
-
-    def _add_label(self, ax):
-        pos = self.label_loc
-        prop = None
-        if pos == "left":
-            loc = "center right"
-            bbox_to_anchor = (0, 0.5)
-        elif pos == "right":
-            loc = "center left"
-            bbox_to_anchor = (1, 0.5)
-        elif pos == "top":
-            prop = dict(rotation=90)
-            loc = "lower center"
-            bbox_to_anchor = (0.5, 1)
-        else:
-            prop = dict(rotation=90)
-            loc = "upper center"
-            bbox_to_anchor = (0.5, 0)
-        title = AnchoredText(self.label,
-                             prop=prop,
-                             pad=0.3,
-                             borderpad=0,
-                             loc=loc,
-                             bbox_transform=ax.transAxes,
-                             bbox_to_anchor=bbox_to_anchor,
-                             frameon=False)
-        ax.add_artist(title)
-
-    default_label_loc = {
-        "top": "right",
-        "bottom": "right",
-        "left": "bottom",
-        "right": "bottom",
-    }
-
-    def render(self, axes):
-        render_data = self.get_render_data()
-        if self.label_loc is None:
-            self.label_loc = self.default_label_loc[self.side]
-        if self.is_split(axes):
-            if self.label_loc in ["top", "left"]:
-                self._add_label(axes[0])
-            else:
-                self._add_label(axes[-1])
-            for hax, arr in zip(axes, render_data):
-                if self.h:
-                    hax.invert_yaxis()
-                hax.set_axis_off()
-                render_data = self._remap(arr, self.mapper)
-                hax.pcolormesh(render_data, cmap=self.render_cmap,
-                               vmin=0, vmax=self.vmax)
-        else:
-            render_data = self._remap(render_data, self.mapper)
-            if self.h:
-                axes.invert_yaxis()
-            axes.pcolormesh(render_data, cmap=self.render_cmap,
-                            vmin=0, vmax=self.vmax)
-            axes.set_axis_off()
-            if self.label is not None:
-                self._add_label(axes)
 
 
 class LayersMesh(RenderPlan):

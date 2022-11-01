@@ -99,6 +99,7 @@ class Deformation:
 
     @property
     def row_ratios(self):
+        self._run_cluster()
         if self.row_breakpoints is None:
             return None
         ratios = np.array([
@@ -111,6 +112,7 @@ class Deformation:
 
     @property
     def col_ratios(self):
+        self._run_cluster()
         if self.col_breakpoints is None:
             return None
         ratios = np.array([
@@ -292,7 +294,7 @@ class Deformation:
         if data.ndim == 1:
             assert len(data) == self._nrow
         else:
-            assert data.shape[1] == self._nrow
+            assert data.shape[0] == self._nrow
 
         if self.data_row_reindex is not None:
             data = data[self.data_row_reindex]

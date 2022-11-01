@@ -2,6 +2,7 @@ from itertools import tee
 
 import numpy as np
 from matplotlib import colors as mcolors
+from matplotlib.colors import Colormap
 
 
 def pairwise(iterable):
@@ -29,3 +30,9 @@ def relative_luminance(color):
         return lum.item()
     except ValueError:
         return lum
+
+
+def get_colormap(cmap):
+    if isinstance(cmap, Colormap):
+        return cmap
+    return mpl.colormap.get(cmap)

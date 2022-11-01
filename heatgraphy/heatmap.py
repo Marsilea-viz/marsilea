@@ -36,6 +36,7 @@ class Heatmap(MatrixBase):
                                annot=annot, fmt=fmt,
                                annot_kws=annot_kws
                                )
+        self._mesh.set_side("main")
 
     def render(self, figure=None, aspect=1):
         if figure is None:

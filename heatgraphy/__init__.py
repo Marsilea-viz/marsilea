@@ -5,3 +5,4 @@ from .layout import CrossGrid
 from .dendrogram import Dendrogram, GroupDendrogram
 from ._deform import Deformation
 from .layers import Piece, Layers
+from .upset import UpsetData
