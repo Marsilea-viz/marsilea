@@ -1,4 +1,4 @@
-# Heatgraphy
+![Logo](img/logo.png)
 
 Create matrix-like visualization.
 
