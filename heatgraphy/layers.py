@@ -19,6 +19,7 @@ class Layers(MatrixBase):
                  ):
         self._mesh = LayersMesh(data=data, layers=layers, pieces=pieces,
                                 shrink=shrink)
+        self._mesh.set_side("main")
         if cluster_data is None:
             self._allow_cluster = False
             if self._mesh.mode == "cell":
@@ -31,23 +32,14 @@ class Layers(MatrixBase):
         super().__init__(cluster_data)
 
     def render(self, figure=None, aspect=1):
+        self._freeze_legend()
         if figure is None:
             self.figure = plt.figure()
         else:
             self.figure = figure
 
         deform = self.get_deform()
-        if self._mesh.mode == "cell":
-            trans_data = deform.transform(self._mesh.data)
-            self._mesh.set_render_data(trans_data)
-        else:
-            trans_layers = [
-                deform.transform(layer) for layer in self._mesh.data]
-            if deform.is_split:
-                self._mesh.set_render_data(
-                    [chunk for chunk in zip(*trans_layers)])
-            else:
-                self._mesh.set_render_data(trans_layers)
+        self._mesh.set_deform(deform)
 
         self._setup_axes()
         if not self.grid.is_freeze:
@@ -58,11 +50,19 @@ class Layers(MatrixBase):
         # render other plots
         self._render_dendrogram()
         self._render_plan()
+        self._render_legend()
 
 
 class Piece:
     frac_x = 1
     frac_y = 1
+    label = None
+
+    def get_label(self):
+        if self.label is None:
+            return self.__class__.__name__
+        else:
+            return self.label
 
     def set_frac(self, frac):
         self.frac_x, self.frac_y = frac
@@ -90,26 +90,44 @@ class Piece:
 
 class Rect(Piece):
 
-    def __init__(self, color="C0"):
+    def __init__(self, color="C0", label=None):
         self.color = color
+        self.label = label
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}(color={self.color}, " \
+               f"label={self.label})"
 
     def draw(self, x, y, w, h) -> Artist:
         return Rectangle((x, y), w, h, facecolor=self.color)
 
+    def legend(self, x, y, w, h) -> Artist:
+        return Rectangle((x, y), w, h)
+
 
 class Bg(Piece):
 
-    def __init__(self, color="C0"):
+    def __init__(self, color="C0", label=None):
         self.color = color
+        self.label = label
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}(color={self.color}, " \
+               f"label={self.label})"
 
     def draw(self, x, y, w, h):
         return Rectangle((x, y), w, h, fc=self.color)
 
 
 class FracRect(Piece):
-    def __init__(self, color="C0", frac=(.9, .5)):
+    def __init__(self, color="C0", frac=(.9, .5), label=None):
         self.color = color
+        self.label = label
         self.set_frac(frac)
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}(color={self.color}, " \
+               f"label={self.label})"
 
     def draw(self, x, y, w, h):
         x, y, w, h = self.transform_frac(x, y, w, h)
@@ -117,9 +135,14 @@ class FracRect(Piece):
 
 
 class FrameRect(Piece):
-    def __init__(self, color="C0", width=1):
+    def __init__(self, color="C0", width=1, label=None):
         self.color = color
         self.width = width
+        self.label = label
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}(color={self.color}, " \
+               f"label={self.label})"
 
     def draw(self, x, y, w, h):
         return Rectangle((x, y), w, h,
@@ -128,12 +151,18 @@ class FrameRect(Piece):
                          linewidth=self.width)
 
 
-class RTri(Piece):
+class RightTri(Piece):
 
-    def __init__(self, color="C0", right_angle="lower left", frac=(1, 1)):
+    def __init__(self, color="C0", right_angle="lower left",
+                 frac=(1, 1), label=None):
         self.color = color
         self.pos = right_angle
+        self.label = label
         self.set_frac(frac)
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}(color={self.color}, " \
+               f"label={self.label})"
 
     def draw(self, x, y, w, h):
 

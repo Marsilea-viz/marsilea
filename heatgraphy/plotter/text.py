@@ -130,36 +130,6 @@ def adjust_segments(lim: Segment, segments: List[Segment]):
     return segments
 
 
-@dataclass
-class TextConfig:
-    ha: str
-    va: str
-    rotation: float
-    connectionstyle: str
-    relpos: tuple
-    expand: tuple
-
-
-side_mapper = {
-    "top": TextConfig(va="bottom", ha="center", rotation=90,
-                      connectionstyle="arc,angleA=-90,angleB=90,"
-                                      "armA=30,armB=30,rad=0",
-                      relpos=(0.5, 0), expand=(1.05, 1)),
-    "bottom": TextConfig(va="top", ha="center", rotation=-90,
-                         connectionstyle="arc,angleA=90,angleB=-90,"
-                                         "armA=30,armB=30,rad=0",
-                         relpos=(0.5, 1), expand=(1.05, 1)),
-    "right": TextConfig(va="center", ha="left", rotation=0,
-                        connectionstyle="arc,angleA=-180,angleB=0,"
-                                        "armA=20,armB=20,rad=0",
-                        relpos=(0, 0.5), expand=(1, 1.05)),
-    "left": TextConfig(va="center", ha="right", rotation=0,
-                       connectionstyle="arc,angleA=0,angleB=-180,"
-                                       "armA=30,armB=30,rad=0",
-                       relpos=(1, 0.5), expand=(1, 1.05)),
-}
-
-
 class AdjustableText:
 
     def __init__(self, x, y, text,
@@ -243,34 +213,30 @@ class AdjustableText:
 
 
 class _LabelBase(RenderPlan):
-    va = None
-    ha = None
-    rotation = None
-    connectionstyle = None
-    relpos = None
-    expand = None
     canvas_size = None
     canvas_size_unknown = True
+    _update_params = []
+    _user_options = {}
+    ha = None
+    va = None
+    rotation = None
+
+    def __init__(self, **text_options):
+        for k, v in text_options.items():
+            if hasattr(self, k):
+                setattr(self, k, v)
+                if v is None:
+                    self._update_params.append(k)
+            else:
+                self._user_options[k] = v
 
     def set_side(self, side):
         self.side = side
-        self._default_text_config()
+        self._update_text_params()
         self._update_deform_func()
 
-    def _default_text_config(self):
-        text_config = side_mapper[self.side]
-        if self.va is None:
-            self.va = text_config.va
-        if self.ha is None:
-            self.ha = text_config.ha
-        if self.rotation is None:
-            self.rotation = text_config.rotation
-        if self.connectionstyle is None:
-            self.connectionstyle = text_config.connectionstyle
-        if self.relpos is None:
-            self.relpos = text_config.relpos
-        if self.expand is None:
-            self.expand = text_config.expand
+    def _update_text_params(self):
+        raise NotImplemented
 
     @staticmethod
     def get_axes_coords(labels):
@@ -304,32 +270,72 @@ class _LabelBase(RenderPlan):
         plt.close(fig)
 
 
+@dataclass
+class TextConfig:
+    ha: str
+    va: str
+    rotation: float
+    connectionstyle: str
+    relpos: tuple
+    expand: tuple
+
+
+anno_side_params = {
+    "top": TextConfig(va="bottom", ha="center", rotation=90,
+                      connectionstyle="arc,angleA=-90,angleB=90,"
+                                      "armA=30,armB=30,rad=0",
+                      relpos=(0.5, 0), expand=(1.05, 1)),
+    "bottom": TextConfig(va="top", ha="center", rotation=-90,
+                         connectionstyle="arc,angleA=90,angleB=-90,"
+                                         "armA=30,armB=30,rad=0",
+                         relpos=(0.5, 1), expand=(1.05, 1)),
+    "right": TextConfig(va="center", ha="left", rotation=0,
+                        connectionstyle="arc,angleA=-180,angleB=0,"
+                                        "armA=20,armB=20,rad=0",
+                        relpos=(0, 0.5), expand=(1, 1.05)),
+    "left": TextConfig(va="center", ha="right", rotation=0,
+                       connectionstyle="arc,angleA=0,angleB=-180,"
+                                       "armA=30,armB=30,rad=0",
+                       relpos=(1, 0.5), expand=(1, 1.05)),
+}
+
+
 class AnnoLabels(_LabelBase):
     arrow_size = 0.4  # inches
-    const_pos = cycle([0.4])
+    const_pos = 0.4
+
+    # text params we need to take control of
+    va = None
+    ha = None
+    rotation = None
+    connectionstyle = None
+    relpos = None
+    expand = None
 
     def __init__(self,
                  mark_labels: np.ma.MaskedArray | List[np.ma.MaskedArray],
-                 side="right",
-                 va=None, ha=None, rotation=None, connectionstyle=None,
-                 relpos=None,
-                 **options,
-                 ):
+                 side="right", arrow_size=0.4,
+                 va=None, ha=None, rotation=None,
+                 connectionstyle=None, relpos=None, **options):
         self.data = mark_labels
         self.canvas_size = None
         self.side = side
+        self.arrow_size = arrow_size
 
-        self.va = va
-        self.ha = ha
-        self.rotation = rotation
-        self.connectionstyle = connectionstyle
-        self.relpos = relpos
-        self.options = options
+        super().__init__(va=va, ha=ha, rotation=rotation,
+                         connectionstyle=connectionstyle,
+                         relpos=relpos, **options)
+
+    def _update_text_params(self):
+        text_params = anno_side_params[self.side]
+        for param in self._update_params:
+            v = getattr(text_params, param)
+            setattr(self, param, v)
 
     def get_canvas_size(self):
         self.silent_render()
         size = self.canvas_size + self.arrow_size
-        self.const_pos = cycle([self.arrow_size / size])
+        self.const_pos = self.arrow_size / size
         return size
 
     def render_ax(self, ax, labels):
@@ -339,20 +345,19 @@ class AnnoLabels(_LabelBase):
 
         ax_bbox = ax.get_window_extent(renderer)
 
+        text_options = dict(ax=ax, renderer=renderer, va=self.va,
+                            ha=self.ha, rotation=self.rotation,
+                            connectionstyle=self.connectionstyle,
+                            relpos=self.relpos, expand=self.expand,
+                            **self._user_options)
+        texts = []
+        segments = []
         if self.v:
-            texts = []
-            segments = []
-            for x, y, s in zip(locs, self.const_pos, labels):
+            y = self.const_pos
+            for x, s in zip(locs, labels):
                 if not np.ma.is_masked(s):
-                    t = AdjustableText(x=x, y=y, text=s, ax=ax,
-                                       pointer=(x, 0),
-                                       renderer=renderer,
-                                       va=self.va, ha=self.ha,
-                                       rotation=self.rotation,
-                                       connectionstyle=self.connectionstyle,
-                                       relpos=self.relpos,
-                                       expand=self.expand
-                                       )
+                    t = AdjustableText(x=x, y=y, text=s, pointer=(x, 0),
+                                       **text_options)
                     texts.append(t)
                     segments.append(t.get_segment_x())
 
@@ -362,19 +367,11 @@ class AnnoLabels(_LabelBase):
                 t.set_display_x(s.mid)
                 t.draw_annotate()
         else:
-            texts = []
-            segments = []
-            for x, y, s in zip(self.const_pos, locs, labels):
+            x = self.const_pos
+            for y, s in zip(locs, labels):
                 if not np.ma.is_masked(s):
-                    t = AdjustableText(x=x, y=y, text=s, ax=ax,
-                                       pointer=(0, y),
-                                       renderer=renderer,
-                                       va=self.va, ha=self.ha,
-                                       rotation=self.rotation,
-                                       connectionstyle=self.connectionstyle,
-                                       relpos=self.relpos,
-                                       expand=self.expand
-                                       )
+                    t = AdjustableText(x=x, y=y, text=s, pointer=(0, y),
+                                       **text_options)
                     texts.append(t)
                     segments.append(t.get_segment_y())
 
@@ -391,19 +388,50 @@ class AnnoLabels(_LabelBase):
             ax.invert_xaxis()
 
 
-class Labels(_LabelBase):
+side_align = {
+    "right": "left",
+    "left": "right",
+    "top": "bottom",
+    "bottom": "top"
+}
 
-    def __init__(self, labels, align=None, side="right",
+align_pos = {
+    'right': 1,
+    'left': 0,
+    'top': 1,
+    'bottom': 0,
+    'center': 0.5
+}
+
+
+class Labels(_LabelBase):
+    # text params we need to take control of
+    va = None
+    ha = None
+    rotation = None
+
+    def __init__(self, labels, align=None,
                  va=None, ha=None, rotation=None,
                  **options):
         self.data = np.asarray(labels)
         self.align = align
-        self.canvas_size = None
-        self.va = va
-        self.ha = ha
-        self.rotation = rotation
-        self.side = side
-        self.options = options
+
+        super().__init__(va=va, ha=ha, rotation=rotation, **options)
+
+    def _update_text_params(self):
+        if self.align is None:
+            self.align = side_align[self.side]
+        va, ha = self.align, "center"
+        rotation = 90
+        if self.h:
+            va, ha = ha, va
+            rotation = 0
+        if 'va' in self._update_params:
+            self.va = va
+        if 'ha' in self._update_params:
+            self.ha = ha
+        if 'rotation' in self._update_params:
+            self.rotation = rotation
 
     def get_canvas_size(self):
         self.silent_render()
@@ -414,8 +442,66 @@ class Labels(_LabelBase):
         coords = self.get_axes_coords(data)
         if self.h:
             coords = coords[::-1]
+        const = align_pos[self.align]
         for s, c in zip(data, coords):
-            x, y = (0, c) if self.h else (c, 0)
+            x, y = (const, c) if self.h else (c, const)
             ax.text(x, y, s=s, va=self.va, ha=self.ha,
                     rotation=self.rotation, transform=ax.transAxes,
-                    **self.options)
+                    **self._user_options)
+
+
+stick_pos = {
+    "right": 0,
+    "left": 1,
+    "top": 0,
+    "bottom": 1,
+}
+
+
+class Title(_LabelBase):
+    no_split = True
+    canvas_size_unknown = True
+
+    va = None
+    ha = None
+    rotation = 0
+
+    def __init__(self, title, align="center", va=None, ha=None,
+                 fontsize=None, rotation=None, **options):
+        self.data = title
+        self.align = align
+        if fontsize is None:
+            fontsize = 12
+        self.fontsize = fontsize
+
+        super().__init__(va=va, ha=ha, rotation=rotation, **options)
+
+    def _update_text_params(self):
+        va = side_align[self.side]
+        ha = self.align
+        rotation = 0
+        if self.h:
+            va, ha = ha, va
+            rotation = 90 if self.side == "left" else -90
+        if 'va' in self._update_params:
+            self.va = va
+        if 'ha' in self._update_params:
+            self.ha = ha
+        if 'rotation' in self._update_params:
+            self.rotation = rotation
+
+    def get_render_data(self):
+        return self.data
+
+    def get_canvas_size(self):
+        self.silent_render()
+        return self.canvas_size
+
+    def render_ax(self, ax: Axes, title):
+        const = align_pos[self.align]
+        pos = stick_pos[self.side]
+        x, y = (const, pos) if self.v else (pos, const)
+        ax.text(x, y, title, fontsize=self.fontsize, va=self.va, ha=self.ha,
+                transform=ax.transAxes,
+                rotation=self.rotation, **self._user_options)
+        ax.set_axis_off()

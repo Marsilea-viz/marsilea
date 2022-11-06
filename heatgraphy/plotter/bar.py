@@ -4,8 +4,6 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
-from matplotlib.collections import PatchCollection
-from matplotlib.patches import Rectangle
 from seaborn import barplot, despine
 
 from .base import RenderPlan
@@ -18,7 +16,52 @@ ECHARTS16 = [
 ]
 
 
-class Bar(RenderPlan):
+class _BarBase(RenderPlan):
+    axis_label: str = None
+
+    def render_axes(self, axes):
+        for ax, data in zip(axes, self.get_render_data()):
+            self.render_ax(ax, data)
+        self.align_lim(axes)
+
+    def render(self, axes):
+        if self.is_split(axes):
+            self.render_axes(axes)
+            for i, ax in enumerate(axes):
+                # leave axis for the first ax
+                if (i == 0) & self.v:
+                    self._setup_axis(ax)
+                    if self.axis_label is not None:
+                        ax.set_ylabel(self.axis_label)
+                # leave axis for the last ax
+                elif (i == len(axes) - 1) & self.h:
+                    self._setup_axis(ax)
+                    if self.axis_label is not None:
+                        ax.set_xlabel(self.axis_label)
+                else:
+                    ax.set_axis_off()
+        else:
+            # axes.set_axis_off()
+            self.render_ax(axes, self.get_render_data())
+            self._setup_axis(axes)
+            if self.axis_label is not None:
+                if self.v:
+                    axes.set_ylabel(self.axis_label)
+                else:
+                    axes.set_xlabel(self.axis_label)
+
+    def _setup_axis(self, ax):
+        if self.v:
+            despine(ax=ax, bottom=True)
+            ax.tick_params(left=True, labelleft=True,
+                           bottom=False, labelbottom=False)
+        else:
+            despine(ax=ax, left=True)
+            ax.tick_params(left=False, labelleft=False,
+                           bottom=True, labelbottom=True)
+
+
+class Bar(_BarBase):
 
     def __init__(self, data):
         self.data = data
@@ -35,38 +78,6 @@ class Bar(RenderPlan):
             ax.invert_xaxis()
         barplot(data=data, orient=bar_orient,
                 ax=ax)
-
-    def render_axes(self, axes):
-        for ax, data in zip(axes, self.get_render_data()):
-            self.render_ax(ax, data)
-        self.align_lim(axes)
-
-    def render(self, axes):
-        if self.is_split(axes):
-            self.render_axes(axes)
-            for i, ax in enumerate(axes):
-                # leave axis for the first ax
-                if (i == 0) & self.v:
-                    self._setup_axis(ax)
-                # leave axis for the last ax
-                elif (i == len(axes) - 1) & self.h:
-                    self._setup_axis(ax)
-                else:
-                    ax.set_axis_off()
-        else:
-            # axes.set_axis_off()
-            self.render_ax(axes, self.get_render_data())
-            self._setup_axis(axes)
-
-    def _setup_axis(self, ax):
-        if self.v:
-            despine(ax=ax, bottom=True)
-            ax.tick_params(left=True, labelleft=True,
-                           bottom=False, labelbottom=False)
-        else:
-            despine(ax=ax, left=True)
-            ax.tick_params(left=False, labelleft=False,
-                           bottom=True, labelbottom=True)
 
 
 def simple_bar(data,
@@ -130,7 +141,36 @@ def stacked_bar(data, ax: Axes = None,
     return ax
 
 
-class Numbers(RenderPlan):
+class Numbers(_BarBase):
 
-    def __init__(self, data):
+    def __init__(self, data, width=.7, color="C0",
+                 show_value=True, fmt=None, label_pad=2,
+                 text_props=None, **kwargs):
         self.data = data
+        self.width = width
+        self.color = color
+        self.show_value = show_value
+        self.fmt = fmt
+        self.label_pad = label_pad
+        if text_props is None:
+            text_props = {}
+        self.text_props = text_props
+        self.options = kwargs
+        self.bars = None
+
+    def render_ax(self, ax: Axes, data):
+        bar = ax.bar if self.v else ax.barh
+        self.bars = bar(np.arange(0, len(data)) + 0.5, data,
+                        self.width, color=self.color, **self.options)
+        if self.v:
+            ax.set_xlim(0, len(data))
+        else:
+            ax.set_ylim(0, len(data))
+        if self.side == "left":
+            ax.invert_xaxis()
+
+        if self.show_value:
+            ax.bar_label(self.bars, data, fmt=self.fmt,
+                         padding=self.label_pad,
+                         **self.text_props)
+

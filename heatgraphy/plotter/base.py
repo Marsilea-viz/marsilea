@@ -14,7 +14,11 @@ class RenderPlan:
     data: Any
     size: float = 1.
     side: str = "top"
-    no_split: bool = False  # TODO: remove if no usage
+    # label if a render plan
+    # can be used on split axes
+    no_split: bool = False
+    # label if a render plan need to calculate
+    # canvas size before rendering
     canvas_size_unknown: bool = False
 
     render_data = None

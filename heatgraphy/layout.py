@@ -159,7 +159,8 @@ class CrossGrid:
         gridlines = np.sort(np.unique(gridlines))
         n_grid = len(gridlines)
         if n_grid > 0:
-            ratios = [gridlines[0]] + [i2 - i1 for i1, i2 in pairwise(gridlines)]
+            ratios = [gridlines[0]] + [i2 - i1 for i1, i2 in
+                                       pairwise(gridlines)]
             # how much to move for current grid
             offset_current = n_grid - len(ratios1)
             # how much to move for other grid
@@ -392,14 +393,16 @@ class CrossGrid:
 
         # setup new_grid
         top_cells = current_cells['top']
-        bottom_cells = (current_cells['bottom'] + other_cells['top'] +
+        bottom_cells = (current_cells['bottom'] +
+                        # because we record from main axes to outside
+                        # we need to flip the direction here
+                        other_cells['top'][::-1] +
                         [other_main] + other_cells['bottom'])
 
         top_ratios = deepcopy(self.side_ratios['top'])
-        bottom_ratios = (
-                    self.side_ratios['bottom'] + other.side_ratios['top'] +
-                    [other.main_w] + other.side_ratios['bottom'])
-
+        bottom_ratios = (self.side_ratios['bottom'] +
+                         other.side_ratios['top'][::-1] +
+                         [other.main_h] + other.side_ratios['bottom'])
         new_grid.set_side_tracker(top=top_cells, bottom=bottom_cells,
                                   left=left_cells, right=right_cells)
         new_grid.set_side_ratios(top=top_ratios, bottom=bottom_ratios,
@@ -819,6 +822,13 @@ class CrossGrid:
     @property
     def is_freeze(self):
         return self._has_freeze
+
+    def is_split(self, name):
+        """To query whether ax has been split"""
+        gb = self.layout.get(name)
+        if gb is None:
+            raise NameError(f"{name} does not exist.")
+        return gb.is_split
 
 
 def close_ticks(ax):

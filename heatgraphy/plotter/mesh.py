@@ -3,11 +3,10 @@ from itertools import cycle
 from typing import Mapping, Iterable
 
 import numpy as np
-from matplotlib import cm
-from matplotlib.axes import Axes
-from matplotlib.colors import ListedColormap, TwoSlopeNorm, Normalize
+from matplotlib.colors import ListedColormap, TwoSlopeNorm, Normalize, \
+    is_color_like
 from matplotlib.offsetbox import AnchoredText
-from legendkit import ColorArt
+from legendkit import ColorArt, CatLegend, ListLegend, SizeLegend
 
 from .base import RenderPlan
 from ..layout import close_ticks
@@ -30,6 +29,8 @@ class _MeshBase:
     annotated_texts = None
     fmt = "0"
     annot_kws = {}
+    norm = None
+    cmap = None
 
     def _process_cmap(self, data, vmin, vmax,
                       cmap, norm, center, robust):
@@ -50,6 +51,9 @@ class _MeshBase:
         else:
             self.vmin = np.nanmin(data) if vmin is None else vmin
             self.vmax = np.nanmax(data) if vmax is None else vmax
+
+        if norm is None:
+            self.norm = Normalize(vmin=self.vmin, vmax=self.vmax)
 
         if center is not None:
             self.norm = TwoSlopeNorm(center, vmin=vmin, vmax=vmax)
@@ -99,11 +103,21 @@ class ColorMesh(RenderPlan, _MeshBase):
             self.annot_kws = annot_kws
         self._process_cmap(data, vmin, vmax, cmap, norm, center, robust)
         self._mesh = None
-        self._legend_kws = {}
+        if cbar_kws is None:
+            cbar_kws = {}
+        self._legend_kws = cbar_kws
 
     def get_render_data(self):
-        data = self.deform_func(self.data)
-        texts = self.deform_func(self.annotated_texts)
+        data = self.data
+        texts = self.annotated_texts
+        if self.h:
+            data = data.T
+            texts = texts.T
+        if not self.is_deform:
+            return data, texts
+
+        data = self.deform_func(data)
+        texts = self.deform_func(texts)
         if self.deform.is_split:
             return [d for d in zip(data, texts)]
         else:
@@ -112,7 +126,6 @@ class ColorMesh(RenderPlan, _MeshBase):
     def render_ax(self, ax, data):
         values, texts = data
         mesh = ax.pcolormesh(values, cmap=self.cmap, norm=self.norm,
-                             vmin=self.vmin, vmax=self.vmax,
                              linewidth=self.linewidth,
                              edgecolor=self.linecolor
                              )
@@ -128,8 +141,24 @@ class ColorMesh(RenderPlan, _MeshBase):
         self._legend_kws = kwargs
 
     def get_legends(self):
-        return ColorArt(self._mesh, height=4, width=1, fontsize=12,
-                        **self._legend_kws)
+        return ColorArt(self._mesh, **self._legend_kws)
+
+
+# transform input data to numeric
+def encode_numeric(arr, encoder):
+    orig_shape = arr.shape
+    re_arr = [encoder[e] for e in arr.flatten()]
+    re_arr = np.array(re_arr).reshape(orig_shape)
+    return re_arr
+
+
+def _enough_colors(n_colors, n_cats):
+    # Inform the user if the same color
+    # will be used more than once
+    if n_colors < n_cats:
+        warnings.warn(f"Current colormap has only {n_colors} colors "
+                      f"which is less that your input "
+                      f"with {n_cats} elements")
 
 
 class Colors(RenderPlan):
@@ -146,8 +175,9 @@ class Colors(RenderPlan):
     cmap:
 
     """
+
     def __init__(self, data, palette=None, cmap=None,
-                 label=None, label_loc=None, props=None,):
+                 label=None, label_loc=None, props=None, ):
         data = np.asarray(data)
         if data.ndim == 1:
             data = data.reshape(1, -1)
@@ -155,6 +185,9 @@ class Colors(RenderPlan):
         self.label = label
         self.label_loc = label_loc
         self.props = props
+
+        encoder = {}
+        render_colors = []
         # get unique color
         if palette is not None:
             if isinstance(palette, Mapping):
@@ -162,13 +195,9 @@ class Colors(RenderPlan):
             else:
                 self.palette = dict(zip(data.flat, palette.flat))
 
-            self.mapper = {}
-            colors = []
             for i, (label, color) in enumerate(palette.items()):
-                self.mapper[label] = i
-                colors.append(color)
-            self.render_cmap = ListedColormap(colors)
-            self.vmax = len(colors)
+                encoder[label] = i
+                render_colors.append(color)
 
         else:
             if cmap is not None:
@@ -176,26 +205,20 @@ class Colors(RenderPlan):
             else:
                 colors = ECHARTS16
 
-            # data to int
-            cats = np.unique(self.data)
-            self.vmax = len(cats)
-            # Inform the user if the same color
-            # will be used more than once
-            if len(colors) < self.vmax:
-                warnings.warn(f"Current colormap has only {cmap.N} colors "
-                              f"which is less that your input "
-                              f"with {self.vmax} elements")
-            self.mapper = {c: i for i, c in enumerate(cats)}
-            self.render_cmap = ListedColormap(
-                [c for c, _ in zip(cycle(colors), range(self.vmax))])
-        self.data = self._to_numeric(data)
+            cats = np.unique(data)
+            _enough_colors(len(colors), len(cats))
+            palette = {}
+            encoder = {}
+            render_colors = []
+            for i, (label, color) in enumerate(zip(cats, cycle(colors))):
+                encoder[label] = i
+                render_colors.append(color)
+                palette[label] = color
+            self.palette = palette
 
-    # transform input data to numeric
-    def _to_numeric(self, arr):
-        orig_shape = arr.shape
-        re_arr = [self.mapper[e] for e in arr.flatten()]
-        re_arr = np.array(re_arr).reshape(orig_shape)
-        return re_arr
+        self.render_cmap = ListedColormap(render_colors)
+        self.vmax = len(render_colors)
+        self.data = encode_numeric(data, encoder)
 
     label_props = {
         "left": dict(loc="center right", bbox_to_anchor=(0, 0.5)),
@@ -207,22 +230,44 @@ class Colors(RenderPlan):
     }
 
     def _add_label(self, ax):
-        label_props = self.label_props[self.label_loc]
-        loc = label_props["loc"]
-        bbox_to_anchor = label_props['bbox_to_anchor']
-        prop = label_props.get('prop')
-        if self.props is not None:
-            prop = self.props
+        if self.side != "main":
+            label_props = self.label_props[self.label_loc]
+            loc = label_props["loc"]
+            bbox_to_anchor = label_props['bbox_to_anchor']
+            prop = label_props.get('prop')
+            if self.props is not None:
+                prop = self.props
 
-        title = AnchoredText(self.label,
-                             loc=loc,
-                             bbox_to_anchor=bbox_to_anchor,
-                             prop=prop,
-                             pad=0.3,
-                             borderpad=0,
-                             bbox_transform=ax.transAxes,
-                             frameon=False)
-        ax.add_artist(title)
+            title = AnchoredText(self.label, loc=loc,
+                                 bbox_to_anchor=bbox_to_anchor,
+                                 prop=prop, pad=0.3, borderpad=0,
+                                 bbox_transform=ax.transAxes, frameon=False)
+            ax.add_artist(title)
+
+    def get_legends(self):
+        colors = []
+        labels = []
+        for label, color in self.palette.items():
+            labels.append(label)
+            colors.append(color)
+        return CatLegend(colors=colors, labels=labels, size=1,
+                         title=self.label)
+
+    def get_render_data(self):
+        data = self.data
+        if self.h:
+            data = self.data.T
+
+        if not self.is_deform:
+            return data
+
+        return self.deform_func(data)
+
+    def render_ax(self, ax, data):
+        ax.pcolormesh(data, cmap=self.render_cmap, vmin=0, vmax=self.vmax)
+        ax.set_axis_off()
+        if self.h:
+            ax.invert_yaxis()
 
     default_label_loc = {
         "top": "right",
@@ -230,21 +275,6 @@ class Colors(RenderPlan):
         "left": "bottom",
         "right": "bottom",
     }
-
-    def get_render_data(self):
-        if self.is_deform:
-            data = self.data
-            if self.h:
-                data = self.data.T
-            return self.deform_func(data)
-        else:
-            return self.data
-
-    def render_ax(self, ax: Axes, data):
-        ax.pcolormesh(data, cmap=self.render_cmap, vmin=0, vmax=self.vmax)
-        ax.set_axis_off()
-        if self.h:
-            ax.invert_yaxis()
 
     def render(self, axes):
         render_data = self.get_render_data()
@@ -264,24 +294,118 @@ class Colors(RenderPlan):
 
 
 class CircleMesh(RenderPlan, _MeshBase):
+    """Circle/Pie mesh
 
-    def __init__(self, size, color, cmap=None, norm=None,
+    .. note::
+        If encode color as categorical data, `palette` must be used
+        to assign color for each category.
+
+    Parameters
+    ----------
+    size : 2d array
+        Control the radius of circles, must be numeric
+    color: color-like or 2d array
+        The color of circles, could be numeric / categorical matrix
+        If using one color name, all circles will have the same color.
+
+
+
+    """
+
+    def __init__(self, size, color=None, cmap=None, norm=None,
                  vmin=None, vmax=None, alpha=None,
                  center=None, robust=None,
                  sizes=(1, 200), size_norm=None,
                  edgecolor=None, linewidth=1,
-                 frameon=True):
-
-        self.color = color
+                 frameon=True,
+                 palette=None, ):
+        # normalize size
+        size = np.asarray(size)
         if size_norm is None:
             size_norm = Normalize()
             size_norm.autoscale(size)
+        self.orig_size = size
         self.size = size_norm(size) * (sizes[1] - sizes[0]) + sizes[0]
-        self._process_cmap(color, vmin, vmax, cmap, norm, center, robust)
+        self.color = None
+        self.color2d = None
+        self.palette = palette
+        # process color
+        # By default, the circles colors are uniform
+        if color is None:
+            color = "C0"
+        if color is not None:
+            if is_color_like(color):
+                self.color = color
+                self.color2d = np.repeat(color, size.size).reshape(size.shape)
+            else:
+                color = np.asarray(color)
+                # categorical circle color
+                if palette is not None:
+                    encoder = {}
+                    render_colors = []
+                    for i, (label, c) in enumerate(palette.items()):
+                        encoder[label] = i
+                        render_colors.append(c)
+                    self.cmap = ListedColormap(render_colors)
+                    self.color2d = encode_numeric(color, encoder)
+                else:
+                    self._process_cmap(color, vmin, vmax, cmap,
+                                       norm, center, robust)
+                    self.color2d = color
         self.alpha = alpha
         self.frameon = frameon
         self.edgecolor = edgecolor
         self.linewidth = linewidth
+
+        self._collections = None
+
+    def get_legends(self):
+        if self.color is not None:
+            size_color = self.color
+        else:
+            size_color = "black"
+        handler_kw = dict(edgecolor=self.edgecolor,
+                          linewidth=self.linewidth)
+        size_legend = SizeLegend(self.size,
+                                 array=self.orig_size,
+                                 colors=size_color,
+                                 dtype=self.orig_size.dtype,
+                                 handler_kw=handler_kw,
+                                 )
+
+        if self.color2d is not None:
+            if self.palette is not None:
+                labels, colors = [], []
+                for label, c in self.palette.items():
+                    labels.append(label)
+                    colors.append(c)
+                color_legend = CatLegend(labels=labels, colors=colors,
+                                         size="large",
+                                         handle="circle",
+                                         handle_kw=handler_kw,
+                                         frameon=True,
+                                         )
+            else:
+                color_legend = ColorArt(self._collections)
+            return [size_legend, color_legend]
+        else:
+            return size_legend
+
+    def get_render_data(self):
+        size = self.size
+        color = self.color2d
+        if self.h:
+            size = size.T
+            color = color.T
+        if not self.is_deform:
+            return size, color
+
+        size = self.deform_func(size)
+        color = self.deform_func(color)
+        if self.deform.is_split:
+            return [d for d in zip(size, color)]
+        else:
+            return size, color
 
     def render_ax(self, ax, data):
         size, color = data
@@ -289,12 +413,15 @@ class CircleMesh(RenderPlan, _MeshBase):
         xticks = np.arange(X) + 0.5
         yticks = np.arange(Y) + 0.5
         xv, yv = np.meshgrid(xticks, yticks)
-        ax.scatter(
-            xv, yv, s=size, c=color,
-            norm=self.norm, cmap=self.cmap,
-            vmin=self.vmin, vmax=self.vmax,
-            edgecolor=self.edgecolor, linewidths=self.linewidth
-        )
+
+        if self.color is not None:
+            ax.scatter(xv, yv, s=size, c=self.color, edgecolor=self.edgecolor,
+                       linewidths=self.linewidth)
+        else:
+            self._collections = ax.scatter(xv, yv, s=size, c=color,
+                                           norm=self.norm, cmap=self.cmap,
+                                           edgecolor=self.edgecolor,
+                                           linewidths=self.linewidth)
 
         close_ticks(ax)
         if not self.frameon:
@@ -337,7 +464,35 @@ class LayersMesh(RenderPlan):
         self.width = shrink[0]
         self.height = shrink[1]
 
-    def render_ax(self, ax: Axes, data):
+    def get_render_data(self):
+        data = self.data
+        if self.h:
+            data = self.data.T
+
+        if not self.is_deform:
+            return data
+
+        if self.mode == "cell":
+            return self.deform_func(data)
+        else:
+            trans_layers = [
+                self.deform_func(layer) for layer in self.data]
+            if self.deform.is_split:
+                return [chunk for chunk in zip(*trans_layers)]
+            else:
+                return trans_layers
+
+    def get_legends(self):
+        if self.mode == "cell":
+            handles = list(self.pieces_mapper.values())
+        else:
+            handles = self.pieces
+        labels = [h.get_label() for h in handles]
+        handle_map = {h: h for h in handles}
+        return ListLegend(handles=handles, labels=labels,
+                          handler_map=handle_map)
+
+    def render_ax(self, ax, data):
         if self.mode == "layer":
             Y, X = data[0].shape
         else:

@@ -14,7 +14,7 @@ from legendkit.layout import vstack, hstack, stack
 from ._deform import Deformation
 from .exceptions import SplitTwice
 from .layout import CrossGrid
-from .plotter import RenderPlan
+from .plotter import RenderPlan, Title
 from .utils import pairwise
 
 
@@ -93,8 +93,7 @@ class _Base:
         else:
             return name
 
-    def add_plot(self, side, plot: RenderPlan, name=None, size=None, pad=0.,
-                 no_split=False):
+    def add_plot(self, side, plot: RenderPlan, name=None, size=None, pad=0.):
         plot_name = self._get_plot_name(name, side, type(plot))
 
         add_ax_size = size if size is not None else 1.
@@ -104,7 +103,7 @@ class _Base:
             plan = self._col_plan
         else:
             plan = self._row_plan
-        plot.set(name=plot_name, size=size, no_split=no_split)
+        plot.set(name=plot_name, size=size)
         plot.set_side(side)
 
         if plot.canvas_size_unknown & (plot.size is None):
@@ -113,14 +112,39 @@ class _Base:
 
         plan.append(plot)
 
+    def _render_plan(self):
+        for plan in self._col_plan:
+            axes = self.grid.get_canvas_ax(plan.name)
+            plan.render(axes)
+
+        # render other plots
+        for plan in self._row_plan:
+            axes = self.grid.get_canvas_ax(plan.name)
+            plan.render(axes)
+
     def add_pad(self, side, size):
         self.grid.add_pad(side, size)
 
-    def set_title(self, row=None, col=None, main=None):
-        pass
+    def add_canvas(self, side, name, size, pad=0.):
+        self.grid.add_ax(side, name, size, pad=pad)
+
+    def add_title(self, top=None, bottom=None, left=None, right=None, ):
+        if left is not None:
+            self.add_plot("left", Title(left), pad=.1)
+        if right is not None:
+            self.add_plot("right", Title(right), pad=.1)
+        if top is not None:
+            self.add_plot("top", Title(top), pad=.1)
+        if bottom is not None:
+            self.add_plot("bottom", Title(bottom), pad=.1)
 
     def get_ax(self, name):
-        """Get a specific axes by name when available"""
+        """Get a specific axes by name when available
+
+        .. note::
+            This will not work before `render` is called
+
+        """
         return self.grid.get_canvas_ax(name)
 
     def get_main_ax(self):
@@ -140,6 +164,7 @@ class MatrixBase(_Base):
     _legend_box: List[Artist] = None
     _legend_name: str = None
     _legend_kws: Dict = {}
+    _mesh = None
 
     def __init__(self, cluster_data, w=None, h=None, data_aspect=1):
         super().__init__(w=w, h=h, data_aspect=data_aspect)
@@ -208,7 +233,7 @@ class MatrixBase(_Base):
     def split_col(self, cut=None, labels=None, order=None, spacing=0.01):
         if self._split_col:
             raise SplitTwice(axis="col")
-        self._split_row = True
+        self._split_col = True
 
         self._deform.wspace = spacing
         if cut is not None:
@@ -226,34 +251,36 @@ class MatrixBase(_Base):
         deform = self.get_deform()
         # split the main axes
         if deform.is_split:
-            self.grid.split(
-                self.main_name,
-                w_ratios=deform.col_ratios,
-                h_ratios=deform.row_ratios,
-                wspace=deform.wspace,
-                hspace=deform.hspace
-            )
+            if not self.grid.is_split(self.main_name):
+                self.grid.split(
+                    self.main_name,
+                    w_ratios=deform.col_ratios,
+                    h_ratios=deform.row_ratios,
+                    wspace=deform.wspace,
+                    hspace=deform.hspace
+                )
 
         # split column axes
         if deform.is_col_split:
             for plan in self._col_plan:
-                self.grid.split(
-                    plan.name,
-                    w_ratios=deform.col_ratios,
-                    wspace=deform.wspace
-                )
+                if not plan.no_split:
+                    if not self.grid.is_split(plan.name):
+                        self.grid.split(
+                            plan.name,
+                            w_ratios=deform.col_ratios,
+                            wspace=deform.wspace
+                        )
 
         # split row axes
         if deform.is_row_split:
             for plan in self._row_plan:
-                self.grid.split(
-                    plan.name,
-                    h_ratios=deform.row_ratios,
-                    hspace=deform.hspace
-                )
-
-        if self._draw_legend:
-            self.grid.add_ax(**self._legend_kws)
+                if not plan.no_split:
+                    if not self.grid.is_split(plan.name):
+                        self.grid.split(
+                            plan.name,
+                            h_ratios=deform.row_ratios,
+                            hspace=deform.hspace
+                        )
 
     def _render_dendrogram(self):
         deform = self.get_deform()
@@ -271,7 +298,8 @@ class MatrixBase(_Base):
     def _render_plan(self):
         deform = self.get_deform()
         for plan in self._col_plan:
-            plan.set_deform(deform)
+            if not plan.no_split:
+                plan.set_deform(deform)
             # render_data = plan.data
             # if not plan.no_split:
             #     render_data = deform.transform_col(plan.data)
@@ -286,7 +314,8 @@ class MatrixBase(_Base):
             # if not plan.no_split:
             #     render_data = deform.transform_row(plan.data)
             # plan.set_render_data(render_data)
-            plan.set_deform(deform)
+            if not plan.no_split:
+                plan.set_deform(deform)
             axes = self.grid.get_canvas_ax(plan.name)
             plan.render(axes)
 
@@ -294,7 +323,7 @@ class MatrixBase(_Base):
         return self._deform
 
     def get_main_legends(self):
-        raise NotImplemented
+        return self._mesh.get_legends()
 
     def get_legends(self):
         legends = {}
@@ -318,6 +347,8 @@ class MatrixBase(_Base):
         legends if concatenate multiple plot
         """
         self._draw_legend = True
+        self._legend_side = side
+        # TODO: this name will cause conflict when merge
         name = self._get_plot_name("Legend", side, "Legend")
         self._legend_name = name
         self._legend_kws = dict(
@@ -327,20 +358,41 @@ class MatrixBase(_Base):
             size=0.01
         )
 
+    def _freeze_legend(self):
+        if self._draw_legend:
+            self.grid.add_ax(**self._legend_kws)
+            fig = plt.figure()
+            renderer = fig.canvas.get_renderer()
+            legend_ax = fig.add_axes([0, 0, 1, 1])
+            legends_box = self._legends_drawer(legend_ax)
+            bbox = legends_box.get_window_extent(renderer)
+            if self._legend_side in ["left", "right"]:
+                size = bbox.xmax - bbox.xmin
+            else:
+                size = bbox.ymax - bbox.ymin
+            self.grid.set_render_size_inches(self._legend_name, size/72)
+            plt.close(fig)
+
+    def _legends_drawer(self, ax):
+        legends = self.get_legends()
+        # TODO: How to pack legend? Allow user to define the packing
+        #       order of legends?
+        bboxes = []
+        for name, legs in legends.items():
+            box = hstack(legs, align="bottom", spacing=10)
+            bboxes.append(box)
+        legend_box = vstack(bboxes, align="left", loc="center left",
+                            spacing=10)
+        ax.add_artist(legend_box)
+        return legend_box
+
     def _render_legend(self):
         if self._draw_legend:
             legend_ax = self.grid.get_canvas_ax(self._legend_name)
             legend_ax.set_axis_off()
-            legends = self.get_legends()
-            # TODO: How to pack legend? Allow user to define the packing
-            #       order of legends?
-            bboxes = []
-            for name, legs in legends.items():
-                box = hstack(legs, alignment="left")
-                bboxes.append(box)
-            legend_box = vstack(bboxes, loc="center left", alignment="left")
-            legend_ax.add_artist(legend_box)
+            legend_box = self._legends_drawer(legend_ax)
             self._legend_box = legend_box
+
 
     @property
     def row_cluster(self):
