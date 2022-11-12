@@ -120,11 +120,14 @@ def adjust_segments(lim: Segment, segments: List[Segment]):
 
     # adjust by one direction
     for s1, s2 in pairwise(segments):
-        print(s1, s2)
+        print(s1, s2, s1.overlap(s2))
+        # if s1.overlap(s2):
         s1.move_toward(s2, side="up")
 
     # adjust by reversed direction
     for s1, s2 in pairwise(reversed(segments)):
+        print(s1, s2, s1.overlap(s2))
+        # if s1.overlap(s2):
         s1.move_toward(s2, side="down")
 
     return segments
@@ -310,7 +313,7 @@ class AnnoLabels(_LabelBase):
     rotation = None
     connectionstyle = None
     relpos = None
-    expand = None
+    expand = (1.2, 1.2)
 
     def __init__(self,
                  mark_labels: np.ma.MaskedArray | List[np.ma.MaskedArray],

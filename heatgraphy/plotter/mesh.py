@@ -3,10 +3,10 @@ from itertools import cycle
 from typing import Mapping, Iterable
 
 import numpy as np
+from legendkit import ColorArt, CatLegend, ListLegend, SizeLegend
 from matplotlib.colors import ListedColormap, TwoSlopeNorm, Normalize, \
     is_color_like
 from matplotlib.offsetbox import AnchoredText
-from legendkit import ColorArt, CatLegend, ListLegend, SizeLegend
 
 from .base import RenderPlan
 from ..layout import close_ticks
@@ -24,7 +24,7 @@ def _empty(x):
     return x
 
 
-class _MeshBase:
+class _MeshBase(RenderPlan):
     annot = False
     annotated_texts = None
     fmt = "0"
@@ -74,16 +74,31 @@ class _MeshBase:
                 text_kwargs.update(self.annot_kws)
                 ax.text(x, y, annotation, **text_kwargs)
 
+    def create_render_data(self, *args):
+        datasets = args
+        if self.h:
+            datasets = [d.T for d in datasets]
+        if not self.is_deform:
+            return datasets
 
-class ColorMesh(RenderPlan, _MeshBase):
+        datasets = [self.deform_func(d) for d in datasets]
+        if self.deform.is_split:
+            return [d for d in zip(*datasets)]
+        else:
+            return datasets
+
+
+class ColorMesh(_MeshBase):
 
     def __init__(self, data, cmap=None, norm=None, vmin=None, vmax=None,
-                 center=None, robust=None,
+                 mask=None, center=None, robust=None,
                  alpha=None,
                  linewidth=None, linecolor=None,
                  annot=None, fmt=None, annot_kws=None, cbar_kws=None
                  ):
         data = np.asarray(data)
+        if mask is not None:
+            data = np.ma.masked_where(np.asarray(mask), data).filled(np.nan)
         if data.ndim == 1:
             data = data.reshape(1, -1)
         self.data = data
@@ -108,20 +123,21 @@ class ColorMesh(RenderPlan, _MeshBase):
         self._legend_kws = cbar_kws
 
     def get_render_data(self):
-        data = self.data
-        texts = self.annotated_texts
-        if self.h:
-            data = data.T
-            texts = texts.T
-        if not self.is_deform:
-            return data, texts
-
-        data = self.deform_func(data)
-        texts = self.deform_func(texts)
-        if self.deform.is_split:
-            return [d for d in zip(data, texts)]
-        else:
-            return data, texts
+        return self.create_render_data(self.data, self.annotated_texts)
+        # data = self.data
+        # texts = self.annotated_texts
+        # if self.h:
+        #     data = data.T
+        #     texts = texts.T
+        # if not self.is_deform:
+        #     return data, texts
+        #
+        # data = self.deform_func(data)
+        # texts = self.deform_func(texts)
+        # if self.deform.is_split:
+        #     return [d for d in zip(data, texts)]
+        # else:
+        #     return data, texts
 
     def render_ax(self, ax, data):
         values, texts = data
@@ -293,8 +309,8 @@ class Colors(RenderPlan):
                 self._add_label(axes)
 
 
-class CircleMesh(RenderPlan, _MeshBase):
-    """Circle/Pie mesh
+class PatchMesh(_MeshBase):
+    """Mesh for patch like circle, rectangle and pie
 
     .. note::
         If encode color as categorical data, `palette` must be used
@@ -392,20 +408,21 @@ class CircleMesh(RenderPlan, _MeshBase):
             return size_legend
 
     def get_render_data(self):
-        size = self.size
-        color = self.color2d
-        if self.h:
-            size = size.T
-            color = color.T
-        if not self.is_deform:
-            return size, color
-
-        size = self.deform_func(size)
-        color = self.deform_func(color)
-        if self.deform.is_split:
-            return [d for d in zip(size, color)]
-        else:
-            return size, color
+        return self.create_render_data(self.size, self.color2d)
+        # size = self.size
+        # color = self.color2d
+        # if self.h:
+        #     size = size.T
+        #     color = color.T
+        # if not self.is_deform:
+        #     return size, color
+        #
+        # size = self.deform_func(size)
+        # color = self.deform_func(color)
+        # if self.deform.is_split:
+        #     return [d for d in zip(size, color)]
+        # else:
+        #     return size, color
 
     def render_ax(self, ax, data):
         size, color = data
@@ -429,6 +446,14 @@ class CircleMesh(RenderPlan, _MeshBase):
         ax.set_xlim(0, xticks[-1] + 0.5)
         ax.set_ylim(0, yticks[-1] + 0.5)
         ax.invert_yaxis()
+
+
+class MarkerMesh(RenderPlan):
+    pass
+
+
+class TextMesh(RenderPlan):
+    pass
 
 
 class LayersMesh(RenderPlan):
@@ -488,9 +513,9 @@ class LayersMesh(RenderPlan):
         else:
             handles = self.pieces
         labels = [h.get_label() for h in handles]
-        handle_map = {h: h for h in handles}
+        handler_map = {h: h for h in handles}
         return ListLegend(handles=handles, labels=labels,
-                          handler_map=handle_map)
+                          handler_map=handler_map)
 
     def render_ax(self, ax, data):
         if self.mode == "layer":

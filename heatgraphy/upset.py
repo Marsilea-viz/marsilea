@@ -161,7 +161,7 @@ class Upset(_Base):
 
         if orient == "h":
             h, w = w, h
-        super().__init__(data_aspect=h / w)
+        super().__init__(main_aspect=h / w)
         if add_intersections:
             self.add_intersections(self._interactions)
         if add_labels:

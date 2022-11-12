@@ -11,7 +11,6 @@ from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure, figaspect
 from matplotlib.gridspec import GridSpec, GridSpecFromSubplotSpec
-from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 import logging
 
@@ -454,6 +453,7 @@ class CrossGrid:
         self.layout[name] = gb
         self.side_tracker['top'].append(gb)
         self.side_ratios['top'].append(size)
+        self._has_freeze = False
 
     def top_pad(self, pad):
         if pad <= 0:
@@ -465,6 +465,7 @@ class CrossGrid:
         self._pad.append(pad_block)
         self.side_tracker['top'].append(pad_block)
         self.side_ratios['top'].append(pad)
+        self._has_freeze = False
 
     def bottom(self, name, size=1., pad=0.):
         self._check_added(name, size=size)
@@ -477,6 +478,7 @@ class CrossGrid:
         self.side_tracker['bottom'].append(gb)
         self.side_ratios['bottom'].append(size)
         self.nrow += 1
+        self._has_freeze = False
 
     def bottom_pad(self, pad):
         if pad <= 0:
@@ -488,6 +490,7 @@ class CrossGrid:
         self.side_tracker['bottom'].append(pad_block)
         self.side_ratios['bottom'].append(pad)
         self.nrow += 1
+        self._has_freeze = False
 
     def left(self, name, size=1., pad=0.):
         self._check_added(name, size=size)
@@ -500,6 +503,7 @@ class CrossGrid:
         self.layout[name] = gb
         self.side_tracker['left'].append(gb)
         self.side_ratios['left'].append(size)
+        self._has_freeze = False
 
     def left_pad(self, pad):
         if pad <= 0:
@@ -511,6 +515,7 @@ class CrossGrid:
         self._pad.append(pad_block)
         self.side_tracker['left'].append(pad_block)
         self.side_ratios['left'].append(pad)
+        self._has_freeze = False
 
     def right(self, name, size=1., pad=0.):
         self._check_added(name, size=size)
@@ -523,6 +528,7 @@ class CrossGrid:
         self.side_tracker['right'].append(gb)
         self.side_ratios['right'].append(size)
         self.ncol += 1
+        self._has_freeze = False
 
     def right_pad(self, pad):
         if pad <= 0:
@@ -534,6 +540,7 @@ class CrossGrid:
         self.side_tracker["right"].append(pad_block)
         self.side_ratios['right'].append(pad)
         self.ncol += 1
+        self._has_freeze = False
 
     def split(self, name, w_ratios=None, h_ratios=None,
               wspace=0.05, hspace=0.05, mode="placeholder"):
@@ -572,6 +579,7 @@ class CrossGrid:
         else:
             raise ValueError(f"Don't know mode='{mode}', "
                              f"options are (blank or placeholder)")
+        self._has_freeze = False
 
     def _split_placeholder(self, name, w_ratios=None, h_ratios=None,
                            wspace=0.05, hspace=0.05, mask_placeholder=True):
@@ -836,33 +844,3 @@ def close_ticks(ax):
                    labelbottom=False, labeltop=False,
                    labelleft=False, labelright=False,
                    )
-
-# class Grid:
-#
-#     def __init__(self, figure: Figure = None, aspect="auto", name="main"):
-#         if figure is None:
-#             figure = plt.figure()
-#         else:
-#             figure.clear()
-#         ax = Axes(figure, (0, 0, 1, 1), label=name)
-#         ax.set_aspect(aspect)
-#         figure.add_axes(ax)
-#         self._main = ax
-#         self._divider = make_axes_locatable(ax)
-#         self._ax_mapper = {name: ax}
-#
-#     def add(self, name, side, size=1., pad=0, ):
-#         ax = self._divider.append_axes(side, size=size,
-#                                        pad=pad, label=name)
-#         self._ax_mapper[name] = ax
-#
-#     def set_main_ax(self, name):
-#         self._divider = make_axes_locatable(self._ax_mapper[name])
-#
-#     def __add__(self, other):
-#         """Define behavior that horizontal appends two grid"""
-#         pass
-#
-#     def __truediv__(self, other):
-#         """Define behavior that vertical appends two grid"""
-#         pass

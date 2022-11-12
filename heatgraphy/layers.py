@@ -17,9 +17,9 @@ class Layers(MatrixBase):
                  cluster_data=None,
                  shrink=(.9, .9)
                  ):
-        self._mesh = LayersMesh(data=data, layers=layers, pieces=pieces,
-                                shrink=shrink)
-        self._mesh.set_side("main")
+        mesh = LayersMesh(data=data, layers=layers, pieces=pieces,
+                          shrink=shrink)
+        self.add_layer(mesh)
         if cluster_data is None:
             self._allow_cluster = False
             if self._mesh.mode == "cell":
@@ -31,26 +31,26 @@ class Layers(MatrixBase):
             cluster_data = np.random.randn(*data_shape)
         super().__init__(cluster_data)
 
-    def render(self, figure=None, aspect=1):
-        self._freeze_legend()
-        if figure is None:
-            self.figure = plt.figure()
-        else:
-            self.figure = figure
-
-        deform = self.get_deform()
-        self._mesh.set_deform(deform)
-
-        self._setup_axes()
-        if not self.grid.is_freeze:
-            self.grid.freeze(figure=self.figure, aspect=aspect)
-        main_axes = self.get_main_ax()
-
-        self._mesh.render(main_axes)
-        # render other plots
-        self._render_dendrogram()
-        self._render_plan()
-        self._render_legend()
+    # def render(self, figure=None, aspect=1):
+    #     self._freeze_legend()
+    #     if figure is None:
+    #         self.figure = plt.figure()
+    #     else:
+    #         self.figure = figure
+    #
+    #     deform = self.get_deform()
+    #     self._mesh.set_deform(deform)
+    #
+    #     self._setup_axes()
+    #     if not self.grid.is_freeze:
+    #         self.grid.freeze(figure=self.figure, aspect=aspect)
+    #     main_axes = self.get_main_ax()
+    #
+    #     self._mesh.render(main_axes)
+    #     # render other plots
+    #     self._render_dendrogram()
+    #     self._render_plan()
+    #     self._render_legend()
 
 
 class Piece:
@@ -95,14 +95,11 @@ class Rect(Piece):
         self.label = label
 
     def __repr__(self):
-        return f"{self.__class__.__name__}(color={self.color}, " \
-               f"label={self.label})"
+        return f"{self.__class__.__name__}(color='{self.color}', " \
+               f"label='{self.label}')"
 
     def draw(self, x, y, w, h) -> Artist:
         return Rectangle((x, y), w, h, facecolor=self.color)
-
-    def legend(self, x, y, w, h) -> Artist:
-        return Rectangle((x, y), w, h)
 
 
 class Bg(Piece):
@@ -112,8 +109,8 @@ class Bg(Piece):
         self.label = label
 
     def __repr__(self):
-        return f"{self.__class__.__name__}(color={self.color}, " \
-               f"label={self.label})"
+        return f"{self.__class__.__name__}(color='{self.color}', " \
+               f"label='{self.label}')"
 
     def draw(self, x, y, w, h):
         return Rectangle((x, y), w, h, fc=self.color)
@@ -126,8 +123,8 @@ class FracRect(Piece):
         self.set_frac(frac)
 
     def __repr__(self):
-        return f"{self.__class__.__name__}(color={self.color}, " \
-               f"label={self.label})"
+        return f"{self.__class__.__name__}(color='{self.color}', " \
+               f"label='{self.label}')"
 
     def draw(self, x, y, w, h):
         x, y, w, h = self.transform_frac(x, y, w, h)

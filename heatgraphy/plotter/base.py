@@ -20,6 +20,7 @@ class RenderPlan:
     # label if a render plan need to calculate
     # canvas size before rendering
     canvas_size_unknown: bool = False
+    zorder: int = 0
 
     render_data = None
     deform: Deformation = None
