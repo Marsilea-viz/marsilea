@@ -124,20 +124,6 @@ class ColorMesh(_MeshBase):
 
     def get_render_data(self):
         return self.create_render_data(self.data, self.annotated_texts)
-        # data = self.data
-        # texts = self.annotated_texts
-        # if self.h:
-        #     data = data.T
-        #     texts = texts.T
-        # if not self.is_deform:
-        #     return data, texts
-        #
-        # data = self.deform_func(data)
-        # texts = self.deform_func(texts)
-        # if self.deform.is_split:
-        #     return [d for d in zip(data, texts)]
-        # else:
-        #     return data, texts
 
     def render_ax(self, ax, data):
         values, texts = data
@@ -154,7 +140,7 @@ class ColorMesh(_MeshBase):
         ax.set_axis_off()
 
     def set_legends(self, **kwargs):
-        self._legend_kws = kwargs
+        self._legend_kws.update(kwargs)
 
     def get_legends(self):
         return ColorArt(self._mesh, **self._legend_kws)
@@ -290,23 +276,31 @@ class Colors(RenderPlan):
         "bottom": "right",
         "left": "bottom",
         "right": "bottom",
+        "main": None
     }
 
     def render(self, axes):
         render_data = self.get_render_data()
         if self.label_loc is None:
             self.label_loc = self.default_label_loc[self.side]
+
+        label_ax = None
         if self.is_split(axes):
-            if self.label_loc in ["top", "left"]:
-                self._add_label(axes[0])
-            else:
-                self._add_label(axes[-1])
             for hax, arr in zip(axes, render_data):
                 self.render_ax(hax, arr)
+
+            if self.side != "main":
+                if self.label_loc in ["top", "left"]:
+                    label_ax = axes[0]
+                else:
+                    label_ax = axes[-1]
         else:
             self.render_ax(axes, render_data)
-            if self.label is not None:
-                self._add_label(axes)
+            if self.side != "main":
+                label_ax = axes
+
+        if label_ax is not None:
+            self._add_label(label_ax)
 
 
 class PatchMesh(_MeshBase):
@@ -324,8 +318,6 @@ class PatchMesh(_MeshBase):
         The color of circles, could be numeric / categorical matrix
         If using one color name, all circles will have the same color.
 
-
-
     """
 
     def __init__(self, size, color=None, cmap=None, norm=None,
@@ -334,7 +326,7 @@ class PatchMesh(_MeshBase):
                  sizes=(1, 200), size_norm=None,
                  edgecolor=None, linewidth=1,
                  frameon=True,
-                 palette=None, ):
+                 palette=None, patch="circle"):
         # normalize size
         size = np.asarray(size)
         if size_norm is None:
@@ -345,6 +337,7 @@ class PatchMesh(_MeshBase):
         self.color = None
         self.color2d = None
         self.palette = palette
+        self.patch = patch
         # process color
         # By default, the circles colors are uniform
         if color is None:
@@ -409,20 +402,6 @@ class PatchMesh(_MeshBase):
 
     def get_render_data(self):
         return self.create_render_data(self.size, self.color2d)
-        # size = self.size
-        # color = self.color2d
-        # if self.h:
-        #     size = size.T
-        #     color = color.T
-        # if not self.is_deform:
-        #     return size, color
-        #
-        # size = self.deform_func(size)
-        # color = self.deform_func(color)
-        # if self.deform.is_split:
-        #     return [d for d in zip(size, color)]
-        # else:
-        #     return size, color
 
     def render_ax(self, ax, data):
         size, color = data

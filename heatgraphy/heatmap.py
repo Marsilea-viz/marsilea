@@ -5,13 +5,13 @@ import logging
 import matplotlib.pyplot as plt
 import numpy as np
 
-from .base import MatrixBase, _Base
+from .base import MatrixBase, Base
 from .plotter import ColorMesh, PatchMesh
 
 log = logging.getLogger("heatgraphy")
 
 
-class WhiteBoard(_Base):
+class WhiteBoard(Base):
     """Create an empty canvas
 
     """

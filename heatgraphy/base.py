@@ -71,7 +71,7 @@ def get_breakpoints(arr):
     return breakpoints
 
 
-class _Base:
+class Base:
     gird: CrossGrid
     figure: Figure
     _row_plan: List[RenderPlan]
@@ -246,7 +246,7 @@ class _Base:
             self._legend_box = legend_box
 
 
-class MatrixBase(_Base):
+class MatrixBase(Base):
     _row_reindex: List[int] = None
     _col_reindex: List[int] = None
     # If cluster data need to be defined by user

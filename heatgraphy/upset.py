@@ -12,8 +12,7 @@ from matplotlib.collections import PatchCollection
 from matplotlib.lines import Line2D
 from matplotlib.patches import Patch, Circle, Rectangle
 
-from . import CrossGrid
-from .base import _Base
+from .base import Base
 from .plotter import Numbers, Labels
 
 
@@ -91,7 +90,7 @@ class UpsetData:
         pass
 
 
-class Upset(_Base):
+class Upset(Base):
 
     def __init__(self, data: UpsetData, orient="h",
                  sets_order=None,

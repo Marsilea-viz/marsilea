@@ -553,7 +553,7 @@ class CrossGrid:
             The length of each chunk, the sum the array should be 1
         h_ratios
         wspace : float or array
-            The horizontal space between each axes
+            The horizontal space between each ax
         hspace
         mode : {'blank', 'placeholder'}
         mask_placeholder
@@ -662,8 +662,8 @@ class CrossGrid:
     def _adjust_ratios(self, figure, aspect=None):
         pass
 
-    def freeze(self, figure,
-               debug=False, aspect: float = None, enlarge=1.1):
+    def freeze(self, figure, aspect: float = None, enlarge=1.1,
+               debug=False, ):
         self._has_freeze = True
         h_ratios = self.get_height_ratios()
         w_ratios = self.get_width_ratios()
