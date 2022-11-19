@@ -35,17 +35,32 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.autosummary',
     'matplotlib.sphinxext.plot_directive',
+    'sphinx.ext.intersphinx',
 ]
+autodoc_docstring_signature = True
+autodoc_default_options = {'members': None, 'undoc-members': None}
+# setting autosummary
+autosummary_generate = True
+numpydoc_show_class_members = False
+
+# setting plot direction
+plot_include_source = True
+plot_html_show_source_link = False
+plot_html_show_formats = False
+plot_formats = ['svg']
+plot_pre_code = "import numpy as np; from matplotlib import pyplot as plt;" \
+                "import matplotlib as mpl; np.random.seed(0);"\
+                "mpl.rcParams['savefig.bbox'] = 'tight';"
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
+exclude_patterns = ['Thumbs.db', '.DS_Store']
 
-# List of patterns, relative to source directory, that match files and
-# directories to ignore when looking for source files.
-# This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = []
-
-
-
-html_theme = 'sphinx_book_theme'
+html_theme = 'pydata_sphinx_theme'
 html_static_path = ['_static']
+html_logo = "../../img/logo.png"
+
+intersphinx_mapping = {
+    'seaborn': ('https://seaborn.pydata.org/', None),
+    'matplotlib': ('https://matplotlib.org/stable', None),
+}
