@@ -320,9 +320,12 @@ class Deformation:
         return trans_data
 
     def get_row_dendrogram(self):
+        # Update the cluster result
+        self._run_cluster()
         return self.row_dendrogram
 
     def get_col_dendrogram(self):
+        self._run_cluster()
         return self.col_dendrogram
 
     @property

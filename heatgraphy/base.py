@@ -100,7 +100,7 @@ class Base:
             return name
 
     def add_plot(self, side, plot: RenderPlan, name=None, size=None, pad=0.):
-        plot_name = self._get_plot_name(name, side, type(plot))
+        plot_name = self._get_plot_name(name, side, plot.__class__.__name__)
 
         add_ax_size = size if size is not None else 1.
         self.grid.add_ax(side, name=plot_name, size=add_ax_size, pad=pad)
@@ -145,8 +145,15 @@ class Base:
             plan.render(main_ax)
 
     def add_layer(self, plot: RenderPlan, zorder=None):
+        plot_type = plot.__class__.__name__
+        name = self._get_plot_name(None, "main", plot_type)
+        if not plot.render_main:
+            msg = f"{plot_type} " \
+                  f"cannot be rendered as another layer."
+            raise TypeError(msg)
         if zorder is not None:
             plot.zorder = zorder
+        plot.set(name=name)
         plot.set_side("main")
         self._layer_plan.append(plot)
 
@@ -216,7 +223,7 @@ class Base:
         #       order of legends?
         bboxes = []
         for name, legs in legends.items():
-            box = hstack(legs, align="bottom", spacing=10)
+            box = vstack(legs, align="left", spacing=10)
             bboxes.append(box)
         legend_box = vstack(bboxes, align="left", loc="center left",
                             spacing=10)
@@ -292,16 +299,17 @@ class MatrixBase(Base):
         if show:
             self.grid.add_ax(side, name=plot_name, size=size)
 
+        deform = self.get_deform()
         if side in ["right", "left"]:
             self._row_den.append(dict(name=plot_name, show=show,
                                       pos="row", side=side))
-            self._deform.set_cluster(row=True)
-            self._deform.set_row_cluster_params(method=method, metric=metric)
+            deform.set_cluster(row=True)
+            deform.set_row_cluster_params(method=method, metric=metric)
         else:
             self._col_den.append(dict(name=plot_name, show=show,
                                       pos="col", side=side))
-            self._deform.set_cluster(col=True)
-            self._deform.set_col_cluster_params(method=method, metric=metric)
+            deform.set_cluster(col=True)
+            deform.set_col_cluster_params(method=method, metric=metric)
 
     def split_row(self, cut=None, labels=None, order=None, spacing=0.01):
         if self._split_row:
@@ -469,11 +477,10 @@ class MatrixBase(Base):
         if not self.grid.is_freeze:
             self.grid.freeze(figure=self.figure, aspect=aspect)
 
-        # add row and col dendrogram
-        self._render_dendrogram()
-
         # render other plots
         self._render_plan()
+        # add row and col dendrogram
+        self._render_dendrogram()
         self._render_legend()
 
 

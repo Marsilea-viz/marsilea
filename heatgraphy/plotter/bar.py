@@ -1,12 +1,10 @@
 from typing import Callable
 
 import numpy as np
-import pandas as pd
 from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
-from seaborn import barplot, despine
 
-from .base import RenderPlan
+from .base import StatsBase
 
 ECHARTS16 = [
     "#5470c6", "#91cc75", "#fac858", "#ee6666",
@@ -14,70 +12,6 @@ ECHARTS16 = [
     "#27727b", "#ea7ccc", "#d7504b", "#e87c25",
     "#b5c334", "#fe8463", "#26c0c0", "#f4e001"
 ]
-
-
-class _BarBase(RenderPlan):
-    axis_label: str = None
-
-    def render_axes(self, axes):
-        for ax, data in zip(axes, self.get_render_data()):
-            self.render_ax(ax, data)
-        self.align_lim(axes)
-
-    def render(self, axes):
-        if self.is_split(axes):
-            self.render_axes(axes)
-            for i, ax in enumerate(axes):
-                # leave axis for the first ax
-                if (i == 0) & self.v:
-                    self._setup_axis(ax)
-                    if self.axis_label is not None:
-                        ax.set_ylabel(self.axis_label)
-                # leave axis for the last ax
-                elif (i == len(axes) - 1) & self.h:
-                    self._setup_axis(ax)
-                    if self.axis_label is not None:
-                        ax.set_xlabel(self.axis_label)
-                else:
-                    ax.set_axis_off()
-        else:
-            # axes.set_axis_off()
-            self.render_ax(axes, self.get_render_data())
-            self._setup_axis(axes)
-            if self.axis_label is not None:
-                if self.v:
-                    axes.set_ylabel(self.axis_label)
-                else:
-                    axes.set_xlabel(self.axis_label)
-
-    def _setup_axis(self, ax):
-        if self.v:
-            despine(ax=ax, bottom=True)
-            ax.tick_params(left=True, labelleft=True,
-                           bottom=False, labelbottom=False)
-        else:
-            despine(ax=ax, left=True)
-            ax.tick_params(left=False, labelleft=False,
-                           bottom=True, labelbottom=True)
-
-
-class Bar(_BarBase):
-
-    def __init__(self, data):
-        self.data = data
-
-    def render_ax(self, ax: Axes, data):
-        if data.ndim == 1:
-            data = pd.DataFrame(data.reshape(1, -1))
-        else:
-            if self.h:
-                data = data.T
-            data = pd.DataFrame(data)
-        bar_orient = "h" if self.h else "v"
-        if self.side == "left":
-            ax.invert_xaxis()
-        barplot(data=data, orient=bar_orient,
-                ax=ax)
 
 
 def simple_bar(data,
@@ -141,7 +75,7 @@ def stacked_bar(data, ax: Axes = None,
     return ax
 
 
-class Numbers(_BarBase):
+class Numbers(StatsBase):
 
     def __init__(self, data, width=.7, color="C0",
                  show_value=True, fmt=None, label_pad=2,
@@ -160,6 +94,8 @@ class Numbers(_BarBase):
 
     def render_ax(self, ax: Axes, data):
         bar = ax.bar if self.v else ax.barh
+        if self.h:
+            data = data[::-1]
         self.bars = bar(np.arange(0, len(data)) + 0.5, data,
                         self.width, color=self.color, **self.options)
         if self.v:

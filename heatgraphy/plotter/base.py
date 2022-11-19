@@ -5,12 +5,13 @@ from typing import Any, List, Callable
 import numpy as np
 from matplotlib.artist import Artist
 from matplotlib.axes import Axes
+from seaborn import despine
 
 from .._deform import Deformation
 
 
 class RenderPlan:
-    name: str
+    name: str = None
     data: Any
     size: float = 1.
     side: str = "top"
@@ -25,6 +26,19 @@ class RenderPlan:
     render_data = None
     deform: Deformation = None
     deform_func = None
+    # If True, this RenderPlan can be rendered on main ax
+    render_main = False
+
+    def __repr__(self):
+        side_str = f"side='{self.side}'"
+        zorder_str = f"zorder={self.zorder}"
+
+        if self.name is None:
+            chunks = [side_str, zorder_str]
+        else:
+            chunks = [f"name='{self.name}'", side_str, zorder_str]
+        return f"{self.__class__.__name__}" \
+               f"({', '.join(chunks)})"
 
     def set(self, **kwargs):
         for k, v in kwargs.items():
@@ -80,13 +94,44 @@ class RenderPlan:
             self.render_ax(ax, data)
 
     def render(self, axes):
-        if self.is_split(axes):
+        if self.is_split:
             self.render_axes(axes)
         else:
             self.render_ax(axes, self.get_render_data())
 
     def get_canvas_size(self):
         raise NotImplemented
+
+    @property
+    def is_split(self):
+        if self.deform is not None:
+            if self.v & self.deform.is_col_split:
+                return True
+            if self.h & self.deform.is_row_split:
+                return True
+            if (self.side == "main") & self.deform.is_split:
+                return True
+        return False
+
+    def get_legends(self) -> List[Artist] | None:
+        return None
+
+    def set_legends(self, *args, **kwargs):
+        raise NotImplemented
+
+
+class StatsBase(RenderPlan):
+    axis_label: str = ""
+
+    def _setup_axis(self, ax):
+        if self.v:
+            despine(ax=ax, bottom=True)
+            ax.tick_params(left=True, labelleft=True,
+                           bottom=False, labelbottom=False)
+        else:
+            despine(ax=ax, left=True)
+            ax.tick_params(left=False, labelleft=False,
+                           bottom=True, labelbottom=True)
 
     def align_lim(self, axes):
         if self.v:
@@ -122,12 +167,27 @@ class RenderPlan:
             for ax in axes:
                 ax.set_xlim(*xlims)
 
-    @staticmethod
-    def is_split(axes):
-        return not isinstance(axes, Axes)
-
-    def get_legends(self) -> List[Artist] | None:
-        return None
-
-    def set_legends(self, *args, **kwargs):
-        raise NotImplemented
+    def render(self, axes):
+        if self.is_split:
+            self.render_axes(axes)
+            self.align_lim(axes)
+            for i, ax in enumerate(axes):
+                # leave axis for the first ax
+                if (i == 0) & self.v:
+                    self._setup_axis(ax)
+                    ax.set_ylabel(self.axis_label)
+                # leave axis for the last ax
+                elif (i == len(axes) - 1) & self.h:
+                    self._setup_axis(ax)
+                    ax.set_xlabel(self.axis_label)
+                else:
+                    ax.set_axis_off()
+        else:
+            # axes.set_axis_off()
+            self.render_ax(axes, self.get_render_data())
+            self._setup_axis(axes)
+            if self.axis_label is not None:
+                if self.v:
+                    axes.set_ylabel(self.axis_label)
+                else:
+                    axes.set_xlabel(self.axis_label)

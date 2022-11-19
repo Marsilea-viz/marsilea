@@ -3,7 +3,9 @@ from itertools import cycle
 from typing import Mapping, Iterable
 
 import numpy as np
+import pandas as pd
 from legendkit import ColorArt, CatLegend, ListLegend, SizeLegend
+from matplotlib.cm import ScalarMappable
 from matplotlib.colors import ListedColormap, TwoSlopeNorm, Normalize, \
     is_color_like
 from matplotlib.offsetbox import AnchoredText
@@ -19,44 +21,193 @@ ECHARTS16 = [
     "#b5c334", "#fe8463", "#26c0c0", "#f4e001"
 ]
 
+default_label_props = {
+    "left": dict(loc="center right", bbox_to_anchor=(0, 0.5)),
+    "right": dict(loc="center left", bbox_to_anchor=(1, 0.5)),
+    "top": dict(loc="lower center", bbox_to_anchor=(0.5, 1),
+                prop=dict(rotation=90)),
+    "bottom": dict(loc="upper center", bbox_to_anchor=(0.5, 0),
+                   prop=dict(rotation=90)),
+}
 
-def _empty(x):
-    return x
+default_label_loc = {
+    "top": "right",
+    "bottom": "right",
+    "left": "bottom",
+    "right": "bottom",
+}
+
+
+def _add_label(label, ax, side, label_loc=None, props=None):
+    if side != "main":
+        if label_loc is None:
+            label_loc = default_label_loc[side]
+        label_props = default_label_props[label_loc]
+        loc = label_props["loc"]
+        bbox_to_anchor = label_props['bbox_to_anchor']
+        prop = label_props.get('prop')
+        if props is not None:
+            prop.update(props)
+
+        title = AnchoredText(label, loc=loc,
+                             bbox_to_anchor=bbox_to_anchor,
+                             prop=prop, pad=0.3, borderpad=0,
+                             bbox_transform=ax.transAxes, frameon=False)
+        ax.add_artist(title)
+
+
+def _mask_data(data, mask=None):
+    if isinstance(data, pd.DataFrame):
+        data = data.to_numpy()
+    else:
+        data = np.asarray(data)
+    if mask is not None:
+        data = np.ma.masked_where(np.asarray(mask), data)
+    if data.ndim == 1:
+        data = data.reshape(1, -1)
+    return data
 
 
 class _MeshBase(RenderPlan):
-    annot = False
-    annotated_texts = None
-    fmt = "0"
-    annot_kws = {}
     norm = None
     cmap = None
+    render_main = True
+    label: str = ""
+    label_loc = None
+    props = None
 
     def _process_cmap(self, data, vmin, vmax,
-                      cmap, norm, center, robust):
+                      cmap, norm, center):
         self.cmap = "coolwarm" if cmap is None else cmap
         self.norm = norm
-        self.vmin = vmin
-        self.vmax = vmax
 
-        if robust:
-            if isinstance(robust, bool):
-                head, tail = (2, 98)
-            else:
-                head, tail = robust
-            if vmin is None:
-                self.vmin = np.nanpercentile(data, head)
-            if vmax is None:
-                self.vmax = np.nanpercentile(data, tail)
-        else:
-            self.vmin = np.nanmin(data) if vmin is None else vmin
-            self.vmax = np.nanmax(data) if vmax is None else vmax
+        self.vmin = np.nanmin(data) if vmin is None else vmin
+        self.vmax = np.nanmax(data) if vmax is None else vmax
 
         if norm is None:
             self.norm = Normalize(vmin=self.vmin, vmax=self.vmax)
 
         if center is not None:
             self.norm = TwoSlopeNorm(center, vmin=vmin, vmax=vmax)
+
+    def create_render_data(self, *args):
+        datasets = args
+        if self.h:
+            datasets = [d.T for d in datasets]
+        if not self.is_deform:
+            return datasets
+
+        datasets = [self.deform_func(d) for d in datasets]
+        if self.is_split:
+            return [d for d in zip(*datasets)]
+        else:
+            return datasets
+
+    def render(self, axes):
+        render_data = self.get_render_data()
+        if self.is_split:
+            for hax, arr in zip(axes, render_data):
+                self.render_ax(hax, arr)
+
+            if self.label_loc in ["top", "left"]:
+                label_ax = axes[0]
+            else:
+                label_ax = axes[-1]
+        else:
+            self.render_ax(axes, render_data)
+            label_ax = axes
+        _add_label(self.label, label_ax, self.side, self.label_loc, self.props)
+
+
+class ColorMesh(_MeshBase):
+    """Continuous Heatmap
+
+    Parameters
+    ----------
+    data : np.ndarray, pd.DataFrame
+        2D data
+    cmap : str or :class:`matplotlib.colors.Colormap`
+        The colormap used to map the value to the color
+    norm : :class:`matplotlib.colors.Normalize`
+        A Normalize instance to map data
+    vmin, vmax : number, optional
+        Value to determine the value mapping behavior
+    center : number, optional
+        The value to center on colormap, notice that this is different from
+        seaborn; If set, a :class:`matplotlib.colors.TwoSlopeNorm` will be used
+        to center the colormap.
+    mask : array of bool
+        Indicate which cell will be masked and not rendered
+    alpha : float
+    linewidth
+    linecolor
+    annot
+    fmt
+    annot_kws
+    cbar_kws
+    label
+    label_loc
+    props
+    kwargs :
+
+    Examples
+    --------
+
+    .. plot::
+
+        >>> from heatgraphy.plotter import ColorMesh
+        >>> _, ax = plt.subplots(figsize=(5, .5))
+        >>> data = np.arange(10)
+        >>> ColorMesh(data, cmap="Blues", label="ColorMesh").render(ax)
+
+    .. plot::
+        :context: close-figs
+
+        >>> import heatgraphy as hg
+        >>> from heatgraphy.plotter import ColorMesh
+        >>> data = np.random.randn(10, 8)
+        >>> h = hg.Heatmap(data, square=True)
+        >>> h.split_row(cut=[5])
+        >>> h.add_dendrogram("left")
+        >>> cmap1, cmap2 = "Purples", "Greens"
+        >>> colors1 = ColorMesh(np.arange(10)+1, cmap=cmap1, label=cmap1, annot=True)
+        >>> colors2 = ColorMesh(np.arange(10)+1, cmap=cmap2, label=cmap2)
+        >>> h.add_right(colors1, size=.2, pad=.05)
+        >>> h.add_right(colors2, size=.2, pad=.05)
+        >>> h.render()
+
+
+    """
+
+    def __init__(self, data, cmap=None, norm=None, vmin=None, vmax=None,
+                 mask=None, center=None, alpha=None, linewidth=None,
+                 linecolor=None, annot=None, fmt=None, annot_kws=None,
+                 cbar_kws=None, label=None, label_loc=None, props=None,
+                 **kwargs,
+                 ):
+        self.data = _mask_data(data, mask)
+        self.alpha = alpha
+        self.linewidth = linewidth
+        self.linecolor = linecolor
+        self.annotated_texts = self.data
+        self.annot = False
+        if annot is not None:
+            if isinstance(annot, bool):
+                self.annot = annot
+            else:
+                self.annot = True
+                self.annotated_texts = annot
+        self.fmt = "0" if fmt is None else fmt
+        self.annot_kws = {} if annot_kws is None else annot_kws
+        self._process_cmap(data, vmin, vmax, cmap, norm, center)
+
+        if cbar_kws is None:
+            cbar_kws = {}
+        self._legend_kws = cbar_kws
+        self.label = label
+        self.label_loc = label_loc
+        self.props = props
+        self.kwargs = kwargs
 
     def _annotate_text(self, ax, mesh, texts):
         """Add textual labels with the value in each cell."""
@@ -74,82 +225,43 @@ class _MeshBase(RenderPlan):
                 text_kwargs.update(self.annot_kws)
                 ax.text(x, y, annotation, **text_kwargs)
 
-    def create_render_data(self, *args):
-        datasets = args
-        if self.h:
-            datasets = [d.T for d in datasets]
-        if not self.is_deform:
-            return datasets
-
-        datasets = [self.deform_func(d) for d in datasets]
-        if self.deform.is_split:
-            return [d for d in zip(*datasets)]
-        else:
-            return datasets
-
-
-class ColorMesh(_MeshBase):
-
-    def __init__(self, data, cmap=None, norm=None, vmin=None, vmax=None,
-                 mask=None, center=None, robust=None,
-                 alpha=None,
-                 linewidth=None, linecolor=None,
-                 annot=None, fmt=None, annot_kws=None, cbar_kws=None
-                 ):
-        data = np.asarray(data)
-        if mask is not None:
-            data = np.ma.masked_where(np.asarray(mask), data).filled(np.nan)
-        if data.ndim == 1:
-            data = data.reshape(1, -1)
-        self.data = data
-        self.alpha = alpha
-        self.linewidth = linewidth
-        self.linecolor = linecolor
-        self.annotated_texts = data
-        if annot is not None:
-            if isinstance(annot, bool):
-                self.annot = annot
-            else:
-                self.annot = True
-                self.annotated_texts = annot
-        if fmt is not None:
-            self.fmt = fmt
-        if annot_kws is not None:
-            self.annot_kws = annot_kws
-        self._process_cmap(data, vmin, vmax, cmap, norm, center, robust)
-        self._mesh = None
-        if cbar_kws is None:
-            cbar_kws = {}
-        self._legend_kws = cbar_kws
-
     def get_render_data(self):
         return self.create_render_data(self.data, self.annotated_texts)
-
-    def render_ax(self, ax, data):
-        values, texts = data
-        mesh = ax.pcolormesh(values, cmap=self.cmap, norm=self.norm,
-                             linewidth=self.linewidth,
-                             edgecolor=self.linecolor
-                             )
-        if self.annot:
-            self._annotate_text(ax, mesh, texts)
-        # set the mesh for legend
-        self._mesh = mesh
-
-        ax.invert_yaxis()
-        ax.set_axis_off()
 
     def set_legends(self, **kwargs):
         self._legend_kws.update(kwargs)
 
     def get_legends(self):
-        return ColorArt(self._mesh, **self._legend_kws)
+        mappable = ScalarMappable(norm=self.norm, cmap=self.cmap)
+        return ColorArt(mappable, **self._legend_kws)
+
+    def render_ax(self, ax, data):
+        values, texts = data
+        mesh = ax.pcolormesh(values, cmap=self.cmap, norm=self.norm,
+                             linewidth=self.linewidth,
+                             edgecolor=self.linecolor,
+                             **self.kwargs,)
+        if self.annot:
+            self._annotate_text(ax, mesh, texts)
+        # set the mesh for legend
+
+        ax.invert_yaxis()
+        ax.set_axis_off()
 
 
 # transform input data to numeric
 def encode_numeric(arr, encoder):
     orig_shape = arr.shape
-    re_arr = [encoder[e] for e in arr.flatten()]
+    if np.ma.isMaskedArray(arr):
+        re_arr = []
+        for e in arr.flatten():
+            if e is np.ma.masked:
+                re_arr.append(np.nan)
+            else:
+                re_arr.append(encoder[e])
+        re_arr = np.ma.masked_invalid(re_arr)
+    else:
+        re_arr = [encoder[e] for e in arr.flatten()]
     re_arr = np.array(re_arr).reshape(orig_shape)
     return re_arr
 
@@ -163,7 +275,7 @@ def _enough_colors(n_colors, n_cats):
                       f"with {n_cats} elements")
 
 
-class Colors(RenderPlan):
+class Colors(_MeshBase):
     """Categorical colors/heatmap
 
     Parameters
@@ -177,16 +289,15 @@ class Colors(RenderPlan):
     cmap:
 
     """
+    render_main = True
 
-    def __init__(self, data, palette=None, cmap=None,
-                 label=None, label_loc=None, props=None, ):
-        data = np.asarray(data)
-        if data.ndim == 1:
-            data = data.reshape(1, -1)
-        self.data = data
+    def __init__(self, data, palette=None, cmap=None, mask=None,
+                 label=None, label_loc=None, props=None, **kwargs):
+
         self.label = label
         self.label_loc = label_loc
         self.props = props
+        self.kwargs = kwargs
 
         encoder = {}
         render_colors = []
@@ -203,7 +314,8 @@ class Colors(RenderPlan):
 
         else:
             if cmap is not None:
-                colors = get_colormap(cmap).colors
+                cmap = get_colormap(cmap)
+                colors = cmap(np.arange(cmap.N))
             else:
                 colors = ECHARTS16
 
@@ -220,31 +332,14 @@ class Colors(RenderPlan):
 
         self.render_cmap = ListedColormap(render_colors)
         self.vmax = len(render_colors)
-        self.data = encode_numeric(data, encoder)
-
-    label_props = {
-        "left": dict(loc="center right", bbox_to_anchor=(0, 0.5)),
-        "right": dict(loc="center left", bbox_to_anchor=(1, 0.5)),
-        "top": dict(loc="lower center", bbox_to_anchor=(0.5, 1),
-                    prop=dict(rotation=90)),
-        "bottom": dict(loc="upper center", bbox_to_anchor=(0.5, 0),
-                       prop=dict(rotation=90)),
-    }
-
-    def _add_label(self, ax):
-        if self.side != "main":
-            label_props = self.label_props[self.label_loc]
-            loc = label_props["loc"]
-            bbox_to_anchor = label_props['bbox_to_anchor']
-            prop = label_props.get('prop')
-            if self.props is not None:
-                prop = self.props
-
-            title = AnchoredText(self.label, loc=loc,
-                                 bbox_to_anchor=bbox_to_anchor,
-                                 prop=prop, pad=0.3, borderpad=0,
-                                 bbox_transform=ax.transAxes, frameon=False)
-            ax.add_artist(title)
+        # Encode data into cmap range
+        encode_data = encode_numeric(data, encoder)
+        self.data = _mask_data(encode_data, mask=mask)
+        # If the data is numeric, we don't change it
+        if np.issubdtype(data.dtype, np.number):
+            self.cluster_data = data
+        else:
+            self.cluster_data = encode_data
 
     def get_legends(self):
         colors = []
@@ -266,45 +361,14 @@ class Colors(RenderPlan):
         return self.deform_func(data)
 
     def render_ax(self, ax, data):
-        ax.pcolormesh(data, cmap=self.render_cmap, vmin=0, vmax=self.vmax)
+        ax.pcolormesh(data, cmap=self.render_cmap,
+                      vmin=0, vmax=self.vmax, **self.kwargs)
         ax.set_axis_off()
-        if self.h:
-            ax.invert_yaxis()
-
-    default_label_loc = {
-        "top": "right",
-        "bottom": "right",
-        "left": "bottom",
-        "right": "bottom",
-        "main": None
-    }
-
-    def render(self, axes):
-        render_data = self.get_render_data()
-        if self.label_loc is None:
-            self.label_loc = self.default_label_loc[self.side]
-
-        label_ax = None
-        if self.is_split(axes):
-            for hax, arr in zip(axes, render_data):
-                self.render_ax(hax, arr)
-
-            if self.side != "main":
-                if self.label_loc in ["top", "left"]:
-                    label_ax = axes[0]
-                else:
-                    label_ax = axes[-1]
-        else:
-            self.render_ax(axes, render_data)
-            if self.side != "main":
-                label_ax = axes
-
-        if label_ax is not None:
-            self._add_label(label_ax)
+        ax.invert_yaxis()
 
 
-class PatchMesh(_MeshBase):
-    """Mesh for patch like circle, rectangle and pie
+class SizedMesh(_MeshBase):
+    """Mesh for sized elements
 
     .. note::
         If encode color as categorical data, `palette` must be used
@@ -322,11 +386,10 @@ class PatchMesh(_MeshBase):
 
     def __init__(self, size, color=None, cmap=None, norm=None,
                  vmin=None, vmax=None, alpha=None,
-                 center=None, robust=None,
-                 sizes=(1, 200), size_norm=None,
+                 center=None, sizes=(1, 200), size_norm=None,
                  edgecolor=None, linewidth=1,
-                 frameon=True,
-                 palette=None, patch="circle"):
+                 frameon=True, palette=None, marker="o",
+                 label=None, label_loc=None, props=None, **kwargs):
         # normalize size
         size = np.asarray(size)
         if size_norm is None:
@@ -337,7 +400,7 @@ class PatchMesh(_MeshBase):
         self.color = None
         self.color2d = None
         self.palette = palette
-        self.patch = patch
+        self.marker = marker
         # process color
         # By default, the circles colors are uniform
         if color is None:
@@ -359,12 +422,16 @@ class PatchMesh(_MeshBase):
                     self.color2d = encode_numeric(color, encoder)
                 else:
                     self._process_cmap(color, vmin, vmax, cmap,
-                                       norm, center, robust)
+                                       norm, center)
                     self.color2d = color
         self.alpha = alpha
         self.frameon = frameon
         self.edgecolor = edgecolor
         self.linewidth = linewidth
+        self.label = label
+        self.label_loc = label_loc
+        self.props = props
+        self.kwargs = kwargs
 
         self._collections = None
 
@@ -390,11 +457,12 @@ class PatchMesh(_MeshBase):
                     colors.append(c)
                 color_legend = CatLegend(labels=labels, colors=colors,
                                          size="large",
-                                         handle="circle",
+                                         handle=self.marker,
                                          handle_kw=handler_kw,
-                                         frameon=True,
+                                         frameon=False,
                                          )
             else:
+                mappable = ScalarMappable(norm=self.norm, cmap=self.cmap)
                 color_legend = ColorArt(self._collections)
             return [size_legend, color_legend]
         else:
@@ -410,14 +478,14 @@ class PatchMesh(_MeshBase):
         yticks = np.arange(Y) + 0.5
         xv, yv = np.meshgrid(xticks, yticks)
 
+        options = dict(s=size,  edgecolor=self.edgecolor,
+                       linewidths=self.linewidth, marker=self.marker)
+
         if self.color is not None:
-            ax.scatter(xv, yv, s=size, c=self.color, edgecolor=self.edgecolor,
-                       linewidths=self.linewidth)
+            options['c'] = self.color
         else:
-            self._collections = ax.scatter(xv, yv, s=size, c=color,
-                                           norm=self.norm, cmap=self.cmap,
-                                           edgecolor=self.edgecolor,
-                                           linewidths=self.linewidth)
+            options.update(dict(c=color, norm=self.norm, cmap=self.cmap))
+        self._collections = ax.scatter(xv, yv, **options, **self.kwargs)
 
         close_ticks(ax)
         if not self.frameon:
@@ -427,21 +495,52 @@ class PatchMesh(_MeshBase):
         ax.invert_yaxis()
 
 
-class MarkerMesh(RenderPlan):
-    pass
+class MarkerMesh(_MeshBase):
+    render_main = True
+
+    def __init__(self, data, color="black", marker="*",
+                 label=None, label_loc=None, props=None, **kwargs):
+        self.data = data
+        self.color = color
+        self.marker = marker
+        self.label = label
+        self.label_loc = label_loc
+        self.props = props
+        self.kwargs = kwargs
+
+    def get_legends(self):
+        return CatLegend(colors=[self.color], labels=[self.label],
+                         handle=self.marker)
+
+    def render_ax(self, ax, data):
+        Y, X = data.shape
+        xticks = np.arange(X) + 0.5
+        yticks = np.arange(Y) + 0.5
+        xv, yv = np.where(data)
+
+        ax.scatter(xv + .5, yv + .5, s=50,
+                   c=self.color, marker=self.marker, **self.kwargs)
+
+        close_ticks(ax)
+        ax.set_xlim(0, xticks[-1] + 0.5)
+        ax.set_ylim(0, yticks[-1] + 0.5)
+        ax.invert_yaxis()
 
 
-class TextMesh(RenderPlan):
-    pass
+# TODO: Maybe a text mesh
+class TextMesh(_MeshBase):
+    render_main = True
 
 
-class LayersMesh(RenderPlan):
+class LayersMesh(_MeshBase):
+    render_main = True
 
     def __init__(self,
                  data=None,
                  layers=None,
                  pieces=None,
-                 shrink=(.9, .9)
+                 shrink=(.9, .9),
+                 label=None, label_loc=None, props=None,
                  ):
         # render one layer
         # with different elements
@@ -467,6 +566,9 @@ class LayersMesh(RenderPlan):
         self.y_offset = (1 - shrink[1]) / 2
         self.width = shrink[0]
         self.height = shrink[1]
+        self.label = label
+        self.label_loc = label_loc
+        self.props = props
 
     def get_render_data(self):
         data = self.data
@@ -481,7 +583,7 @@ class LayersMesh(RenderPlan):
         else:
             trans_layers = [
                 self.deform_func(layer) for layer in self.data]
-            if self.deform.is_split:
+            if self.is_split:
                 return [chunk for chunk in zip(*trans_layers)]
             else:
                 return trans_layers

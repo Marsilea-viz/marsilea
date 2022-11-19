@@ -1,6 +1,7 @@
 from itertools import tee
 
 import numpy as np
+import matplotlib as mpl
 from matplotlib import colors as mcolors
 from matplotlib.colors import Colormap
 
@@ -35,4 +36,9 @@ def relative_luminance(color):
 def get_colormap(cmap):
     if isinstance(cmap, Colormap):
         return cmap
-    return mpl.colormap.get(cmap)
+    try:
+        return mpl.colormap.get(cmap)
+    except AttributeError:
+        return mpl.cm.get_cmap(cmap)
+
+
