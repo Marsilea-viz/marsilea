@@ -1,4 +1,4 @@
-from itertools import tee
+from itertools import tee, islice, zip_longest
 
 import numpy as np
 import matplotlib as mpl
@@ -11,6 +11,22 @@ def pairwise(iterable):
     a, b = tee(iterable)
     next(b, None)
     return zip(a, b)
+
+
+def grouper(iterable, n):
+    """Collect data into non-overlapping fixed-length chunks or blocks"""
+    args = [iter(iterable)] * n
+    return zip(*args)
+
+
+def batched(iterable, n):
+    "Batch data into lists of length n. The last batch may be shorter."
+    # batched('ABCDEFG', 3) --> ABC DEF G
+    if n < 1:
+        raise ValueError('n must be at least one')
+    it = iter(iterable)
+    while (batch := list(islice(it, n))):
+        yield batch
 
 
 # Copy from seaborn/utils.py

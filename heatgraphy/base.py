@@ -3,6 +3,7 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import List, Dict
 from uuid import uuid4
+from itertools import tee
 
 import numpy as np
 from legendkit.layout import vstack, hstack
@@ -14,7 +15,7 @@ from ._deform import Deformation
 from .exceptions import SplitTwice
 from .layout import CrossGrid
 from .plotter import RenderPlan, Title
-from .utils import pairwise
+from .utils import pairwise, grouper, batched
 
 
 def getaspect(ratio, w=None, h=None):
@@ -92,7 +93,8 @@ class Base:
         self._row_plan = []
         self._layer_plan = []
 
-    def _get_plot_name(self, name, side, chart):
+    @staticmethod
+    def _get_plot_name(name=None, side=None, chart=None):
         # self._side_count[side] += 1
         if name is None:
             return f"{chart}-{side}-{uuid4().hex}"
@@ -201,32 +203,55 @@ class Base:
         return legends
 
     def add_legends(self, side="right", pad=0, order=None,
-                    direction=None, ncol=None, nrow=None):
+                    stack_by=None, max_n=4):
         """Draw legend based on the order of annotation
         If legend is drawn, user may not get proper
         legends if concatenate multiple plot
         """
         self._draw_legend = True
         # TODO: this name will cause conflict when merge
-        name = self._get_plot_name("Legend", side, "Legend")
+        name = self._get_plot_name(side=side, chart="Legend")
+        if stack_by is None:
+            stack_by = "col" if side in ["right", "left"] else "row"
         self._legend_name = name
         self._legend_grid_kws = dict(
             name=name,
             side=side,
             pad=pad,
-            size=0.01
+            size=0.01,
+        )
+        self._legend_draw_kws = dict(
+            order=order,
+            stack_by=stack_by,
+            max_n=max_n,
         )
 
     def _legends_drawer(self, ax):
         legends = self.get_legends()
         # TODO: How to pack legend? Allow user to define the packing
         #       order of legends?
+
+        legend_order = self._legend_draw_kws['order']
+        stack_by = self._legend_draw_kws['stack_by']
+        max_n = self._legend_draw_kws['max_n']
+        inner, outer = vstack, hstack
+        if stack_by == "row":
+            inner, outer = outer, inner
+
+        all_legs = []
+        if legend_order is None:
+            for name, legs in legends.items():
+                all_legs += legs
+        else:
+            for name in legend_order:
+                all_legs += legends[name]
+
         bboxes = []
-        for name, legs in legends.items():
-            box = vstack(legs, align="left", spacing=10)
+        for legs in batched(all_legs, max_n):
+            box = vstack(legs, align="left", spacing=10, loc="center")
             bboxes.append(box)
-        legend_box = vstack(bboxes, align="left", loc="center left",
-                            spacing=10)
+        legend_box = hstack(bboxes, align="center", loc="center",
+                           spacing=10)
         ax.add_artist(legend_box)
         return legend_box
 
