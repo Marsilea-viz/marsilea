@@ -6,11 +6,22 @@
 Welcome to heatgraphy's documentation!
 ======================================
 
+Installation
+------------
+
+To install heatgraphy
+
+.. code-block:: shell
+
+   pip install heatgraphy
+
 .. toctree::
    :maxdepth: 1
    :caption: Contents:
 
-   API <api>
+   Tutorial <tutorial/index>
+   Gallery
+   API <api/index>
 
 
 

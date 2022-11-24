@@ -3,22 +3,22 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import List, Dict
 from uuid import uuid4
-from itertools import tee
 
 import numpy as np
 from legendkit.layout import vstack, hstack
 from matplotlib import pyplot as plt
 from matplotlib.artist import Artist
 from matplotlib.figure import Figure
+from matplotlib.patches import Rectangle
 
 from ._deform import Deformation
 from .exceptions import SplitTwice
 from .layout import CrossGrid
 from .plotter import RenderPlan, Title
-from .utils import pairwise, grouper, batched
+from .utils import pairwise, batched
 
 
-def getaspect(ratio, w=None, h=None):
+def get_aspect(ratio, w=None, h=None):
     canvas_size_min = np.array((2.0, 2.0))  # min length for width/height
     canvas_size_max = np.array((20.0, 20.0))  # max length for width/height
 
@@ -48,6 +48,14 @@ def getaspect(ratio, w=None, h=None):
     return newsize
 
 
+def get_plot_name(name=None, side=None, chart=None):
+    # self._side_count[side] += 1
+    if name is None:
+        return f"{chart}-{side}-{uuid4().hex}"
+    else:
+        return name
+
+
 def reorder_index(arr, order=None):
     uniq = set(arr)
     indices = {x: [] for x in uniq}
@@ -72,20 +80,133 @@ def get_breakpoints(arr):
     return breakpoints
 
 
-class Base:
-    gird: CrossGrid
+class LegendMaker:
+    grid: CrossGrid
+    _legend_box: List[Artist] = None
+    _legend_name: str = None
+    _legend_grid_kws: Dict = {}
+    _legend_draw_kws: Dict = {}
+    _draw_legend: bool = False
+
+    def get_legends(self) -> Dict:
+        """To get legends in a dict
+
+        Returns
+        -------
+        A dict of {name: legends}
+
+        """
+        raise NotImplementedError("Should be implemented in derived class")
+
+    def add_legends(self, side="right", pad=0, order=None,
+                    stack_by=None, stack_size=3,
+                    align_legends=None,
+                    align_stacks=None,
+                    spacing=10,
+                    ):
+        """Draw legend based on the order of annotation
+
+        .. note::
+            If you want to concatenate plots, please add legend after
+            concatenation, this will merge legends from every plots
+
+        Parameters
+        ----------
+        side : str, default: 'left'
+            Which side to draw legend
+        pad : number, default: 0
+        order : array of plot name
+        stack_by :
+        stack_size :
+        align_legends :
+        align_stacks :
+        spacing :
+
+        """
+        self._draw_legend = True
+        name = get_plot_name(side=side, chart="Legend")
+        if stack_by is None:
+            stack_by = "col" if side in ["right", "left"] else "row"
+        if align_stacks is None:
+            align_stacks = "baseline"
+        if align_legends is None:
+            align_legends = "left" if stack_by == "col" else "bottom"
+
+        self._legend_name = name
+        self._legend_grid_kws = dict(name=name, side=side, pad=pad, size=0.01)
+        self._legend_draw_kws = dict(
+            order=order, stack_by=stack_by, stack_size=stack_size,
+            align_legends=align_legends, align_stacks=align_stacks,
+            spacing=spacing)
+
+    def _legends_drawer(self, ax):
+        legends = self.get_legends()
+
+        legend_order = self._legend_draw_kws['order']
+        stack_by = self._legend_draw_kws['stack_by']
+        stack_size = self._legend_draw_kws['stack_size']
+        align_legends = self._legend_draw_kws['align_legends']
+        align_stacks = self._legend_draw_kws['align_stacks']
+
+        inner, outer = vstack, hstack
+        if stack_by == "row":
+            inner, outer = outer, inner
+
+        all_legs = []
+        if legend_order is None:
+            for name, legs in legends.items():
+                all_legs += legs
+        else:
+            for name in legend_order:
+                all_legs += legends[name]
+
+        bboxes = []
+        for legs in batched(all_legs, stack_size):
+            box = inner(legs, align=align_legends, spacing=10)
+            bboxes.append(box)
+        legend_box = outer(bboxes, align=align_stacks, loc="center left",
+                           spacing=10)
+        ax.add_artist(legend_box)
+        # uncomment this to visualize legend ax
+        # rect = Rectangle((0, 0), 1, 1,
+        #                  fill=None,
+        #                  edgecolor="r",
+        #                  transform=ax.transAxes)
+        # ax.add_artist(rect)
+        return legend_box
+
+    def _freeze_legend(self):
+        if self._draw_legend:
+            self.grid.add_ax(**self._legend_grid_kws)
+            fig = plt.figure()
+            renderer = fig.canvas.get_renderer()
+            legend_ax = fig.add_axes([0, 0, 1, 1])
+            legends_box = self._legends_drawer(legend_ax)
+            bbox = legends_box.get_window_extent(renderer)
+            if self._legend_grid_kws['side'] in ["left", "right"]:
+                size = bbox.xmax - bbox.xmin
+            else:
+                size = bbox.ymax - bbox.ymin
+            self.grid.set_render_size_inches(self._legend_name, size / 72)
+            plt.close(fig)
+
+    def _render_legend(self):
+        if self._draw_legend:
+            legend_ax = self.grid.get_canvas_ax(self._legend_name)
+            legend_ax.set_axis_off()
+            legend_box = self._legends_drawer(legend_ax)
+            self._legend_box = legend_box
+
+
+class Base(LegendMaker):
+    grid: CrossGrid
     figure: Figure
     _row_plan: List[RenderPlan]
     _col_plan: List[RenderPlan]
     _layer_plan: List[RenderPlan]
 
-    _draw_legend: bool = False
-    _legend_box: List[Artist] = None
-    _legend_name: str = None
-    _legend_grid_kws: Dict = {}
-
     def __init__(self, w=None, h=None, main_aspect=1, name=None):
-        w, h = getaspect(main_aspect, w=w, h=h)
+        w, h = get_aspect(main_aspect, w=w, h=h)
         self.grid = CrossGrid(w=w, h=h, name=name)
         self.main_name = self.grid.main_name
         # self._side_count = {"right": 0, "left": 0, "top": 0, "bottom": 0}
@@ -93,16 +214,8 @@ class Base:
         self._row_plan = []
         self._layer_plan = []
 
-    @staticmethod
-    def _get_plot_name(name=None, side=None, chart=None):
-        # self._side_count[side] += 1
-        if name is None:
-            return f"{chart}-{side}-{uuid4().hex}"
-        else:
-            return name
-
     def add_plot(self, side, plot: RenderPlan, name=None, size=None, pad=0.):
-        plot_name = self._get_plot_name(name, side, plot.__class__.__name__)
+        plot_name = get_plot_name(name, side, plot.__class__.__name__)
 
         add_ax_size = size if size is not None else 1.
         self.grid.add_ax(side, name=plot_name, size=add_ax_size, pad=pad)
@@ -148,7 +261,7 @@ class Base:
 
     def add_layer(self, plot: RenderPlan, zorder=None):
         plot_type = plot.__class__.__name__
-        name = self._get_plot_name(None, "main", plot_type)
+        name = get_plot_name(side="main", chart=plot_type)
         if not plot.render_main:
             msg = f"{plot_type} " \
                   f"cannot be rendered as another layer."
@@ -202,81 +315,6 @@ class Base:
                 legends[plan.name] = legs
         return legends
 
-    def add_legends(self, side="right", pad=0, order=None,
-                    stack_by=None, max_n=4):
-        """Draw legend based on the order of annotation
-        If legend is drawn, user may not get proper
-        legends if concatenate multiple plot
-        """
-        self._draw_legend = True
-        # TODO: this name will cause conflict when merge
-        name = self._get_plot_name(side=side, chart="Legend")
-        if stack_by is None:
-            stack_by = "col" if side in ["right", "left"] else "row"
-        self._legend_name = name
-        self._legend_grid_kws = dict(
-            name=name,
-            side=side,
-            pad=pad,
-            size=0.01,
-        )
-        self._legend_draw_kws = dict(
-            order=order,
-            stack_by=stack_by,
-            max_n=max_n,
-        )
-
-    def _legends_drawer(self, ax):
-        legends = self.get_legends()
-        # TODO: How to pack legend? Allow user to define the packing
-        #       order of legends?
-
-        legend_order = self._legend_draw_kws['order']
-        stack_by = self._legend_draw_kws['stack_by']
-        max_n = self._legend_draw_kws['max_n']
-        inner, outer = vstack, hstack
-        if stack_by == "row":
-            inner, outer = outer, inner
-
-        all_legs = []
-        if legend_order is None:
-            for name, legs in legends.items():
-                all_legs += legs
-        else:
-            for name in legend_order:
-                all_legs += legends[name]
-
-        bboxes = []
-        for legs in batched(all_legs, max_n):
-            box = vstack(legs, align="left", spacing=10, loc="center")
-            bboxes.append(box)
-        legend_box = hstack(bboxes, align="center", loc="center",
-                           spacing=10)
-        ax.add_artist(legend_box)
-        return legend_box
-
-    def _freeze_legend(self):
-        if self._draw_legend:
-            self.grid.add_ax(**self._legend_grid_kws)
-            fig = plt.figure()
-            renderer = fig.canvas.get_renderer()
-            legend_ax = fig.add_axes([0, 0, 1, 1])
-            legends_box = self._legends_drawer(legend_ax)
-            bbox = legends_box.get_window_extent(renderer)
-            if self._legend_grid_kws['side'] in ["left", "right"]:
-                size = bbox.xmax - bbox.xmin
-            else:
-                size = bbox.ymax - bbox.ymin
-            self.grid.set_render_size_inches(self._legend_name, size / 72)
-            plt.close(fig)
-
-    def _render_legend(self):
-        if self._draw_legend:
-            legend_ax = self.grid.get_canvas_ax(self._legend_name)
-            legend_ax.set_axis_off()
-            legend_box = self._legends_drawer(legend_ax)
-            self._legend_box = legend_box
-
 
 class MatrixBase(Base):
     _row_reindex: List[int] = None
@@ -299,7 +337,7 @@ class MatrixBase(Base):
                        show=True, size=0.5):
         """
 
-        .. notes::
+        .. note::
             Notice that we only use method and metric
             when you add the first dendrogram.
 
@@ -320,7 +358,7 @@ class MatrixBase(Base):
             msg = f"Please specify cluster data when initialize " \
                   f"'{self.__class__.__name__}' class."
             raise ValueError(msg)
-        plot_name = self._get_plot_name(name, side, "Dendrogram")
+        plot_name = get_plot_name(name, side, "Dendrogram")
         if show:
             self.grid.add_ax(side, name=plot_name, size=size)
 
@@ -423,20 +461,11 @@ class MatrixBase(Base):
         for plan in self._col_plan:
             if not plan.no_split:
                 plan.set_deform(deform)
-            # render_data = plan.data
-            # if not plan.no_split:
-            #     render_data = deform.transform_col(plan.data)
-            # plan.set_render_data(render_data)
             axes = self.grid.get_canvas_ax(plan.name)
             plan.render(axes)
 
         # render other plots
         for plan in self._row_plan:
-            # plan.data = plan.data.T
-            # render_data = plan.data
-            # if not plan.no_split:
-            #     render_data = deform.transform_row(plan.data)
-            # plan.set_render_data(render_data)
             if not plan.no_split:
                 plan.set_deform(deform)
             axes = self.grid.get_canvas_ax(plan.name)
@@ -509,8 +538,7 @@ class MatrixBase(Base):
         self._render_legend()
 
 
-class MatrixList:
-
+class MatrixList(LegendMaker):
     grid: CrossGrid
     figure: Figure
 
@@ -557,6 +585,7 @@ class MatrixList:
         return new_list
 
     def render(self, figure=None, aspect=1):
+        self._freeze_legend()
         if figure is None:
             self.figure = plt.figure()
         else:
@@ -566,10 +595,10 @@ class MatrixList:
             m.grid = self.grid
             m.render(figure=self.figure, aspect=aspect)
 
-    def add_legends(self):
-        # TODO: Add legends for merged heatmap
-        raise NotImplemented
+        self._render_legend()
 
     def get_legends(self):
-        raise NotImplemented
-
+        legends = {}
+        for m in self._matrix_list:
+            legends.update(m.get_legends())
+        return legends

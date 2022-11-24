@@ -312,6 +312,8 @@ class CrossGrid:
         # move main cell
         new_grid.main_cell.row = len(top_ratios)
         new_grid.main_cell.col = len(self.side_tracker['left'])
+        new_grid.ccol_ix = self.ccol_ix
+        new_grid.crow_ix = self.crow_ix
 
         top_cells = other_cells['top'] + current_cells['top']
         self.set_id_span(top_cells, gridlines, side="top")
@@ -374,6 +376,8 @@ class CrossGrid:
         # move main cell
         new_grid.main_cell.col = len(left_ratios)
         new_grid.main_cell.row = len(self.side_tracker['top'])
+        new_grid.ccol_ix = self.ccol_ix
+        new_grid.crow_ix = self.crow_ix
 
         left_cells = other_cells['left'] + current_cells['left']
         self.set_id_span(left_cells, gridlines, side="left")

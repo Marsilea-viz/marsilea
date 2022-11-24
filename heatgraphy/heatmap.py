@@ -5,7 +5,7 @@ import logging
 import matplotlib.pyplot as plt
 import numpy as np
 
-from .base import MatrixBase, Base
+from .base import MatrixBase, Base, get_plot_name
 from .plotter import ColorMesh, SizedMesh, Colors
 
 log = logging.getLogger("heatgraphy")
@@ -45,12 +45,9 @@ class Heatmap(MatrixBase):
     def __init__(self, data: np.ndarray, vmin=None, vmax=None,
                  cmap=None, norm=None, center=None,
                  mask=None, alpha=None, linewidth=0, linecolor="white",
-                 annot=None, fmt=None, annot_kws=None,
+                 annot=None, fmt=None, annot_kws=None, label=None, cbar_kws=None,
                  square=False, name=None, width=None, height=None,
                  ):
-        # if mask is not None:
-        #     data = np.ma.masked_where(np.asarray(mask), data).filled(np.nan)
-        # self.data = data
         self.square = square
 
         data_aspect = 1
@@ -62,8 +59,8 @@ class Heatmap(MatrixBase):
                          norm=norm, center=center,
                          mask=mask, alpha=alpha, linewidth=linewidth,
                          linecolor=linecolor, annot=annot, fmt=fmt,
-                         annot_kws=annot_kws)
-        name = self._get_plot_name(name, "main", mesh.__class__.__name__)
+                         annot_kws=annot_kws, label=label, cbar_kws=cbar_kws)
+        name = get_plot_name(name, "main", mesh.__class__.__name__)
         mesh.set(name=name)
         self.add_layer(mesh)
 
@@ -74,7 +71,7 @@ class CatHeatmap(MatrixBase):
                  name=None, width=None, height=None,):
         mesh = Colors(data, palette=palette, cmap=cmap, mask=mask)
         super().__init__(mesh.cluster_data, w=width, h=height)
-        name = self._get_plot_name(name, "main", mesh.__class__.__name__)
+        name = get_plot_name(name, "main", mesh.__class__.__name__)
         mesh.set(name=name)
         self.add_layer(mesh)
 

@@ -1,0 +1,3 @@
+scikit-learn
+pydata-sphinx-theme
+numpydoc

@@ -7,11 +7,13 @@ from .utils import pairwise
 
 
 class Deformation:
-    """A helper class that does:
-        1. Split the data based on index
-        2. Reorder the data based on label order
-        2. Reorder the data based on cluster order
-        4. Compute the ratio to split axes that match with data
+    """A helper class to handle data
+
+    #. Split the data based on index
+    #. Reorder the data based on label order
+    #. Reorder the data based on cluster order
+    #. Compute the ratio to split axes that match with data
+
     """
     is_row_split = False
     is_col_split = False

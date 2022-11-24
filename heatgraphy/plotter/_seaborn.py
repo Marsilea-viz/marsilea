@@ -75,30 +75,37 @@ class Bar(_SeabornBase):
     _seaborn_plot = "barplot"
 
 
+@_seaborn_doc
 class Box(_SeabornBase):
     _seaborn_plot = "boxplot"
 
 
+@_seaborn_doc
 class Boxen(_SeabornBase):
     _seaborn_plot = "boxenplot"
 
 
+@_seaborn_doc
 class Violin(_SeabornBase):
     _seaborn_plot = "violinplot"
 
 
+@_seaborn_doc
 class Point(_SeabornBase):
     _seaborn_plot = "pointplot"
 
 
+@_seaborn_doc
 class Count(_SeabornBase):
     _seaborn_plot = "countplot"
 
 
+@_seaborn_doc
 class Strip(_SeabornBase):
     _seaborn_plot = "stripplot"
 
 
+@_seaborn_doc
 class Swarm(_SeabornBase):
     _seaborn_plot = "swarmplot"
 

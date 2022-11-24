@@ -11,6 +11,30 @@ from .._deform import Deformation
 
 
 class RenderPlan:
+    """The base class for every plot in Heatgraphy
+
+    Attributes
+    ----------
+    name : str
+        The name of the plot,
+        can be used to retrieve the render axes and corresponding legend.
+    data :
+        The raw data input by user
+    side : str, default: 'top'
+        Which side to render this plot
+    size : float, default: 1
+    no_split : bool, default: False
+        Use to mark if the RenderPlan can be split
+    render_main : bool, default: False
+        Use to mark if the RenderPlan can be rendered on main canvas
+    canvas_size_unknown : bool, default: False
+        Use to mark if the RenderPlan needs to be rendered to
+        get the canvas size; If mark as True, :meth:`get_canvas_size()` must
+        be implemented.
+    zorder : int, default: 0
+        This only works if the RenderPlan is rendered on main canvas
+
+    """
     name: str = None
     data: Any
     size: float = 1.
@@ -23,7 +47,6 @@ class RenderPlan:
     canvas_size_unknown: bool = False
     zorder: int = 0
 
-    render_data = None
     deform: Deformation = None
     deform_func = None
     # If True, this RenderPlan can be rendered on main ax
@@ -70,9 +93,18 @@ class RenderPlan:
 
     @property
     def is_deform(self):
+        """If deform exist"""
         return self.deform is not None
 
     def get_render_data(self):
+        """Define how render data is organized
+
+        The render data could be different depends on following situations:
+
+        #. Render at different sides: left, right, top, bottom and main canvas
+        #. The canvas is split or not
+
+        """
         if self.is_deform:
             return self.deform_func(self.data)
         else:
@@ -87,23 +119,58 @@ class RenderPlan:
         return self.side in ["right", "left"]
 
     def render_ax(self, ax: Axes, data):
+        """The major rendering function
+        Define how the plot is drawn
+        """
         raise NotImplemented
 
     def render_axes(self, axes):
+        """Use to render plots when the canvas is split
+
+        By default, it will match each data chunk to each axes
+
+        .. code-block:: python
+
+            for ax, data in zip(axes, self.get_render_data()):
+                self.render_ax(ax, data)
+
+        """
         for ax, data in zip(axes, self.get_render_data()):
             self.render_ax(ax, data)
 
     def render(self, axes):
+        """
+        This function will be call when render a plot
+
+        - If the canvas is split, :meth:`render_axes` will be called.
+        - If only one ax is passed, :meth:`render_ax` will be called.
+
+        .. code-block:: python
+
+            if self.is_split:
+                self.render_axes(axes)
+            else:
+                self.render_ax(axes, self.get_render_data())
+
+        """
         if self.is_split:
             self.render_axes(axes)
         else:
             self.render_ax(axes, self.get_render_data())
 
-    def get_canvas_size(self):
-        raise NotImplemented
+    def get_canvas_size(self) -> float:
+        """
+        If :attr:`canvas_size_unknown` is True, This function must be
+        implemented to determine how to calculate the canvas size in inches.
+        """
+        raise NotImplementedError("Must be implemented in derived RenderPlan")
 
     @property
     def is_split(self):
+        """
+        For the RenderPlan to self-aware of whether its render canvas
+        will be split. Useful to determine how to get render data.
+        """
         if self.deform is not None:
             if self.v & self.deform.is_col_split:
                 return True
@@ -114,6 +181,16 @@ class RenderPlan:
         return False
 
     def get_legends(self) -> List[Artist] | None:
+        """
+        This should define the legend return by the RenderPlan.
+
+        The return object could be any :class:`matplotlib.artist.Artist`
+
+        .. note::
+            :class:`matplotlib.colorbar.Colorbar` is not an :class:`Artist`.
+            Use :func:`legendkit.colorart`
+
+        """
         return None
 
     def set_legends(self, *args, **kwargs):

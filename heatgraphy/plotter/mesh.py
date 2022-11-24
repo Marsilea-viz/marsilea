@@ -1,3 +1,6 @@
+__all__ = ["ColorMesh", "Colors", "SizedMesh", "LayersMesh", "MarkerMesh",
+           "TextMesh", "PatchMesh"]
+
 import warnings
 from itertools import cycle
 from typing import Mapping, Iterable
@@ -75,6 +78,7 @@ class _MeshBase(RenderPlan):
     label: str = ""
     label_loc = None
     props = None
+    _legend_kws = {}
 
     def _process_cmap(self, data, vmin, vmax,
                       cmap, norm, center):
@@ -117,6 +121,9 @@ class _MeshBase(RenderPlan):
             self.render_ax(axes, render_data)
             label_ax = axes
         _add_label(self.label, label_ax, self.side, self.label_loc, self.props)
+
+    def set_legends(self, **kwargs):
+        self._legend_kws.update(kwargs)
 
 
 class ColorMesh(_MeshBase):
@@ -201,12 +208,13 @@ class ColorMesh(_MeshBase):
         self.annot_kws = {} if annot_kws is None else annot_kws
         self._process_cmap(data, vmin, vmax, cmap, norm, center)
 
-        if cbar_kws is None:
-            cbar_kws = {}
-        self._legend_kws = cbar_kws
         self.label = label
         self.label_loc = label_loc
         self.props = props
+        self._legend_kws = dict(title=self.label)
+        if cbar_kws is not None:
+            self.set_legends(**cbar_kws)
+
         self.kwargs = kwargs
 
     def _annotate_text(self, ax, mesh, texts):
@@ -227,9 +235,6 @@ class ColorMesh(_MeshBase):
 
     def get_render_data(self):
         return self.create_render_data(self.data, self.annotated_texts)
-
-    def set_legends(self, **kwargs):
-        self._legend_kws.update(kwargs)
 
     def get_legends(self):
         mappable = ScalarMappable(norm=self.norm, cmap=self.cmap)
@@ -289,15 +294,19 @@ class Colors(_MeshBase):
     cmap:
 
     """
-    render_main = True
 
     def __init__(self, data, palette=None, cmap=None, mask=None,
-                 label=None, label_loc=None, props=None, **kwargs):
-
+                 label=None, label_loc=None, props=None, legend_kws=None,
+                 **kwargs):
+        data = np.asarray(data)
         self.label = label
         self.label_loc = label_loc
         self.props = props
         self.kwargs = kwargs
+
+        self._legend_kws = dict(title=self.label, size=1)
+        if legend_kws is not None:
+            self.set_legends(**legend_kws)
 
         encoder = {}
         render_colors = []
@@ -347,8 +356,7 @@ class Colors(_MeshBase):
         for label, color in self.palette.items():
             labels.append(label)
             colors.append(color)
-        return CatLegend(colors=colors, labels=labels, size=1,
-                         title=self.label)
+        return CatLegend(colors=colors, labels=labels, **self._legend_kws)
 
     def get_render_data(self):
         data = self.data
@@ -493,6 +501,11 @@ class SizedMesh(_MeshBase):
         ax.set_xlim(0, xticks[-1] + 0.5)
         ax.set_ylim(0, yticks[-1] + 0.5)
         ax.invert_yaxis()
+
+
+# TODO: A patch mesh
+class PatchMesh(_MeshBase):
+    pass
 
 
 class MarkerMesh(_MeshBase):

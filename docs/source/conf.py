@@ -36,6 +36,7 @@ extensions = [
     'sphinx.ext.autosummary',
     'matplotlib.sphinxext.plot_directive',
     'sphinx.ext.intersphinx',
+    'sphinx_design'
 ]
 autodoc_docstring_signature = True
 autodoc_default_options = {'members': None, 'undoc-members': None}
@@ -47,7 +48,7 @@ numpydoc_show_class_members = False
 plot_include_source = True
 plot_html_show_source_link = False
 plot_html_show_formats = False
-plot_formats = ['svg']
+plot_formats = [('png', 90)]
 plot_pre_code = "import numpy as np; from matplotlib import pyplot as plt;" \
                 "import matplotlib as mpl; np.random.seed(0);"\
                 "mpl.rcParams['savefig.bbox'] = 'tight';"
@@ -58,9 +59,11 @@ exclude_patterns = ['Thumbs.db', '.DS_Store']
 
 html_theme = 'pydata_sphinx_theme'
 html_static_path = ['_static']
+html_css_files = ['css/custom.css']
 html_logo = "../../img/logo.png"
 
 intersphinx_mapping = {
     'seaborn': ('https://seaborn.pydata.org/', None),
     'matplotlib': ('https://matplotlib.org/stable', None),
+    'legendkit': ('https://legendkit.readthedocs.io/en/stable', None),
 }

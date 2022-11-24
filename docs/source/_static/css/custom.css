@@ -1,0 +1,12 @@
+html[data-theme="light"] {
+    --pst-color-primary: #00b796;
+}
+
+html[data-theme="dark"] {
+    --pst-color-primary: #00b796;
+}
+
+/* Change the highlight color, increase contrast*/
+html[data-theme="light"] .highlight .hll {
+    background-color: #fcf427;
+}
