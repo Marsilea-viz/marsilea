@@ -1,21 +1,11 @@
 ![Logo](img/logo.png)
 
-Create matrix-like visualization.
+Create grid layout visualization!
 
 Quick start in the web without coding!
 [Open App]()
 
-**Highlights**
-- Plot types
-  - Heatmap
-  - DotHeatmap
-  - Custom elements heatmap
-  - Upset plot
-
-- Features
-  - Side annotations
-  - Split matrix
-  - Auto legends + colorbar
+❗Still under development, Bug Expected
 
 ### Installation
 
