@@ -207,6 +207,8 @@ class Base(LegendMaker):
 
     def __init__(self, w=None, h=None, main_aspect=1, name=None):
         w, h = get_aspect(main_aspect, w=w, h=h)
+        self.width = w
+        self.height = h
         self.grid = CrossGrid(w=w, h=h, name=name)
         self.main_name = self.grid.main_name
         # self._side_count = {"right": 0, "left": 0, "top": 0, "bottom": 0}

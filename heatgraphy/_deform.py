@@ -227,7 +227,7 @@ class Deformation:
                     data[ix] = data[ix][order]
                     return [data[ix] for ix in self.row_chunk_index]
             else:
-                for ix, order in range(len(data)):
+                for ix in range(len(data)):
                     data[ix] = data[ix][self.row_reorder_index]
                 return data
 

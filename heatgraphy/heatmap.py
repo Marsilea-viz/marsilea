@@ -41,12 +41,30 @@ class ClusterCanvas(MatrixBase):
 
 
 class Heatmap(MatrixBase):
+    """Heatmap
+
+    See :class:`ColorMesh <heatgraphy.plotter.ColorMesh>` for details
+
+    Other Parameters
+    ----------------
+    square : bool
+        If True, the cell will render in equal
+    cluster_data : matrix data
+        You can override the data used to perform cluster
+        By default will use the plotting data.
+    name : str
+        The name of this Heatmap
+    width, height : float
+        The size in inches to define the size of main canvas
+
+    """
 
     def __init__(self, data: np.ndarray, vmin=None, vmax=None,
                  cmap=None, norm=None, center=None,
                  mask=None, alpha=None, linewidth=0, linecolor="white",
-                 annot=None, fmt=None, annot_kws=None, label=None, cbar_kws=None,
-                 square=False, name=None, width=None, height=None,
+                 annot=None, fmt=None, annot_kws=None, label=None,
+                 cbar_kws=None, square=False, name=None,
+                 width=None, height=None, cluster_data=None
                  ):
         self.square = square
 
@@ -54,7 +72,10 @@ class Heatmap(MatrixBase):
         if square:
             Y, X = data.shape
             data_aspect = Y / X
-        super().__init__(data, w=width, h=height, main_aspect=data_aspect)
+        if cluster_data is None:
+            cluster_data = data
+        super().__init__(cluster_data, w=width, h=height,
+                         main_aspect=data_aspect)
         mesh = ColorMesh(data, vmin=vmin, vmax=vmax, cmap=cmap,
                          norm=norm, center=center,
                          mask=mask, alpha=alpha, linewidth=linewidth,
@@ -66,34 +87,56 @@ class Heatmap(MatrixBase):
 
 
 class CatHeatmap(MatrixBase):
+    """Categorical Heatmap
+
+    See :class:`Colors <heatgraphy.plotter.Colors>` for details
+
+    Other Parameters
+    ----------------
+    name : str
+        The name of this Heatmap
+    cluster_data : matrix data
+        You can override the data used to perform cluster
+        By default will use the plotting data.
+    width, height : float
+        The size in inches to define the size of main canvas
+
+    """
 
     def __init__(self, data, palette=None, cmap=None, mask=None,
-                 name=None, width=None, height=None,):
+                 name=None, width=None, height=None, cluster_data=None):
         mesh = Colors(data, palette=palette, cmap=cmap, mask=mask)
-        super().__init__(mesh.cluster_data, w=width, h=height)
+        if cluster_data is None:
+            cluster_data = mesh.cluster_data
+        super().__init__(cluster_data, w=width, h=height)
         name = get_plot_name(name, "main", mesh.__class__.__name__)
         mesh.set(name=name)
         self.add_layer(mesh)
 
 
-class DotHeatmap(MatrixBase):
+class SizedHeatmap(MatrixBase):
+    """Sized Heatmap
+
+    See :class:`SizedMesh <heatgraphy.plotter.SizedMesh>` for details
+
+    Other Parameters
+    ----------------
+    name : str
+        The name of this Heatmap
+    cluster_data : matrix data
+        You can override the data used to perform cluster
+        By default will use the size data.
+    width, height : float
+        The size in inches to define the size of main canvas
+
+    """
 
     def __init__(self, size, color=None, cluster_data=None,
                  **kwargs):
-        cluster_data = size
+        if cluster_data is None:
+            cluster_data = size
         y, x = cluster_data.shape
         super().__init__(cluster_data, main_aspect=y / x)
 
         mesh = SizedMesh(size=size, color=color, **kwargs)
         self.add_layer(mesh)
-
-    def add_matrix(self, data: np.ndarray, vmin=None, vmax=None, cmap=None,
-                   norm=None, center=None, mask=None,
-                   alpha=None, linewidth=None, linecolor=None,
-                   ):
-        bg_mesh = ColorMesh(data, cmap=cmap, norm=norm, vmin=vmin, vmax=vmax,
-                            center=center, mask=mask,
-                            alpha=alpha, linewidth=linewidth,
-                            linecolor=linecolor)
-        self.add_layer(bg_mesh, zorder=-1)
-

@@ -17,40 +17,21 @@ class Layers(MatrixBase):
                  cluster_data=None,
                  shrink=(.9, .9)
                  ):
+
         mesh = LayersMesh(data=data, layers=layers, pieces=pieces,
                           shrink=shrink)
-        self.add_layer(mesh)
         if cluster_data is None:
             self._allow_cluster = False
-            if self._mesh.mode == "cell":
-                data_shape = self._mesh.data.shape
+            if mesh.mode == "cell":
+                data_shape = mesh.data.shape
             else:
-                data_shape = self._mesh.data[0].shape
+                data_shape = mesh.data[0].shape
             # create numeric data explicitly
             # in case user input string data
             cluster_data = np.random.randn(*data_shape)
         super().__init__(cluster_data)
 
-    # def render(self, figure=None, aspect=1):
-    #     self._freeze_legend()
-    #     if figure is None:
-    #         self.figure = plt.figure()
-    #     else:
-    #         self.figure = figure
-    #
-    #     deform = self.get_deform()
-    #     self._mesh.set_deform(deform)
-    #
-    #     self._setup_axes()
-    #     if not self.grid.is_freeze:
-    #         self.grid.freeze(figure=self.figure, aspect=aspect)
-    #     main_axes = self.get_main_ax()
-    #
-    #     self._mesh.render(main_axes)
-    #     # render other plots
-    #     self._render_dendrogram()
-    #     self._render_plan()
-    #     self._render_legend()
+        self.add_layer(mesh)
 
 
 class Piece:

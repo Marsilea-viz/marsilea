@@ -454,6 +454,8 @@ class SizedMesh(_MeshBase):
                                  array=self.orig_size,
                                  colors=size_color,
                                  dtype=self.orig_size.dtype,
+                                 handle=self.marker,
+                                 show_at=(.1, .25, .5, .75, 1.),
                                  handler_kw=handler_kw,
                                  )
 
@@ -464,9 +466,9 @@ class SizedMesh(_MeshBase):
                     labels.append(label)
                     colors.append(c)
                 color_legend = CatLegend(labels=labels, colors=colors,
-                                         size="large",
+                                         size=1,
                                          handle=self.marker,
-                                         handle_kw=handler_kw,
+                                         handler_kw=handler_kw,
                                          frameon=False,
                                          )
             else:
@@ -513,7 +515,7 @@ class MarkerMesh(_MeshBase):
 
     def __init__(self, data, color="black", marker="*",
                  label=None, label_loc=None, props=None, **kwargs):
-        self.data = data
+        self.data = np.asarray(data)
         self.color = color
         self.marker = marker
         self.label = label
@@ -529,7 +531,7 @@ class MarkerMesh(_MeshBase):
         Y, X = data.shape
         xticks = np.arange(X) + 0.5
         yticks = np.arange(Y) + 0.5
-        xv, yv = np.where(data)
+        yv, xv = np.where(data)
 
         ax.scatter(xv + .5, yv + .5, s=50,
                    c=self.color, marker=self.marker, **self.kwargs)

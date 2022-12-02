@@ -8,6 +8,8 @@ from typing import List
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.axes import Axes
+from matplotlib.colors import is_color_like
+from matplotlib.patches import Rectangle
 from matplotlib.text import Text
 
 from .base import RenderPlan
@@ -120,13 +122,13 @@ def adjust_segments(lim: Segment, segments: List[Segment]):
 
     # adjust by one direction
     for s1, s2 in pairwise(segments):
-        print(s1, s2, s1.overlap(s2))
+        # print(s1, s2, s1.overlap(s2))
         # if s1.overlap(s2):
         s1.move_toward(s2, side="up")
 
     # adjust by reversed direction
     for s1, s2 in pairwise(reversed(segments)):
-        print(s1, s2, s1.overlap(s2))
+        # print(s1, s2, s1.overlap(s2))
         # if s1.overlap(s2):
         s1.move_toward(s2, side="down")
 
@@ -141,6 +143,7 @@ class AdjustableText:
                  expand=(1.05, 1.05),
                  va=None, ha=None, rotation=None,
                  connectionstyle=None, relpos=None,
+                 linewidth=None,
                  **kwargs):
         if ax is None:
             ax = plt.gca()
@@ -161,6 +164,7 @@ class AdjustableText:
         self.rotation = rotation
         self.connectionstyle = connectionstyle
         self.relpos = relpos
+        self.linewidth = linewidth
         self.text_obj = Text(x, y, text, va=va, ha=ha,
                              rotation=rotation,
                              transform=self.ax.transAxes,
@@ -211,6 +215,7 @@ class AdjustableText:
             arrowprops=dict(
                 arrowstyle="-",
                 connectionstyle=self.connectionstyle,
+                linewidth=self.linewidth,
                 relpos=self.relpos),
         )
 
@@ -218,20 +223,21 @@ class AdjustableText:
 class _LabelBase(RenderPlan):
     canvas_size = None
     canvas_size_unknown = True
-    _update_params = []
-    _user_options = {}
-    ha = None
-    va = None
-    rotation = None
 
     def __init__(self, **text_options):
+        self._update_params = set()
+        self._user_options = {}
+        self.ha = None
+        self.va = None
+        self.rotation = None
         for k, v in text_options.items():
             if hasattr(self, k):
                 setattr(self, k, v)
                 if v is None:
-                    self._update_params.append(k)
+                    self._update_params.add(k)
             else:
                 self._user_options[k] = v
+        self._update_text_params()
 
     def set_side(self, side):
         self.side = side
@@ -251,7 +257,7 @@ class _LabelBase(RenderPlan):
             use = not use
         return coords
 
-    def silent_render(self):
+    def silent_render(self, expand=(1., 1.)):
 
         fig = plt.figure()
         renderer = fig.canvas.get_renderer()
@@ -263,7 +269,7 @@ class _LabelBase(RenderPlan):
             x, y = (0, c) if self.h else (c, 0)
             t = ax.text(x, y, s=s, va=self.va, ha=self.ha,
                         rotation=self.rotation, transform=ax.transAxes)
-            bbox = t.get_window_extent(renderer)  # .expanded(1.05, 1.05)
+            bbox = t.get_window_extent(renderer).expanded(*expand)
             if self.h:
                 sizes.append(bbox.xmax - bbox.xmin)
             else:
@@ -280,50 +286,93 @@ class TextConfig:
     rotation: float
     connectionstyle: str
     relpos: tuple
-    expand: tuple
 
 
 anno_side_params = {
     "top": TextConfig(va="bottom", ha="center", rotation=90,
                       connectionstyle="arc,angleA=-90,angleB=90,"
-                                      "armA=30,armB=30,rad=0",
-                      relpos=(0.5, 0), expand=(1.05, 1)),
+                                      "armA=10,armB=10,rad=0",
+                      relpos=(0.5, 0)),
     "bottom": TextConfig(va="top", ha="center", rotation=-90,
                          connectionstyle="arc,angleA=90,angleB=-90,"
-                                         "armA=30,armB=30,rad=0",
-                         relpos=(0.5, 1), expand=(1.05, 1)),
+                                         "armA=10,armB=10,rad=0",
+                         relpos=(0.5, 1)),
     "right": TextConfig(va="center", ha="left", rotation=0,
                         connectionstyle="arc,angleA=-180,angleB=0,"
-                                        "armA=20,armB=20,rad=0",
-                        relpos=(0, 0.5), expand=(1, 1.05)),
+                                        "armA=10,armB=10,rad=0",
+                        relpos=(0, 0.5)),
     "left": TextConfig(va="center", ha="right", rotation=0,
                        connectionstyle="arc,angleA=0,angleB=-180,"
-                                       "armA=30,armB=30,rad=0",
-                       relpos=(1, 0.5), expand=(1, 1.05)),
+                                       "armA=10,armB=10,rad=0",
+                       relpos=(1, 0.5)),
 }
 
 
 class AnnoLabels(_LabelBase):
-    arrow_size = 0.4  # inches
-    const_pos = 0.4
+    """Annotate a few rows or columns
 
-    # text params we need to take control of
-    va = None
-    ha = None
-    rotation = None
-    connectionstyle = None
-    relpos = None
-    expand = (1.2, 1.2)
+    This is useful when your heatmap contains many rows/columns,
+    and you only want to annotate a few of them.
+
+    Parameters
+    ----------
+    mark_labels : np.ma.MaskedArray
+        The length of the labels should match the main canvas side where
+        it attaches to, the labels that won't be displayed should be masked.
+    side : str
+    text_pad : float
+        Add padding around the text, relative to the fontsize
+    pointer_length : float
+        The size of the pointer
+    linewidth : float
+        The linewidth of the pointer
+    va, ha, rotation :
+        Text style
+    connectionstyle :
+    relpos :
+    options :
+
+
+    Examples
+    --------
+
+    If only shows values 4 and 5
+
+    .. code-block:: python
+
+        >>> texts = np.arange(10)
+        >>> labels = np.ma.masked_where(~np.in1d(texts, [4, 5]), texts)
+
+    .. plot::
+        :context: close-figs
+
+        >>> labels = np.arange(100)
+        >>> labels = np.ma.masked_where(~np.in1d(labels, [3, 4, 5]), labels)
+
+        >>> import heatgraphy as hg
+        >>> from heatgraphy.plotter import AnnoLabels
+        >>> matrix = np.random.randn(100, 10)
+        >>> h = hg.Heatmap(matrix)
+        >>> marks = AnnoLabels(labels)
+        >>> h.add_right(marks)
+        >>> h.render()
+
+    """
 
     def __init__(self,
                  mark_labels: np.ma.MaskedArray | List[np.ma.MaskedArray],
-                 side="right", arrow_size=0.4,
-                 va=None, ha=None, rotation=None,
+                 side="right", text_pad=0.5, pointer_length=0.5,
+                 linewidth=None, va=None, ha=None, rotation=None,
                  connectionstyle=None, relpos=None, **options):
         self.data = mark_labels
         self.canvas_size = None
         self.side = side
-        self.arrow_size = arrow_size
+        self.pointer_length = pointer_length
+        self.linewidth = linewidth
+        self.const_pos = 0.4
+        self.expand = (1. + text_pad, 1. + text_pad)
+        self.connectionstyle = None
+        self.relpos = None
 
         super().__init__(va=va, ha=ha, rotation=rotation,
                          connectionstyle=connectionstyle,
@@ -336,13 +385,12 @@ class AnnoLabels(_LabelBase):
             setattr(self, param, v)
 
     def get_canvas_size(self):
-        self.silent_render()
-        size = self.canvas_size + self.arrow_size
-        self.const_pos = self.arrow_size / size
+        self.silent_render(self.expand)
+        size = self.canvas_size + self.pointer_length
+        self.const_pos = self.pointer_length / size
         return size
 
     def render_ax(self, ax, labels):
-
         renderer = ax.get_figure().canvas.get_renderer()
         locs = self.get_axes_coords(labels)
 
@@ -352,6 +400,7 @@ class AnnoLabels(_LabelBase):
                             ha=self.ha, rotation=self.rotation,
                             connectionstyle=self.connectionstyle,
                             relpos=self.relpos, expand=self.expand,
+                            linewidth=self.linewidth,
                             **self._user_options)
         texts = []
         segments = []
@@ -398,31 +447,33 @@ side_align = {
     "bottom": "top"
 }
 
-align_pos = {
-    'right': 1,
-    'left': 0,
-    'top': 1,
-    'bottom': 0,
-    'center': 0.5
-}
-
 
 class Labels(_LabelBase):
-    # text params we need to take control of
-    va = None
-    ha = None
-    rotation = None
+    """Add text labels
+
+    Parameters
+    ----------
+    labels : array of str
+    align : str
+        Which side of the text to align
+    text_pad : float
+        Add padding around text, relative to the size of axes
+
+    """
 
     def __init__(self, labels, align=None,
                  va=None, ha=None, rotation=None,
+                 text_pad=0,
                  **options):
         self.data = np.asarray(labels)
-        self.align = align
+        self.align = None
+        self.pad = text_pad
 
-        super().__init__(va=va, ha=ha, rotation=rotation, **options)
+        super().__init__(va=va, ha=ha, rotation=rotation, align=align,
+                         **options)
 
     def _update_text_params(self):
-        if self.align is None:
+        if 'align' in self._update_params:
             self.align = side_align[self.side]
         va, ha = self.align, "center"
         rotation = 90
@@ -437,15 +488,20 @@ class Labels(_LabelBase):
             self.rotation = rotation
 
     def get_canvas_size(self):
-        self.silent_render()
-        return self.canvas_size
+        self.silent_render(expand=(1, 1))
+        return self.canvas_size * (1 + self.pad)
 
     def render_ax(self, ax: Axes, data):
         ax.set_axis_off()
         coords = self.get_axes_coords(data)
         if self.h:
             coords = coords[::-1]
-        const = align_pos[self.align]
+        if self.align == "center":
+            const = .5
+        elif self.align in ["right", "top"]:
+            const = 1 - self.pad / 2
+        else:
+            const = self.pad / 2
         for s, c in zip(data, coords):
             x, y = (const, c) if self.h else (c, const)
             ax.text(x, y, s=s, va=self.va, ha=self.ha,
@@ -460,22 +516,26 @@ stick_pos = {
     "bottom": 1,
 }
 
+align_pos = {
+    'right': 1,
+    'left': 0,
+    'top': 1,
+    'bottom': 0,
+    'center': 0.5
+}
+
 
 class Title(_LabelBase):
-    no_split = True
-    canvas_size_unknown = True
 
-    va = None
-    ha = None
-    rotation = 0
-
-    def __init__(self, title, align="center", va=None, ha=None,
+    def __init__(self, title, align="center", text_pad=0.5, va=None, ha=None,
                  fontsize=None, rotation=None, **options):
         self.data = title
         self.align = align
         if fontsize is None:
             fontsize = 12
         self.fontsize = fontsize
+        self.expand = (1. + text_pad, 1. + text_pad)
+        self.rotation = 0
 
         super().__init__(va=va, ha=ha, rotation=rotation, **options)
 
@@ -497,7 +557,7 @@ class Title(_LabelBase):
         return self.data
 
     def get_canvas_size(self):
-        self.silent_render()
+        self.silent_render(expand=self.expand)
         return self.canvas_size
 
     def render_ax(self, ax: Axes, title):
@@ -508,3 +568,63 @@ class Title(_LabelBase):
                 transform=ax.transAxes,
                 rotation=self.rotation, **self._user_options)
         ax.set_axis_off()
+
+
+_default_rotation = {
+    "right": -90,
+    "left": 90,
+    "top": 0,
+    "bottom": 0,
+}
+
+
+class Chunk(_LabelBase):
+
+    def __init__(self, texts, rotation=None,
+                 props=None, text_pad=0.5, fill_colors=None, bordercolor=None,
+                 borderwidth=None, borderstyle=None):
+        super().__init__(rotation=rotation)
+        self.data = texts
+        self.props = props if props is not None else {}
+        if is_color_like(fill_colors):
+            fill_colors = [fill_colors for _ in range(len(self.data))]
+        self.fill_colors = fill_colors
+        self.bordercolor = bordercolor
+        self.borderwidth = borderwidth
+        self.borderstyle = borderstyle
+        if self.fill_colors is not None:
+            self._draw_bg = True
+        else:
+            self._draw_bg = False
+        self.expand = (1. + text_pad, 1. + text_pad)
+        self.va = "center"
+        self.ha = "center"
+
+    def get_canvas_size(self):
+        self.silent_render(expand=self.expand)
+        return self.canvas_size
+
+    def set_side(self, side):
+        self.side = side
+        if self.rotation is None:
+            self.rotation = _default_rotation[self.side]
+        self._update_deform_func()
+
+    def render(self, axes):
+
+        text_options = dict(va=self.va, ha=self.ha, rotation=self.rotation)
+        text_options.update(self.props)
+
+        for i, ax in enumerate(axes):
+            ax.set_axis_off()
+            if self._draw_bg:
+                rect = Rectangle((0, 0), 1, 1,
+                                 facecolor=self.fill_colors[i],
+                                 edgecolor=self.bordercolor,
+                                 linewidth=self.borderwidth,
+                                 linestyle=self.borderstyle,
+                                 transform=ax.transAxes)
+                ax.add_artist(rect)
+
+            ax.text(0.5, 0.5, self.data[i],
+                    fontdict=text_options, transform=ax.transAxes)

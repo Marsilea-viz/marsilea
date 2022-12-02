@@ -3,7 +3,9 @@
 
 from __future__ import annotations
 from dataclasses import dataclass
-from typing import Dict
+from itertools import cycle
+from typing import List, Set
+from collections import Counter
 
 import numpy as np
 import pandas as pd
@@ -13,7 +15,7 @@ from matplotlib.lines import Line2D
 from matplotlib.patches import Patch, Circle, Rectangle
 
 from .base import Base
-from .plotter import Numbers, Labels
+from .plotter import Numbers, Labels, StackBar
 
 
 @dataclass
@@ -23,29 +25,68 @@ class UpSetAttr:
 
 
 class UpsetData:
-    names: np.ndarray  # columns
-    items: np.ndarray  # row
-    data: np.ndarray  # one-hot encode matrix
-    attrs: UpSetAttr = None
+    """Handle multiple sets
 
-    def __init__(self, names, data, items=None, attrs=None):
-        self.names = names
-        self.items = items
-        self.data = data
-        self.attrs = attrs
+    Normally, the construction methods are used to create a UpsetData
+
+    Parameters
+    ----------
+    data : bool matrix
+        A one-hot encode matrix indicates if an item is in a set.
+        Columns are sets and rows are items
+    names : optional, array
+        The name of sets
+    items : optional, array
+        The name of items
+    sets_attrs : optional, pd.DataFrame
+        The attributes of sets, the input index should be the
+        same as names
+    items_attrs : optional, pd.DataFrame
+        The attributes of items, the input index should be the
+        same as items
+
+    Examples
+    --------
+
+    .. plot::
+        :context: close-figs
+
+        from heatgraphy.upset import UpsetData
+        sets = [[1,2,3,4], [3,4,5,6]]
+        data = UpsetData.from_sets(sets)
+
+
+    """
+
+    def __init__(self, data, names=None, items=None,
+                 sets_attrs=None, items_attrs=None):
+        assert len(names) == len(set(names)), "Duplicates in names"
+        assert len(items) == len(set(items)), "Duplicates in items"
+        self.names = list(names)  # columns
+        self.items = list(items)  # row
+        self._data = data  # one-hot encode matrix
+
+        if sets_attrs is not None:
+            sets_attrs = sets_attrs.loc[self.names]
+        self._sets_attrs = sets_attrs
+
+        if items_attrs is not None:
+            items_attrs = items_attrs.loc[self.items]
+        self._items_attrs = items_attrs
 
         self._sets_table = pd.DataFrame(columns=names, index=items,
                                         data=data)
-        self._sets_size = None
 
     @staticmethod
-    def from_sets(sets: Dict) -> UpsetData:
-        names = []
+    def from_sets(sets: List[Set], names=None,
+                  sets_attrs: pd.DataFrame = None,
+                  items_attrs: pd.DataFrame = None) -> UpsetData:
+        if names is None:
+            names = [f"Set {i + 1}" for i in range(len(sets))]
         items = set()
         new_sets = []
         sets_total = {}
-        for name, s in sets.items():
-            names.append(name)
+        for name, s in zip(names, sets):
             s = set(s)
             new_sets.append(s)
             items.update(s)
@@ -56,43 +97,84 @@ class UpsetData:
             d = [i in s for i in items]
             data.append(d)
         data = np.array(data, dtype=int).T
-        container = UpsetData(names, data, items=items)
-        container._sets_size = sets_total
+        container = UpsetData(data, names=names, items=items,
+                              sets_attrs=sets_attrs,
+                              items_attrs=items_attrs)
         return container
 
-    def from_dataframe(self, data):
-        pass
+    @staticmethod
+    def from_memberships(sets_names, items_names=None,
+                         sets_attrs: pd.DataFrame = None,
+                         items_attrs: pd.DataFrame = None):
+        """Describe the sets an item are in"""
+        df = (pd.DataFrame([{name: True for name in names}
+                            for names in sets_names])
+              ).fillna(False).astype(int)
+        container = UpsetData(df.to_numpy(), names=df.columns,
+                              items=items_names, sets_attrs=sets_attrs,
+                              items_attrs=items_attrs)
+        return container
 
-    def isin(self, item):
+    def has_item(self, item):
         """Return the sets name the item is in"""
-        pass
+        item_data = self._sets_table.loc[item]
+        return item_data.loc[item_data == 1].index.tolist()
 
-    def overlap_items(self, sets_name):
+    def intersection(self, sets_name):
         """Return the items that appears in sets"""
-        pass
+        expr = "&".join([f"(`{s}`==1)" for s in sets_name])
+        return self._sets_table.query(expr).index.tolist()
 
-    def overlap_count(self, count, up=None, low=None):
-        """Return the item that has overlap at exactly number of sets"""
-        pass
+    def intersection_count(self):
+        """The number of sets an item has occurred"""
+        return self._sets_table.sum(axis=1)
 
     def sets_table(self):
-        result = self._sets_table.groupby(self.names).size()
-        result = pd.DataFrame(result, columns=["size"])
-        result["degree"] = result.index.to_frame().sum(axis=1)
-        return result
+        return self._sets_table
+
+    def cardinality(self):
+        return self._sets_table.groupby(self.names).size()
+
+    def degree(self):
+        return self._sets_table.groupby(self.names).sum(axis=1)
 
     def sets_size(self):
-        total = pd.DataFrame(data=self._sets_size, index=["size"])
-        # reorder based on names order
-        return total[self.names].T
+        return self._sets_table.sum()
 
+    @property
     def sets_attrs(self):
-        pass
+        return self._sets_attrs
+
+    @property
+    def items_attrs(self):
+        return self._items_attrs
 
 
 class Upset(Base):
+    """Upset Plot
 
-    def __init__(self, data: UpsetData, orient="h",
+    Parameters
+    ----------
+    data : :class:`UpsetData`
+        Upset data
+    orient : str
+        The orientation of the Upset plot
+    sets_order : array of str
+        The order of sets
+    sort_subset : {'size', 'degree'}
+        How to sort the subset, 'size' will sort by intersection size,
+        'degree' will sort by the number of intersected sets.
+    ascending : bool, default: True
+        The sorting order
+    min_degree, max_degree : int
+        Select a fraction of subset to render by degree
+    min_size, max_size :
+
+
+    """
+
+    def __init__(self, data: UpsetData,
+                 orient="h",
                  sets_order=None,
                  sort_subset="size",  # size, degree
                  ascending=True,
@@ -105,11 +187,17 @@ class Upset(Base):
                  radius=.25,
                  linewidth=1.5,
                  grid_background=0.1,
+                 fontsize=None,
                  add_intersections=True,
                  add_sets_size=True,
                  add_labels=True,
+                 width=None,
+                 height=None,
+                 ratio=1
                  ):
-        sets_table = data.sets_table()
+
+        sets_table = pd.DataFrame(data.cardinality(), columns=["size"])
+        sets_table["degree"] = sets_table.index.to_frame().sum(axis=1)
         sets_size = data.sets_size()
 
         if sets_order is not None:
@@ -126,47 +214,37 @@ class Upset(Base):
         if max_size is not None:
             sets_table = sets_table[sets_table["size"] >= max_size]
 
+        self.data = data
         self.orient = orient
         self.color = color
         self.shading = shading
         self.radius = radius
         self.linewidth = linewidth
         self.grid_background = grid_background
+        self.fontsize = fontsize
 
         self.sets_table = sets_table
         self.sets_size = sets_size
-        self._matrix = sets_table.index.to_frame().to_numpy()
         self._subset_styles = {}
         self._subset_line_styles = {}
+        self._add_intersections = add_intersections
         self._intersection_bar = None
         self._sets_size_bar = None
 
-        if orient == "h":
-            if add_intersections:
-                self._interactions = "top"
-            if add_sets_size:
-                self._sets_size = "left"
-            if add_labels:
-                self._labels = "right"
-        else:
-            if add_intersections:
-                self._interactions = "right"
-            if add_sets_size:
-                self._sets_size = "top"
-            if add_labels:
-                self._labels = "bottom"
-
-        h, w = sets_table.index.to_frame().shape
+        h, w = self.sets_table.shape
 
         if orient == "h":
             h, w = w, h
-        super().__init__(main_aspect=h / w)
+        super().__init__(w=width, h=height, main_aspect=h / w * ratio)
         if add_intersections:
-            self.add_intersections(self._interactions)
+            side = "top" if orient == "h" else "right"
+            self.add_intersections(side)
         if add_labels:
-            self.add_sets_label(self._labels)
+            side = "right" if orient == "h" else "bottom"
+            self.add_sets_label(side)
         if add_sets_size:
-            self.add_sets_size(self._sets_size)
+            side = "left" if orient == "h" else "top"
+            self.add_sets_size(side)
 
     def _mark_subsets(self, present=None, absent=None,
                       min_size=None, max_size=None,
@@ -237,18 +315,21 @@ class Upset(Base):
             raise ValueError(msg)
 
     def add_intersections(self, side, pad=.1):
+        # TODO: add method to get specific axes
         self._check_side(side, 'Intersections',
                          dict(h=["top", "bottom"], v=["left", "right"]))
         data = self.sets_table["size"]
         self._intersection_bar = Numbers(data, color=self.color)
-        self.add_plot(side, self._intersection_bar, size=2, pad=pad)
+        size = min(self.height, self.width) * .4
+        self.add_plot(side, self._intersection_bar, size=size, pad=pad)
 
     def add_sets_size(self, side, pad=.1):
         self._check_side(side, 'Sets size',
                          dict(h=["left", "right"], v=["top", "bottom"]))
-        data = self.sets_size["size"]
+        data = self.sets_size
         self._sets_size_bar = Numbers(data, color=self.color)
-        self.add_plot(side, self._sets_size_bar, size=2, pad=pad)
+        size = min(self.height, self.width) * .4
+        self.add_plot(side, self._sets_size_bar, size=size, pad=pad)
 
     def add_sets_label(self, side, pad=.1):
         self._check_side(side, 'Sets label',
@@ -256,13 +337,51 @@ class Upset(Base):
         data = self.sets_table.index.names
         self.add_plot(side, Labels(data), pad=pad)
 
+    def add_sets_attrs(self, side, attr_names, plot=None):
+        # TODO: Auto detect side, more options
+        data = self.data.sets_attrs
+        attr = data[attr_names]
+        self.add_plot(side, plot(attr), pad=.1)
+
+    def add_items_attrs(self, side, attr_names, plot=None):
+        items_attrs = self.data.items_attrs
+        sets_names = np.array(self.sets_table.index.names)
+
+        data_collector = []
+
+        for ix, row in self.sets_table.iterrows():
+            s = sets_names[np.array(ix).astype(bool)]
+            items = self.data.intersection(s)
+            attr_data = items_attrs.loc[items][attr_names]
+            data_collector.append(attr_data)
+
+        construct = pd.DataFrame(data_collector).T
+
+        if plot == StackBar:
+            collect = [Counter(col) for _, col in construct.items()]
+            construct = pd.DataFrame(collect).T
+            construct = (construct.loc[~pd.isnull(construct.index)]
+                         ).fillna(0).astype(int).to_numpy()
+
+        self.add_plot(side, plot(construct), pad=.1)
+
     def _render_matrix(self, ax):
         ax.set_axis_off()
 
         bg, bg_circles = [], []
         lines, circles = [], []
-        last_ix1, last_ix2 = 0, 0
-        matrix = self._matrix
+        matrix = self.sets_table.index.to_frame().to_numpy()
+        X, Y = matrix.shape
+        xticks = np.arange(X)
+        yticks = np.arange(Y)
+        xv, yv = np.meshgrid(xticks, yticks)
+
+        # draw bg
+        if self.shading > 0:
+            if self.orient == "v":
+                xv, yv = yv, xv
+            ax.scatter(xv, yv, facecolor=self.color, alpha=self.shading,
+                       edgecolor="none")
 
         for ix1, chunk in enumerate(matrix):
             custom_style = self._subset_styles.get(ix1)
@@ -271,63 +390,44 @@ class Upset(Base):
                 custom_style = {}
                 custom_line_style = {}
 
-            lines_coords = []
-            for ix2, ele in enumerate(chunk):
-                cx, cy = ix1, ix2
-                if self.orient == "v":
-                    cx, cy = cy, cx
-                if ele:
-                    lines_coords.append(ix2)
-                    current_style = {'facecolor': self.color,
-                                     'alpha': 1, **custom_style}
-                    c = Circle((cx, cy), self.radius, **current_style)
-                    circles.append(c)
-                else:
-                    if self.shading > 0:
-                        # background circle
-                        c = Circle((cx, cy), self.radius,
-                                   facecolor=self.color,
-                                   alpha=self.shading)
-                        bg_circles.append(c)
-                last_ix2 = ix2
-            if (self.linewidth > 0) & (len(lines_coords) > 1):
-                # draw line
-                low, up = np.min(lines_coords), np.max(lines_coords)
+            cy = np.nonzero(chunk)[0]
+            cx = np.repeat(ix1, len(cy))
+            line_low, line_up = np.min(cy), np.max(cy)
+            if (self.linewidth > 0) & (line_up - line_low > 1):
                 line_style = {'color': self.color, 'lw': self.linewidth,
                               **custom_line_style}
-                xs, ys = (ix1, ix1), (low, up)
+                xs, ys = ix1, (line_low, line_up)
+                liner = ax.vlines
                 if self.orient == "v":
                     xs, ys = ys, xs
-                line = Line2D(xs, ys, **line_style)
-                lines.append(line)
-            last_ix1 = ix1
-        if self.orient == "v":
-            last_ix1, last_ix2 = last_ix2, last_ix1
-        xlow, xup = 0 - 0.5, last_ix1 + 0.5
-        ylow, yup = last_ix2 + 0.5, 0 - 0.5
+                    liner = ax.hlines
+                liner(xs, *ys, **line_style)
+
+            if self.orient == "v":
+                cx, cy = cy, cx
+            current_style = {'facecolor': self.color, 'zorder': 100,
+                             'alpha': 1, **custom_style}
+            ax.scatter(cx, cy, **current_style)
+
+        xlow, xup = 0 - 0.5, np.max(xv) + 0.5
+        ylow, yup = np.max(yv) + 0.5, 0 - 0.5
         ax.set_xlim(xlow, xup)
         ax.set_ylim(ylow, yup)
 
         if self.orient == "h":
-            bg_coords = np.arange(yup, ylow)
-            for iy, coord in enumerate(bg_coords):
-                if iy % 2 == 0:
-                    bg_circles.append(Rectangle(xy=(xlow, coord),
-                                                height=1,
-                                                width=xup - xlow,
-                                                facecolor=self.color,
-                                                alpha=self.grid_background
-                                                ))
+            bg_coords = zip(cycle([xlow]), np.arange(yup, ylow))
+            height = 1
+            width = xup - xlow
         else:
-            bg_coords = np.arange(xlow, xup)
-            for ix, coord in enumerate(bg_coords):
-                if ix % 2 == 0:
-                    bg_circles.append(Rectangle(xy=(coord, yup),
-                                                width=1,
-                                                height=ylow - yup,
-                                                facecolor=self.color,
-                                                alpha=self.grid_background
-                                                ))
+            bg_coords = zip(np.arange(xlow, xup), cycle([yup]))
+            width = 1
+            height = ylow - yup
+        for i, coord in enumerate(bg_coords):
+            if i % 2 == 0:
+                rect = Rectangle(xy=coord, height=height, width=width,
+                                 facecolor=self.color,
+                                 alpha=self.grid_background)
+                bg_circles.append(rect)
         # add bg_circles
         bg_circles = PatchCollection(bg_circles, match_original=True)
         ax.add_collection(bg_circles)
@@ -352,7 +452,7 @@ class Upset(Base):
         self._render_matrix(main_axes)
         self._render_plan()
         # apply highlight style to bar
-        if self._interactions:
+        if self._add_intersections:
             for ix, rect in enumerate(self._intersection_bar.bars):
                 bar_style = self._subset_styles.get(ix)
                 if bar_style is not None:

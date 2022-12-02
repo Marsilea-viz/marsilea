@@ -46,6 +46,7 @@ class _SeabornBase(StatsBase):
 
 
 def _seaborn_doc(obj: _SeabornBase):
+    cls_name = obj.__name__
     obj.__doc__ = f"""Wrapper for seaborn's {obj._seaborn_plot}
     
     .. note::
@@ -64,6 +65,21 @@ def _seaborn_doc(obj: _SeabornBase):
         The label of your data
     kwargs : 
         See :func:`seaborn.{obj._seaborn_plot}`
+        
+    Examples
+    --------
+    
+    .. plot::
+        :context: close-figs
+        
+        >>> import heatgraphy as hg
+        >>> from heatgraphy.plotter import {cls_name}
+        >>> data = np.random.randn(10, 10)
+        >>> plot = {cls_name}(np.random.randint(0, 10, (20, 10)))
+        >>> h = hg.Heatmap(data)
+        >>> h.split_row(cut=[3, 7])
+        >>> h.add_right(plot)
+        >>> h.render()
         
     
     """

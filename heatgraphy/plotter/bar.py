@@ -68,7 +68,8 @@ def stacked_bar(data, ax: Axes = None,
     locs = np.arange(0, data.shape[1]) + 0.5
     bottom = np.zeros(data.shape[1])
     for ix, row in enumerate(data):
-        bars = bar(locs, row, width, bottom=bottom, fc=colors[ix], **kwargs)
+        bars = bar(locs, row, width, bottom,
+                   fc=colors[ix], **kwargs)
         bottom += row
         if show_value:
             ax.bar_label(bars, [fmt_func(v) for v in row], label_type="center")
@@ -79,16 +80,14 @@ class Numbers(StatsBase):
 
     def __init__(self, data, width=.7, color="C0",
                  show_value=True, fmt=None, label_pad=2,
-                 text_props=None, **kwargs):
+                 props=None, **kwargs):
         self.data = data
         self.width = width
         self.color = color
         self.show_value = show_value
         self.fmt = fmt
         self.label_pad = label_pad
-        if text_props is None:
-            text_props = {}
-        self.text_props = text_props
+        self.props = props if props is not None else {}
         self.options = kwargs
         self.bars = None
 
@@ -108,5 +107,21 @@ class Numbers(StatsBase):
         if self.show_value:
             ax.bar_label(self.bars, data, fmt=self.fmt,
                          padding=self.label_pad,
-                         **self.text_props)
+                         **self.props)
 
+
+# TODO: Not fully implemented
+#       Align the axis lim
+class StackBar(StatsBase):
+
+    def __init__(self, data,
+                 labels=None, colors=None,
+                 show_value=True,
+                 width=.7,
+                 **kwargs,
+                 ):
+        self.data = data
+
+    def render_ax(self, ax, data):
+        orient = "h" if self.h else "v"
+        stacked_bar(data, ax=ax, orient=orient)
