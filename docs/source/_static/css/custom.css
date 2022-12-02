@@ -10,3 +10,7 @@ html[data-theme="dark"] {
 html[data-theme="light"] .highlight .hll {
     background-color: #fcf427;
 }
+
+img.plot-directive {
+    max-height: 450px;
+}

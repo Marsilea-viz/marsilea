@@ -34,6 +34,17 @@ Seaborn plots
     Strip
     Swarm
 
+Other plots
+-----------
+
+.. autosummary::
+    :toctree: APIs/
+    :template: autosummary.rst
+    :nosignatures:
+
+    Numbers
+    StackBar
+
 
 Text Label
 ----------
@@ -46,3 +57,4 @@ Text Label
     Labels
     AnnoLabels
     Title
+    Chunk

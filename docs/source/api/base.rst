@@ -12,6 +12,17 @@ Base Class
     MatrixBase
     LegendMaker
 
+Layout Engine
+-------------
+
+.. currentmodule:: heatgraphy.layout
+.. autosummary::
+    :toctree: APIs/
+    :template: autosummary.rst
+    :nosignatures:
+
+    CrossGrid
+
 
 Data Manipulation
 -----------------

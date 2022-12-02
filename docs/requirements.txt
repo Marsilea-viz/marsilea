@@ -1,3 +1,6 @@
+matplotlib
+sphinx_design
+sphinx_copybotton
 scikit-learn
 pydata-sphinx-theme
 numpydoc

@@ -36,10 +36,13 @@ extensions = [
     'sphinx.ext.autosummary',
     'matplotlib.sphinxext.plot_directive',
     'sphinx.ext.intersphinx',
-    'sphinx_design'
+    'sphinx_design',
+    'sphinx_copybutton',
 ]
+autoclass_content = "class"
 autodoc_docstring_signature = True
 autodoc_default_options = {'members': None, 'undoc-members': None}
+autodoc_typehints = 'none'
 # setting autosummary
 autosummary_generate = True
 numpydoc_show_class_members = False
@@ -48,7 +51,7 @@ numpydoc_show_class_members = False
 plot_include_source = True
 plot_html_show_source_link = False
 plot_html_show_formats = False
-plot_formats = [('png', 90)]
+plot_formats = [('png', 180)]
 plot_pre_code = "import numpy as np; from matplotlib import pyplot as plt;" \
                 "import matplotlib as mpl; np.random.seed(0);"\
                 "mpl.rcParams['savefig.bbox'] = 'tight';"
@@ -67,3 +70,7 @@ intersphinx_mapping = {
     'matplotlib': ('https://matplotlib.org/stable', None),
     'legendkit': ('https://legendkit.readthedocs.io/en/stable', None),
 }
+
+copybutton_prompt_text = r">>> |\.\.\. |\$ |In \[\d*\]: | {2,5}\.\.\.: | {5," \
+                         r"8}: "
+copybutton_prompt_is_regexp = True

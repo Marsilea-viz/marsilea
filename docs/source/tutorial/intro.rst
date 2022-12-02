@@ -1,10 +1,14 @@
-A quick start guide to use Heatgraphy
-=====================================
+10 Minutes to Heatgraphy
+=========================
 
-Heatgraphy is designed in object-oriented style, you can add blocks
-and customize them freely.
+Heatgraphy can help you create grid layout visualization.
+It's designed in object-oriented style that makes adding blocks
+and customization easily.
 
-Let's create a heatmap first. Here we use iris dataset.
+A minimum heatmap
+-----------------
+
+Let's try create a heatmap! Here we use the iris dataset.
 
 .. plot::
     :context: close-figs
@@ -18,8 +22,13 @@ Let's create a heatmap first. Here we use iris dataset.
     >>> h.render()
 
 
-Now we create a minimum heatmap, but we want to add other
-components like labels and other features of the iris dataset.
+Now a minimum heatmap is created, remember to call :meth:`render() <heatgraphy.base.Base.render>` to actually render your
+plot. Otherwise, no plot will be generated.
+
+Add side plots
+--------------
+
+Usually, we want to add components like labels, dendrogram and other plots when making a heatmap.
 
 .. code-block:: python
     :emphasize-lines: 3,4
@@ -42,23 +51,25 @@ components like labels and other features of the iris dataset.
     >>> h.render()
 
 
-To perform cluster on the dataset, simply call
+To add a dendrogram on the dataset, simply call
 :meth:`add_dendrogram() <heatgraphy.base.MatrixBase.add_dendrogram>`, and it
 will add the dendrogram for you. Here we add the dendrogram on the right side.
-It's also possible to label your heatmap with colors, you don't need to care
-about the order, we will take care for you.
+You can also add it to the top or bottom to perform column-wise cluster.
 
-But what if I want the colors to be together but not split them? You can
+Split heatmap
+-------------
+
+We also use colors to label the names of iris. What if I want the same color to be together? You can
 split the heatmap by labeling them. Use the :meth:`split_row() <heatgraphy.base.MatrixBase.split_row>`
-or :meth:`split_col() <heatgraphy.base.MatrixBase.split_col>` to split your dataset.
+or :meth:`split_col() <heatgraphy.base.MatrixBase.split_col>` to split the heatmap.
 
 .. code-block:: python
-    :emphasize-lines: 3
+    :emphasize-lines: 4
 
     >>> h = hg.Heatmap(iris.data)
     >>> h.add_dendrogram("right")
-    >>> h.split_row(labels=iris.target)
     >>> h.add_left(Colors(iris.target), size=.2, pad=.1)
+    >>> h.split_row(labels=iris.target)
     >>> h.render()
 
 .. plot::
@@ -67,11 +78,20 @@ or :meth:`split_col() <heatgraphy.base.MatrixBase.split_col>` to split your data
 
     >>> h = hg.Heatmap(iris.data)
     >>> h.add_dendrogram("right")
-    >>> h.split_row(labels=iris.target)
     >>> h.add_left(Colors(iris.target), size=.2, pad=.1)
+    >>> h.split_row(labels=iris.target)
     >>> h.render()
 
-After that, we can add labels and title to the heatmap.
+.. note::
+
+    The order of adding plots or split the heatmap is arbitrary,
+    just make sure you remember to call :meth:`render()` at the very end.
+
+
+Add title and labels
+--------------------
+
+You can also add labels and title to the heatmap.
 
 .. code-block:: python
     :emphasize-lines: 6,7
@@ -79,9 +99,9 @@ After that, we can add labels and title to the heatmap.
     >>> from heatgraphy.plotter import Labels
     >>> h = hg.Heatmap(iris.data)
     >>> h.add_dendrogram("right")
-    >>> h.split_row(labels=iris.target)
     >>> h.add_left(Colors(iris.target), size=.2, pad=.1)
-    >>> h.add_bottom(Labels(iris.feature_names), pad=.1)
+    >>> h.split_row(labels=iris.target)
+    >>> h.add_bottom(Labels(iris.feature_names, rotation=0, fontsize=6), pad=.1)
     >>> h.add_title("Iris Dataset")
     >>> h.render()
 
@@ -92,13 +112,17 @@ After that, we can add labels and title to the heatmap.
     >>> from heatgraphy.plotter import Labels
     >>> h = hg.Heatmap(iris.data)
     >>> h.add_dendrogram("right")
-    >>> h.split_row(labels=iris.target)
     >>> h.add_left(Colors(iris.target), size=.2, pad=.1)
-    >>> h.add_bottom(Labels(iris.feature_names, rotation=90), pad=.1)
+    >>> h.split_row(labels=iris.target)
+    >>> h.add_bottom(Labels(iris.feature_names, rotation=0, fontsize=6), pad=.1)
     >>> h.add_title("Iris Dataset")
     >>> h.render()
 
-If we are happy with the results, we can finally add legends to the heatmap.
+
+Add legends
+-----------
+
+If we are happy with the results, you may add legends to the heatmap.
 
 .. code-block:: python
     :emphasize-lines: 8
@@ -106,9 +130,9 @@ If we are happy with the results, we can finally add legends to the heatmap.
     >>> names = [iris.target_names[i] for i in iris.target]
     >>> h = hg.Heatmap(iris.data)
     >>> h.add_dendrogram("right")
-    >>> h.split_row(labels=iris.target)
     >>> h.add_left(Colors(names, label="Names"), size=.2, pad=.1)
-    >>> h.add_bottom(Labels(iris.feature_names, rotation=90), pad=.1)
+    >>> h.add_bottom(Labels(iris.feature_names, rotation=0, fontsize=6), pad=.1)
+    >>> h.split_row(labels=iris.target)
     >>> h.add_title("Iris Dataset")
     >>> h.add_legends()
     >>> h.render()
@@ -120,9 +144,45 @@ If we are happy with the results, we can finally add legends to the heatmap.
     >>> names = [iris.target_names[i] for i in iris.target]
     >>> h = hg.Heatmap(iris.data)
     >>> h.add_dendrogram("right")
-    >>> h.split_row(labels=iris.target)
     >>> h.add_left(Colors(names, label="Names"), size=.2, pad=.1)
-    >>> h.add_bottom(Labels(iris.feature_names, rotation=90), pad=.1)
+    >>> h.split_row(labels=iris.target)
+    >>> h.add_bottom(Labels(iris.feature_names, rotation=0, fontsize=6), pad=.1)
     >>> h.add_title("Iris Dataset")
+    >>> h.add_legends()
+    >>> h.render()
+
+Add layers
+----------
+
+It's also possible to add an extra layer of heatmap to label a specific plot.
+
+Here we can try to label the data that are larger than 4.
+
+.. code-block:: python
+    :emphasize-lines: 8
+
+    >>> ix = np.random.choice(np.arange(len(iris.data)), 10, replace=False)
+    >>> h = hg.Heatmap(iris.data[ix])
+    >>> h.add_dendrogram("right")
+    >>> h.add_left(Colors(np.array(names)[ix], label="Names"), size=.2, pad=.1)
+    >>> h.split_row(labels=iris.target[ix])
+    >>> h.add_bottom(Labels(iris.feature_names, rotation=0, fontsize=6), pad=.1)
+    >>> h.add_title("Iris Dataset")
+    >>> h.add_layer(hg.plotter.MarkerMesh(iris.data[ix] > 4, label="Larger than 4"))
+    >>> h.add_legends()
+    >>> h.render()
+
+.. plot::
+    :context: close-figs
+    :include-source: False
+
+    >>> ix = np.random.choice(np.arange(len(iris.data)), 10, replace=False)
+    >>> h = hg.Heatmap(iris.data[ix])
+    >>> h.add_dendrogram("right")
+    >>> h.add_left(Colors(np.array(names)[ix], label="Names"), size=.2, pad=.1)
+    >>> h.split_row(labels=iris.target[ix])
+    >>> h.add_bottom(Labels(iris.feature_names, rotation=0, fontsize=6), pad=.1)
+    >>> h.add_title("Iris Dataset")
+    >>> h.add_layer(hg.plotter.MarkerMesh(iris.data[ix] > 4, label="Larger than 4"))
     >>> h.add_legends()
     >>> h.render()
