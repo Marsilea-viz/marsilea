@@ -306,8 +306,13 @@ class Base(LegendMaker):
         """Return the main axes, like the heatmap axes"""
         return self.get_ax(self.main_name)
 
+    def _extra_legends(self):
+        """If there are legends that cannot get from renderplan"""
+        return {}
+
     def get_legends(self):
         legends = {}
+        legends.update(self._extra_legends())
         for plan in self._layer_plan + self._col_plan + self._row_plan:
             # Not every render plan has legend
             legs = plan.get_legends()
@@ -519,7 +524,7 @@ class MatrixBase(Base):
         new_list.add_matrix(other)
         return new_list
 
-    def render(self, figure=None, aspect=1):
+    def render(self, figure=None, aspect=1, scale=1.1):
         self._freeze_legend()
         if figure is None:
             self.figure = plt.figure()
@@ -531,7 +536,7 @@ class MatrixBase(Base):
         # Place axes
         aspect = 1 if self.square else aspect
         if not self.grid.is_freeze:
-            self.grid.freeze(figure=self.figure, aspect=aspect)
+            self.grid.freeze(figure=self.figure, aspect=aspect, scale=scale)
 
         # render other plots
         self._render_plan()
@@ -586,7 +591,7 @@ class MatrixList(LegendMaker):
         new_list.add_matrix(other)
         return new_list
 
-    def render(self, figure=None, aspect=1):
+    def render(self, figure=None, aspect=1, scale=1.1):
         self._freeze_legend()
         if figure is None:
             self.figure = plt.figure()
@@ -595,7 +600,7 @@ class MatrixList(LegendMaker):
 
         for m in self._matrix_list:
             m.grid = self.grid
-            m.render(figure=self.figure, aspect=aspect)
+            m.render(figure=self.figure, aspect=aspect, scale=scale)
 
         self._render_legend()
 

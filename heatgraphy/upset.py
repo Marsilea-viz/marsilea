@@ -2,17 +2,18 @@
 # https://github.com/jnothman/UpSetPlot
 
 from __future__ import annotations
+
+from collections import Counter
 from dataclasses import dataclass
 from itertools import cycle
 from typing import List, Set
-from collections import Counter
 
 import numpy as np
 import pandas as pd
+from legendkit import ListLegend
 from matplotlib import pyplot as plt
 from matplotlib.collections import PatchCollection
-from matplotlib.lines import Line2D
-from matplotlib.patches import Patch, Circle, Rectangle
+from matplotlib.patches import Rectangle
 
 from .base import Base
 from .plotter import Numbers, Labels, StackBar
@@ -177,7 +178,7 @@ class Upset(Base):
                  orient="h",
                  sets_order=None,
                  sort_subset="size",  # size, degree
-                 ascending=True,
+                 ascending=False,
                  min_degree=None,
                  max_degree=None,
                  min_size=None,
@@ -227,11 +228,13 @@ class Upset(Base):
         self.sets_size = sets_size
         self._subset_styles = {}
         self._subset_line_styles = {}
+        self._legend_entries = []
         self._add_intersections = add_intersections
         self._intersection_bar = None
         self._sets_size_bar = None
 
-        h, w = self.sets_table.shape
+        h = len(self.sets_table)
+        w = len(self.sets_table.index)
 
         if orient == "h":
             h, w = w, h
@@ -284,12 +287,15 @@ class Upset(Base):
                                    max_degree=max_degree)
         styles = dict(facecolor=facecolor, edgecolor=edgecolor,
                       linestyle=edgestyle, linewidth=edgewidth,
-                      hatch=hatch)
+                      hatch=hatch, label=label)
         styles = {k: v for k, v in styles.items() if v is not None}
 
         line_styles = dict()
-        if facecolor is not None:
-            line_styles.update(color=facecolor)
+        linecolor = facecolor if facecolor is not None else None
+        linecolor = edgecolor if edgecolor is not None else linecolor
+        line_styles.update(color=linecolor)
+
+        self._legend_entries.append(styles)
 
         for i, m in enumerate(marks):
             if m:
@@ -361,7 +367,7 @@ class Upset(Base):
             collect = [Counter(col) for _, col in construct.items()]
             construct = pd.DataFrame(collect).T
             construct = (construct.loc[~pd.isnull(construct.index)]
-                         ).fillna(0).astype(int).to_numpy()
+            ).fillna(0).astype(int).to_numpy()
 
         self.add_plot(side, plot(construct), pad=.1)
 
@@ -440,14 +446,24 @@ class Upset(Base):
         circles = PatchCollection(circles, match_original=True)
         ax.add_collection(circles)
 
-    def render(self, figure=None, aspect=1):
+    def _extra_legends(self):
+        legend_items = [('rect', entry['label'], entry) \
+                        for entry in self._legend_entries]
+        highlight_legend = ListLegend(legend_items=legend_items)
+        highlight_legend.figure = None
+        return {'highlight_subsets': [highlight_legend]}
+
+    def render(self, figure=None, aspect=1, scale=1.1):
+
+        self._freeze_legend()
+
         if figure is None:
             self.figure = plt.figure()
         else:
             self.figure = figure
 
         if not self.grid.is_freeze:
-            self.grid.freeze(figure=self.figure, aspect=aspect)
+            self.grid.freeze(figure=self.figure, aspect=aspect, scale=scale)
         main_axes = self.get_main_ax()
         self._render_matrix(main_axes)
         self._render_plan()
@@ -457,5 +473,4 @@ class Upset(Base):
                 bar_style = self._subset_styles.get(ix)
                 if bar_style is not None:
                     rect.set(**bar_style)
-
-        # TODO: legend entries
+        self._render_legend()

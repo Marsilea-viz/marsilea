@@ -18,7 +18,7 @@ class WhiteBoard(Base):
     def __init__(self, width=None, height=None, aspect=1):
         super().__init__(w=width, h=height, main_aspect=aspect)
 
-    def render(self, figure=None, aspect=1):
+    def render(self, figure=None, aspect=1, scale=1.1):
         self._freeze_legend()
         if figure is None:
             self.figure = plt.figure()
@@ -26,7 +26,7 @@ class WhiteBoard(Base):
             self.figure = figure
 
         if not self.grid.is_freeze:
-            self.grid.freeze(figure=self.figure, aspect=aspect)
+            self.grid.freeze(figure=self.figure, aspect=aspect, scale=scale)
 
         self._render_plan()
         self._render_legend()

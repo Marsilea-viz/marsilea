@@ -1,18 +1,16 @@
 from __future__ import annotations
 
+import logging
 from copy import deepcopy
 from dataclasses import dataclass, field
-from typing import Any, Iterable, Dict, List
+from typing import Any, Iterable, List
 from uuid import uuid4
 
 import numpy as np
-from icecream import ic
 from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
-from matplotlib.figure import Figure, figaspect
+from matplotlib.figure import figaspect
 from matplotlib.gridspec import GridSpec, GridSpecFromSubplotSpec
-
-import logging
 
 from .utils import pairwise
 
@@ -25,7 +23,6 @@ class SubLayout:
     col: int = 1
     wspace: float = 0.05
     hspace: float = 0.05
-    mode: str = "blank"  # blank or placeholder
     w_ratios: list = field(default=None)
     h_ratios: list = field(default=None)
     mask_placeholder: bool = True
@@ -94,10 +91,8 @@ class CrossGrid:
     A grid layout system that can be expanded at four direction
 
     - Everything is drawn within axes
-    - No ticks, no ticklabels, no label, no title etc.
-    - Elements outside axes will make the layout incorrect.
 
-    Use the `enlarge` parameter to control figure size when rendering
+    Use the `scale` parameter to control figure size when rendering
 
     """
     nrow: int = 1
@@ -547,7 +542,7 @@ class CrossGrid:
         self._has_freeze = False
 
     def split(self, name, w_ratios=None, h_ratios=None,
-              wspace=0.05, hspace=0.05, mode="placeholder"):
+              wspace=0.05, hspace=0.05, mask_placeholder=True):
         """
 
         Parameters
@@ -559,8 +554,8 @@ class CrossGrid:
         wspace : float or array
             The horizontal space between each ax
         hspace
-        mode : {'blank', 'placeholder'}
-        mask_placeholder
+        mask_placeholder : bool, default: True
+            If True, the placeholder ax cannot be access
 
         Returns
         -------
@@ -574,25 +569,11 @@ class CrossGrid:
             h_ratios = np.asarray(h_ratios)
             h_ratios = h_ratios / np.sum(h_ratios)
 
-        if mode == "blank":
-            self._split_blank(name, w_ratios=w_ratios, h_ratios=h_ratios,
-                              wspace=wspace, hspace=hspace)
-        elif mode == "placeholder":
-            self._split_placeholder(name, w_ratios=w_ratios, h_ratios=h_ratios,
-                                    wspace=wspace, hspace=hspace)
-        else:
-            raise ValueError(f"Don't know mode='{mode}', "
-                             f"options are (blank or placeholder)")
-        self._has_freeze = False
-
-    def _split_placeholder(self, name, w_ratios=None, h_ratios=None,
-                           wspace=0.05, hspace=0.05, mask_placeholder=True):
         gb = self.layout[name]
         gb.is_split = True
         sub_layout = gb.sub_layout
         sub_layout.wspace = 0
         sub_layout.hspace = 0
-        sub_layout.mode = "placeholder"
         sub_layout.mask_placeholder = mask_placeholder
 
         if w_ratios is not None:
@@ -617,6 +598,8 @@ class CrossGrid:
             masks[:, loc] = 0
         gb.ax_masks = masks.flatten().astype(bool)
 
+        self._has_freeze = False
+
     @staticmethod
     def _inject_placeholder(ratios, space):
 
@@ -636,37 +619,10 @@ class CrossGrid:
 
         return inject
 
-    def _split_blank(self, name,
-                     w_ratios=None,
-                     h_ratios=None,
-                     wspace=0.05,
-                     hspace=0.05,
-                     ):
-        gb = self.layout[name]
-        gb.is_split = True
-        sub_layout = gb.sub_layout
-        sub_layout.wspace = wspace
-        sub_layout.hspace = hspace
-        sub_layout.mode = "blank"
-
-        if w_ratios is not None:
-            if sub_layout.col != 1:
-                raise ValueError("Can only be split once")
-            sub_layout.col += len(w_ratios) - 1
-            sub_layout.w_ratios = w_ratios
-
-        if h_ratios is not None:
-            if sub_layout.row != 1:
-                raise ValueError("Can only be split once")
-            sub_layout.row += len(h_ratios) - 1
-            sub_layout.h_ratios = h_ratios
-        gb.ax_masks = np.ones((sub_layout.row, sub_layout.col),
-                              dtype=bool).flatten()
-
     def _adjust_ratios(self, figure, aspect=None):
         pass
 
-    def freeze(self, figure, aspect: float = None, enlarge=1.1,
+    def freeze(self, figure, aspect: float = None, scale=1.1,
                debug=False, ):
         self._has_freeze = True
         h_ratios = self.get_height_ratios()
@@ -698,8 +654,8 @@ class CrossGrid:
                 fig_w += 5
             if offset_h_sum > fig_h:
                 fig_h += 5
-            fig_w *= enlarge
-            fig_h *= enlarge
+            fig_w *= scale
+            fig_h *= scale
 
             h_ratios = h_ratios / np.sum(h_ratios) * (fig_h - offset_h_sum)
             w_ratios = w_ratios / np.sum(w_ratios) * (fig_w - offset_w_sum)
@@ -713,7 +669,7 @@ class CrossGrid:
             h_ratios *= aspect
             sum_w = np.sum(w_ratios)
             sum_h = np.sum(h_ratios)
-            fig_w, fig_h = figaspect(sum_h / sum_w) * enlarge
+            fig_w, fig_h = figaspect(sum_h / sum_w) * scale
 
             h_ratios = h_ratios / np.sum(h_ratios) * fig_h
             w_ratios = w_ratios / np.sum(w_ratios) * fig_w
