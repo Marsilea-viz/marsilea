@@ -3,11 +3,13 @@ name: CI
 on:
   push:
     paths:
+      - '.github/**'
       - 'heatgraphy/**'
       - 'tests/**'
       - 'pyproject.toml'
   pull_request:
     paths:
+      - '.github/**'
       - 'heatgraphy/**'
       - 'tests/**'
       - 'pyproject.toml'
