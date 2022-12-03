@@ -1,13 +1,16 @@
-from collections.abc import Mapping
+from dataclasses import dataclass, field
 from dataclasses import dataclass, field
 from typing import Any
 
 import numpy as np
 import pandas as pd
 import streamlit as st
+
+from .data_input import parse_text, parse_file
 from heatgraphy.base import MatrixBase
+from heatgraphy.plotter import (Bar, Box, Boxen, Colors, Count, Strip, Violin,
+                                Point, Swarm, ColorMesh, Labels)
 from heatgraphy.plotter import RenderPlan
-from heatgraphy.plotter import Bar, Colors
 
 
 @dataclass
@@ -34,9 +37,20 @@ class RenderAction:
 
 
 plotter_mapper = dict(
-    Bar=Bar,
-    Colros=Colors,
+    bar=Bar,
+    box=Box,
+    boxen=Boxen,
+    colors=Colors,
+    colormesh=ColorMesh,
+    count=Count,
+    strip=Strip,
+    swarm=Swarm,
+    violin=Violin,
+    point=Point,
+    labels=Labels,
 )
+
+raw_plotter = ['labels', 'colors']
 
 
 def plot_adder(key):
@@ -45,35 +59,43 @@ def plot_adder(key):
         c1, c2, c3, c4, c5 = st.columns([3, 3, 3, 3, 1])
         side = c1.selectbox("Side", options=["right", "left", "bottom", "top"],
                             format_func=lambda x: x.capitalize())
-        plotter = c2.selectbox("Plot type", options=["Bar", "Colors"])
+        plotter = c2.selectbox("Plot type", options=plotter_mapper.keys(),
+                               format_func=lambda x: x.capitalize())
         size = c3.number_input("Size", min_value=0.)
         pad = c4.number_input("Pad", min_value=0.)
         color = c5.color_picker("Color")
 
         st.markdown("**Add your data**")
         input1, input2 = st.columns(2)
-        paste_data = input1.text_area("1️⃣ ️️Paste here")
+        text = input1.text_area("1️⃣ ️️Paste here")
         tb_file = input2.file_uploader("2️⃣️ Choose a table file",
                                        accept_multiple_files=False,
                                        type=["txt", "csv", "xlsx", "xls"]
                                        )
+        sep = st.text_input("Seperator", value="")
 
         add = st.form_submit_button("Confirm")
         if add:
             size = None if size == 0 else size
-            if tb_file is not None:
-                data = pd.read_csv(tb_file)
+
+            data = None
+            if text is not None:
+                if sep == "":
+                    sep = ","
+                as_number = plotter not in raw_plotter
+                # TODO: Check the data input and tips prompt
+                data = parse_text(text, sep=sep, as_number=as_number)
+                data = data.to_numpy()
             else:
-                rows = paste_data.split("\n")
-                raw_data = [[float(r) for r in row.split(",")] for row in rows]
-                data = np.array(raw_data)
-            st.session_state[f"render_plan"][side][plot_key] = (
-                RenderAction(
-                    key=key,
-                    side=side, plotter=plotter_mapper[plotter],
-                    data=data, size=size, pad=pad, kwargs=dict(color=color)
-                )
-            )
+                if tb_file is not None:
+                    data = parse_file(tb_file, sep)
+                    data = data.to_numpy()
+
+            if data is not None:
+                action = RenderAction(key=key, side=side, data=data, size=size,
+                                      pad=pad, plotter=plotter_mapper[plotter],
+                                      kwargs=dict(color=color))
+                st.session_state[f"render_plan"][side][plot_key] = action
 
 
 def side_plots_adder():
