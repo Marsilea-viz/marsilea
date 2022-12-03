@@ -28,5 +28,5 @@ dev = [
     "numpydoc",
     "sphinx_design",
     "pydata-sphinx-theme",
-    "sphinx_copybotton",
+    "sphinx-copybutton",
 ]
