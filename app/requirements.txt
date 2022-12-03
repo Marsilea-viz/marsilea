@@ -1,4 +1,4 @@
-../
+heatgraphy/
 pandas
 openpyxl
 xlrd
