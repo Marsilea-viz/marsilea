@@ -266,11 +266,11 @@ class _LabelBase(RenderPlan):
         locs = self.get_axes_coords(self.data)
         sizes = []
         for s, c in zip(self.data, locs):
-            x, y = (0, c) if self.h else (c, 0)
+            x, y = (0, c) if self.is_flank else (c, 0)
             t = ax.text(x, y, s=s, va=self.va, ha=self.ha,
                         rotation=self.rotation, transform=ax.transAxes)
             bbox = t.get_window_extent(renderer).expanded(*expand)
-            if self.h:
+            if self.is_flank:
                 sizes.append(bbox.xmax - bbox.xmin)
             else:
                 sizes.append(bbox.ymax - bbox.ymin)
@@ -364,8 +364,8 @@ class AnnoLabels(_LabelBase):
                  side="right", text_pad=0.5, pointer_length=0.5,
                  linewidth=None, va=None, ha=None, rotation=None,
                  connectionstyle=None, relpos=None, **options):
-        if mark_labels.ndim > 1:
-            mark_labels = mark_labels.flatten()
+        # if mark_labels.ndim > 1:
+        #     mark_labels = mark_labels.flatten()
         self.data = mark_labels
         self.canvas_size = None
         self.side = side
@@ -406,7 +406,7 @@ class AnnoLabels(_LabelBase):
                             **self._user_options)
         texts = []
         segments = []
-        if self.v:
+        if self.is_body:
             y = self.const_pos
             for x, s in zip(locs, labels):
                 if not np.ma.is_masked(s):
@@ -467,7 +467,7 @@ class Labels(_LabelBase):
                  va=None, ha=None, rotation=None,
                  text_pad=0,
                  **options):
-        self.data = np.asarray(labels).flatten()
+        self.data = np.asarray(labels)
         self.align = None
         self.pad = text_pad
 
@@ -479,7 +479,7 @@ class Labels(_LabelBase):
             self.align = side_align[self.side]
         va, ha = self.align, "center"
         rotation = 90
-        if self.h:
+        if self.is_flank:
             va, ha = ha, va
             rotation = 0
         if 'va' in self._update_params:
@@ -496,7 +496,7 @@ class Labels(_LabelBase):
     def render_ax(self, ax: Axes, data):
         ax.set_axis_off()
         coords = self.get_axes_coords(data)
-        if self.h:
+        if self.is_flank:
             coords = coords[::-1]
         if self.align == "center":
             const = .5
@@ -505,7 +505,7 @@ class Labels(_LabelBase):
         else:
             const = self.pad / 2
         for s, c in zip(data, coords):
-            x, y = (const, c) if self.h else (c, const)
+            x, y = (const, c) if self.is_flank else (c, const)
             ax.text(x, y, s=s, va=self.va, ha=self.ha,
                     rotation=self.rotation, transform=ax.transAxes,
                     **self._user_options)
@@ -545,7 +545,7 @@ class Title(_LabelBase):
         va = side_align[self.side]
         ha = self.align
         rotation = 0
-        if self.h:
+        if self.is_flank:
             va, ha = ha, va
             rotation = 90 if self.side == "left" else -90
         if 'va' in self._update_params:
@@ -565,7 +565,7 @@ class Title(_LabelBase):
     def render_ax(self, ax: Axes, title):
         const = align_pos[self.align]
         pos = stick_pos[self.side]
-        x, y = (const, pos) if self.v else (pos, const)
+        x, y = (const, pos) if self.is_body else (pos, const)
         ax.text(x, y, title, fontsize=self.fontsize, va=self.va, ha=self.ha,
                 transform=ax.transAxes,
                 rotation=self.rotation, **self._user_options)
@@ -584,7 +584,7 @@ class Chunk(_LabelBase):
 
     def __init__(self, texts, rotation=None,
                  props=None, text_pad=0.5, fill_colors=None, bordercolor=None,
-                 borderwidth=None, borderstyle=None):
+                 borderwidth=None, borderstyle=None, **options):
         super().__init__(rotation=rotation)
         self.data = texts
         self.props = props if props is not None else {}
@@ -601,6 +601,7 @@ class Chunk(_LabelBase):
         self.expand = (1. + text_pad, 1. + text_pad)
         self.va = "center"
         self.ha = "center"
+        self.options = options
 
     def get_canvas_size(self):
         self.silent_render(expand=self.expand)
@@ -611,6 +612,9 @@ class Chunk(_LabelBase):
         if self.rotation is None:
             self.rotation = _default_rotation[self.side]
         self._update_deform_func()
+
+    def _update_text_params(self):
+        pass
 
     def render(self, axes):
 
@@ -628,5 +632,5 @@ class Chunk(_LabelBase):
                                  transform=ax.transAxes)
                 ax.add_artist(rect)
 
-            ax.text(0.5, 0.5, self.data[i],
-                    fontdict=text_options, transform=ax.transAxes)
+            ax.text(0.5, 0.5, self.data[i], fontdict=text_options,
+                    transform=ax.transAxes, **self.options)

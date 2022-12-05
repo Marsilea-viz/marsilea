@@ -94,10 +94,7 @@ class _MeshBase(RenderPlan):
         if center is not None:
             self.norm = TwoSlopeNorm(center, vmin=vmin, vmax=vmax)
 
-    def create_render_data(self, *args):
-        datasets = args
-        if self.h:
-            datasets = [d.T for d in datasets]
+    def create_render_datasets(self, *datasets):
         if not self.is_deform:
             return datasets
 
@@ -234,7 +231,7 @@ class ColorMesh(_MeshBase):
                 ax.text(x, y, annotation, **text_kwargs)
 
     def get_render_data(self):
-        return self.create_render_data(self.data, self.annotated_texts)
+        return self.create_render_datasets(self.data, self.annotated_texts)
 
     def get_legends(self):
         mappable = ScalarMappable(norm=self.norm, cmap=self.cmap)
@@ -245,7 +242,7 @@ class ColorMesh(_MeshBase):
         mesh = ax.pcolormesh(values, cmap=self.cmap, norm=self.norm,
                              linewidth=self.linewidth,
                              edgecolor=self.linecolor,
-                             **self.kwargs,)
+                             **self.kwargs, )
         if self.annot:
             self._annotate_text(ax, mesh, texts)
         # set the mesh for legend
@@ -358,17 +355,9 @@ class Colors(_MeshBase):
             colors.append(color)
         return CatLegend(colors=colors, labels=labels, **self._legend_kws)
 
-    def get_render_data(self):
-        data = self.data
-        if self.h:
-            data = self.data.T
-
-        if not self.is_deform:
-            return data
-
-        return self.deform_func(data)
-
     def render_ax(self, ax, data):
+        if self.is_flank:
+            data = data.T
         ax.pcolormesh(data, cmap=self.render_cmap,
                       vmin=0, vmax=self.vmax, **self.kwargs)
         ax.set_axis_off()
@@ -397,7 +386,9 @@ class SizedMesh(_MeshBase):
                  center=None, sizes=(1, 200), size_norm=None,
                  edgecolor=None, linewidth=1,
                  frameon=True, palette=None, marker="o",
-                 label=None, label_loc=None, props=None, **kwargs):
+                 label=None, label_loc=None, props=None,
+                 legend=True, size_legend_kws=None, color_legend_kws=None,
+                 **kwargs):
         # normalize size
         size = np.asarray(size)
         if size_norm is None:
@@ -409,6 +400,9 @@ class SizedMesh(_MeshBase):
         self.color2d = None
         self.palette = palette
         self.marker = marker
+        self.legend = legend
+        self.color_legend_kws = {} if color_legend_kws is None else color_legend_kws
+        self.size_legend_kws = {} if size_legend_kws is None else size_legend_kws
         # process color
         # By default, the circles colors are uniform
         if color is None:
@@ -444,42 +438,51 @@ class SizedMesh(_MeshBase):
         self._collections = None
 
     def get_legends(self):
+        if not self.legend:
+            return None
         if self.color is not None:
             size_color = self.color
         else:
             size_color = "black"
         handler_kw = dict(edgecolor=self.edgecolor,
                           linewidth=self.linewidth)
+        options = dict(
+            colors=size_color,
+            dtype=self.orig_size.dtype,
+            handle=self.marker,
+            show_at=(.1, .25, .5, .75, 1.),
+            handler_kw=handler_kw)
+        options.update(self.size_legend_kws)
         size_legend = SizeLegend(self.size,
                                  array=self.orig_size,
-                                 colors=size_color,
-                                 dtype=self.orig_size.dtype,
-                                 handle=self.marker,
-                                 show_at=(.1, .25, .5, .75, 1.),
-                                 handler_kw=handler_kw,
+                                 **options
                                  )
 
-        if self.color2d is not None:
+        if (self.color2d is not None) & (self.color != "none"):
             if self.palette is not None:
                 labels, colors = [], []
                 for label, c in self.palette.items():
                     labels.append(label)
                     colors.append(c)
+                options = dict(
+                    size=1,
+                    handle=self.marker,
+                    handler_kw=handler_kw,
+                    frameon=False,
+                )
+                options.update(self.color_legend_kws)
                 color_legend = CatLegend(labels=labels, colors=colors,
-                                         size=1,
-                                         handle=self.marker,
-                                         handler_kw=handler_kw,
-                                         frameon=False,
+                                         **options
                                          )
             else:
                 mappable = ScalarMappable(norm=self.norm, cmap=self.cmap)
-                color_legend = ColorArt(self._collections)
+                color_legend = ColorArt(self._collections, **self.color_legend_kws)
             return [size_legend, color_legend]
         else:
             return size_legend
 
     def get_render_data(self):
-        return self.create_render_data(self.size, self.color2d)
+        return self.create_render_datasets(self.size, self.color2d)
 
     def render_ax(self, ax, data):
         size, color = data
@@ -488,7 +491,7 @@ class SizedMesh(_MeshBase):
         yticks = np.arange(Y) + 0.5
         xv, yv = np.meshgrid(xticks, yticks)
 
-        options = dict(s=size,  edgecolor=self.edgecolor,
+        options = dict(s=size, edgecolor=self.edgecolor,
                        linewidths=self.linewidth, marker=self.marker)
 
         if self.color is not None:
@@ -587,8 +590,6 @@ class LayersMesh(_MeshBase):
 
     def get_render_data(self):
         data = self.data
-        if self.h:
-            data = self.data.T
 
         if not self.is_deform:
             return data
@@ -615,8 +616,12 @@ class LayersMesh(_MeshBase):
 
     def render_ax(self, ax, data):
         if self.mode == "layer":
+            if self.is_flank:
+                data = [d.T for d in data]
             Y, X = data[0].shape
         else:
+            if self.is_flank:
+                data = data.T
             Y, X = data.shape
         ax.set_axis_off()
         ax.set_xlim(0, X)

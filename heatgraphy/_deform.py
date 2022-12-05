@@ -207,53 +207,58 @@ class Deformation:
             self.cluster_col()
             self._col_clustered = True
 
-    def reorder_by_row(self, data, split="both"):
+    def reorder_by_row(self, data, split="2d"):
         self._run_cluster()
+        # no cluster, return immediately
         if not self.is_row_cluster:
             return data
-        # no split
-        elif not self.is_split:
-            return data[self.row_reorder_index]
-        # 2d list situation
-        elif self.is_row_split & self.is_col_split & (split == "both"):
-            for row, order in zip(data, self.row_reorder_index):
-                for ix in range(len(row)):
-                    row[ix] = row[ix][order]
-            return [data[ix] for ix in self.row_chunk_index]
-        # 1d list situation
-        else:
-            if self.is_row_split:
-                for ix, order in zip(range(len(data)), self.row_reorder_index):
-                    data[ix] = data[ix][order]
-                    return [data[ix] for ix in self.row_chunk_index]
-            else:
-                for ix in range(len(data)):
-                    data[ix] = data[ix][self.row_reorder_index]
-                return data
 
-    def reorder_by_col(self, data, split="both"):
+        if split == "2d":
+            if self.is_row_split & self.is_col_split:
+                for row, order in zip(data, self.row_reorder_index):
+                    for ix in range(len(row)):
+                        row[ix] = row[ix][order]
+                return [data[ix] for ix in self.row_chunk_index]
+
+        if self.is_row_split:
+            for ix, order in zip(range(len(data)), self.row_reorder_index):
+                data[ix] = data[ix][order]
+            return [data[ix] for ix in self.row_chunk_index]
+        else:
+            if (split == "2d") & self.is_col_split:
+                return [d[self.row_reorder_index] for d in data]
+            return data[self.row_reorder_index]
+
+    def reorder_by_col(self, data, split="2d"):
         self._run_cluster()
+        # no cluster, return immediately
         if not self.is_col_cluster:
             return data
-        # no split
-        elif not self.is_split:
-            if data.ndim == 2:
-                return data[:, self.col_reorder_index]
+
+        if split == "2d":
+            if self.is_row_split & self.is_col_split:
+                final_data = []
+                for row in data:
+                    for ix, order in zip(range(len(row)),
+                                         self.col_reorder_index):
+                        if row[ix].ndim == 2:
+                            row[ix] = row[ix][:, order]
+                        else:
+                            row[ix] = row[ix][order]
+                    final_data.append(
+                        [row[ix] for ix in self.col_chunk_index]
+                    )
+                return final_data
+            elif self.is_col_split:
+                for ix, order in zip(range(len(data)),
+                                     self.col_reorder_index):
+                    data[ix] = data[ix][:, order]
+
+                return [data[ix] for ix in self.col_chunk_index]
+            elif self.is_split:
+                return [d[:, self.col_reorder_index] for d in data]
             else:
-                return data[self.col_reorder_index]
-        # 2d list situation
-        elif self.is_row_split & self.is_col_split & (split == "both"):
-            final_data = []
-            for row in data:
-                for ix, order in zip(range(len(row)), self.col_reorder_index):
-                    if row[ix].ndim == 2:
-                        row[ix] = row[ix][:, order]
-                    else:
-                        row[ix] = row[ix][order]
-                final_data.append(
-                    [row[ix] for ix in self.col_chunk_index]
-                )
-            return final_data
+                return data[:, self.col_reorder_index]
         # 1d list situation
         else:
             if self.is_col_split:
@@ -264,12 +269,10 @@ class Deformation:
                         data[ix] = data[ix][order]
                 return [data[ix] for ix in self.col_chunk_index]
             else:
-                for ix in range(len(data)):
-                    if data[ix].ndim == 2:
-                        data[ix] = data[ix][:, self.col_reorder_index]
-                    else:
-                        data[ix] = data[ix][self.col_reorder_index]
-                return data
+                if data.ndim == 2:
+                    return data[:, self.col_reorder_index]
+                else:
+                    return data[self.col_reorder_index]
 
     def transform(self, data: np.ndarray):
         """data must be 2d array with the same shape as cluster data"""
@@ -282,9 +285,8 @@ class Deformation:
         if self.data_col_reindex is not None:
             data = data[:, self.data_col_reindex]
         trans_data = self.split_cross(data)
-        trans_data = self.reorder_by_row(trans_data, split="both")
-        trans_data = self.reorder_by_col(trans_data, split="both")
-
+        trans_data = self.reorder_by_row(trans_data, split="2d")
+        trans_data = self.reorder_by_col(trans_data, split="2d")
         flatten_data = []
         if self.is_row_split & self.is_col_split:
             for chunk in trans_data:
@@ -296,14 +298,19 @@ class Deformation:
         if data.ndim == 1:
             assert len(data) == self._nrow
         else:
-            assert data.shape[0] == self._nrow
+            assert data.shape[1] == self._nrow
 
         if self.data_row_reindex is not None:
             data = data[self.data_row_reindex]
 
+        data = data.T
+
         trans_data = self.split_by_row(data)
-        trans_data = self.reorder_by_row(trans_data, split="row")
-        return trans_data
+        trans_data = self.reorder_by_row(trans_data, split="1d")
+        if isinstance(trans_data, np.ndarray):
+            return trans_data.T
+        else:
+            return [d.T for d in trans_data]
 
     def transform_col(self, data: np.ndarray):
         if data.ndim == 1:
@@ -318,7 +325,7 @@ class Deformation:
                 data = data[self.data_col_reindex]
 
         trans_data = self.split_by_col(data)
-        trans_data = self.reorder_by_col(trans_data, split="col")
+        trans_data = self.reorder_by_col(trans_data, split="1d")
         return trans_data
 
     def get_row_dendrogram(self):

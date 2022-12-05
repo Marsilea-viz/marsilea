@@ -79,12 +79,13 @@ def stacked_bar(data, ax: Axes = None,
 class Numbers(StatsBase):
 
     def __init__(self, data, width=.7, color="C0",
-                 show_value=True, fmt=None, label_pad=2,
+                 show_value=True, fmt=None, label=None, label_pad=2,
                  props=None, **kwargs):
         self.data = data
         self.width = width
         self.color = color
         self.show_value = show_value
+        self.axis_label = label
         self.fmt = fmt
         self.label_pad = label_pad
         self.props = props if props is not None else {}
@@ -92,12 +93,12 @@ class Numbers(StatsBase):
         self.bars = None
 
     def render_ax(self, ax: Axes, data):
-        bar = ax.bar if self.v else ax.barh
-        if self.h:
+        bar = ax.bar if self.is_body else ax.barh
+        if self.is_flank:
             data = data[::-1]
         self.bars = bar(np.arange(0, len(data)) + 0.5, data,
                         self.width, color=self.color, **self.options)
-        if self.v:
+        if self.is_body:
             ax.set_xlim(0, len(data))
         else:
             ax.set_ylim(0, len(data))
@@ -123,5 +124,5 @@ class StackBar(StatsBase):
         self.data = data
 
     def render_ax(self, ax, data):
-        orient = "h" if self.h else "v"
+        orient = "h" if self.is_flank else "v"
         stacked_bar(data, ax=ax, orient=orient)

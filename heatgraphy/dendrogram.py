@@ -14,7 +14,7 @@ class _DendrogramBase:
     def __init__(self,
                  data,
                  method=None,
-                 metric=None
+                 metric=None,
                  ):
         if method is None:
             method = "single"

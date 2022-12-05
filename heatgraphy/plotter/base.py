@@ -79,9 +79,9 @@ class RenderPlan:
 
     def _update_deform_func(self):
         if self.is_deform:
-            if self.h:
+            if self.is_flank:
                 trans = self.deform.transform_row
-            elif self.v:
+            elif self.is_body:
                 trans = self.deform.transform_col
             else:
                 trans = self.deform.transform
@@ -111,11 +111,13 @@ class RenderPlan:
             return self.data
 
     @property
-    def v(self):
+    def is_body(self):
+        """Draw on top and bottom"""
         return self.side in ["top", "bottom"]
 
     @property
-    def h(self):
+    def is_flank(self):
+        """Draw on left and right"""
         return self.side in ["right", "left"]
 
     def render_ax(self, ax: Axes, data):
@@ -172,9 +174,9 @@ class RenderPlan:
         will be split. Useful to determine how to get render data.
         """
         if self.deform is not None:
-            if self.v & self.deform.is_col_split:
+            if self.is_body & self.deform.is_col_split:
                 return True
-            if self.h & self.deform.is_row_split:
+            if self.is_flank & self.deform.is_row_split:
                 return True
             if (self.side == "main") & self.deform.is_split:
                 return True
@@ -201,7 +203,7 @@ class StatsBase(RenderPlan):
     axis_label: str = ""
 
     def _setup_axis(self, ax):
-        if self.v:
+        if self.is_body:
             despine(ax=ax, bottom=True)
             ax.tick_params(left=True, labelleft=True,
                            bottom=False, labelbottom=False)
@@ -211,7 +213,7 @@ class StatsBase(RenderPlan):
                            bottom=True, labelbottom=True)
 
     def align_lim(self, axes):
-        if self.v:
+        if self.is_body:
             is_inverted = False
             ylim_low = []
             ylim_up = []
@@ -250,11 +252,11 @@ class StatsBase(RenderPlan):
             self.align_lim(axes)
             for i, ax in enumerate(axes):
                 # leave axis for the first ax
-                if (i == 0) & self.v:
+                if (i == 0) & self.is_body:
                     self._setup_axis(ax)
                     ax.set_ylabel(self.axis_label)
                 # leave axis for the last ax
-                elif (i == len(axes) - 1) & self.h:
+                elif (i == len(axes) - 1) & self.is_flank:
                     self._setup_axis(ax)
                     ax.set_xlabel(self.axis_label)
                 else:
@@ -264,7 +266,7 @@ class StatsBase(RenderPlan):
             self.render_ax(axes, self.get_render_data())
             self._setup_axis(axes)
             if self.axis_label is not None:
-                if self.v:
+                if self.is_body:
                     axes.set_ylabel(self.axis_label)
                 else:
                     axes.set_xlabel(self.axis_label)

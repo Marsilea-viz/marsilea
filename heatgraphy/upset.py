@@ -78,8 +78,8 @@ class UpsetData:
         self._sets_table = pd.DataFrame(columns=names, index=items,
                                         data=data)
 
-    @staticmethod
-    def from_sets(sets: List[Set], names=None,
+    @classmethod
+    def from_sets(cls, sets: List[Set], names=None,
                   sets_attrs: pd.DataFrame = None,
                   items_attrs: pd.DataFrame = None) -> UpsetData:
         if names is None:
@@ -98,22 +98,22 @@ class UpsetData:
             d = [i in s for i in items]
             data.append(d)
         data = np.array(data, dtype=int).T
-        container = UpsetData(data, names=names, items=items,
-                              sets_attrs=sets_attrs,
-                              items_attrs=items_attrs)
+        container = cls(data, names=names, items=items,
+                        sets_attrs=sets_attrs,
+                        items_attrs=items_attrs)
         return container
 
-    @staticmethod
-    def from_memberships(sets_names, items_names=None,
+    @classmethod
+    def from_memberships(cls, sets_names, items_names=None,
                          sets_attrs: pd.DataFrame = None,
                          items_attrs: pd.DataFrame = None):
         """Describe the sets an item are in"""
         df = (pd.DataFrame([{name: True for name in names}
                             for names in sets_names])
               ).fillna(False).astype(int)
-        container = UpsetData(df.to_numpy(), names=df.columns,
-                              items=items_names, sets_attrs=sets_attrs,
-                              items_attrs=items_attrs)
+        container = cls(df.to_numpy(), names=df.columns,
+                        items=items_names, sets_attrs=sets_attrs,
+                        items_attrs=items_attrs)
         return container
 
     def has_item(self, item):
@@ -349,7 +349,8 @@ class Upset(Base):
         attr = data[attr_names]
         self.add_plot(side, plot(attr), pad=.1)
 
-    def add_items_attrs(self, side, attr_names, plot=None):
+    def add_items_attrs(self, side, attr_names, plot=None, name=None, pad=0,
+                        **kwargs):
         items_attrs = self.data.items_attrs
         sets_names = np.array(self.sets_table.index.names)
 
@@ -369,7 +370,7 @@ class Upset(Base):
             construct = (construct.loc[~pd.isnull(construct.index)]
             ).fillna(0).astype(int).to_numpy()
 
-        self.add_plot(side, plot(construct), pad=.1)
+        self.add_plot(side, plot(construct, **kwargs), name=name, pad=pad)
 
     def _render_matrix(self, ax):
         ax.set_axis_off()

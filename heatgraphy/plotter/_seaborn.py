@@ -34,10 +34,10 @@ class _SeabornBase(StatsBase):
             self.data = self.data.T
 
     def render_ax(self, ax, data):
-        if self.h:
+        if self.is_flank:
             data = data.T
         data = pd.DataFrame(data)
-        orient = "h" if self.h else "v"
+        orient = "h" if self.is_flank else "v"
         if self.side == "left":
             ax.invert_xaxis()
         # barplot(data=data, orient=orient, ax=ax, **self.kws)

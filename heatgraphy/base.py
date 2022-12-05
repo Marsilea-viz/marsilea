@@ -283,15 +283,16 @@ class Base(LegendMaker):
     def add_canvas(self, side, name, size, pad=0.):
         self.grid.add_ax(side, name, size, pad=pad)
 
-    def add_title(self, top=None, bottom=None, left=None, right=None, pad=.1):
+    def add_title(self, top=None, bottom=None, left=None, right=None,
+                  pad=.1, **props):
         if left is not None:
-            self.add_plot("left", Title(left), pad=pad)
+            self.add_plot("left", Title(left, **props), pad=pad)
         if right is not None:
-            self.add_plot("right", Title(right), pad=pad)
+            self.add_plot("right", Title(right, **props), pad=pad)
         if top is not None:
-            self.add_plot("top", Title(top), pad=pad)
+            self.add_plot("top", Title(top, **props), pad=pad)
         if bottom is not None:
-            self.add_plot("bottom", Title(bottom), pad=pad)
+            self.add_plot("bottom", Title(bottom, **props), pad=pad)
 
     def get_ax(self, name):
         """Get a specific axes by name when available
@@ -341,7 +342,9 @@ class MatrixBase(Base):
         self._deform = Deformation(cluster_data)
 
     def add_dendrogram(self, side, name=None, method=None, metric=None,
-                       show=True, size=0.5):
+                       linewidth=None, colors=None, add_meta=True,
+                       meta_color=None, divide=True,
+                       show=True, size=0.5, pad=0):
         """
 
         .. note::
@@ -367,7 +370,7 @@ class MatrixBase(Base):
             raise ValueError(msg)
         plot_name = get_plot_name(name, side, "Dendrogram")
         if show:
-            self.grid.add_ax(side, name=plot_name, size=size)
+            self.grid.add_ax(side, name=plot_name, size=size, pad=pad)
 
         deform = self.get_deform()
         if side in ["right", "left"]:
