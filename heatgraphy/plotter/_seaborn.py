@@ -30,12 +30,8 @@ class _SeabornBase(StatsBase):
 
     def set_side(self, side):
         self.side = side
-        if side in ["left", "right"]:
-            self.data = self.data.T
 
     def render_ax(self, ax, data):
-        if self.is_flank:
-            data = data.T
         data = pd.DataFrame(data)
         orient = "h" if self.is_flank else "v"
         if self.side == "left":
@@ -47,6 +43,9 @@ class _SeabornBase(StatsBase):
 
 def _seaborn_doc(obj: _SeabornBase):
     cls_name = obj.__name__
+    shape = (10, 10)
+    # if obj._seaborn_plot == "swarmplot":
+    #     shape = (10, 10)
     obj.__doc__ = f"""Wrapper for seaborn's {obj._seaborn_plot}
     
     .. note::
@@ -75,7 +74,7 @@ def _seaborn_doc(obj: _SeabornBase):
         >>> import heatgraphy as hg
         >>> from heatgraphy.plotter import {cls_name}
         >>> data = np.random.randn(10, 10)
-        >>> plot = {cls_name}(np.random.randint(0, 10, (20, 10)))
+        >>> plot = {cls_name}(np.random.randint(0, 10, {shape}))
         >>> h = hg.Heatmap(data)
         >>> h.split_row(cut=[3, 7])
         >>> h.add_right(plot)

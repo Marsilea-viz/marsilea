@@ -8,9 +8,11 @@ import numpy as np
 from legendkit.layout import vstack, hstack
 from matplotlib import pyplot as plt
 from matplotlib.artist import Artist
+from matplotlib.colors import is_color_like
 from matplotlib.figure import Figure
 from matplotlib.patches import Rectangle
 
+from .dendrogram import Dendrogram
 from ._deform import Deformation
 from .exceptions import SplitTwice
 from .layout import CrossGrid
@@ -341,27 +343,88 @@ class MatrixBase(Base):
         self._cluster_data = cluster_data
         self._deform = Deformation(cluster_data)
 
-    def add_dendrogram(self, side, name=None, method=None, metric=None,
-                       linewidth=None, colors=None, add_meta=True,
-                       meta_color=None, divide=True,
-                       show=True, size=0.5, pad=0):
-        """
+    def add_dendrogram(self, side, method=None, metric=None,
+                       add_meta=True, add_base=True, add_divider=True,
+                       meta_color=None, linewidth=None, colors=None,
+                       divider_style="--",
+                       show=True, name=None, size=0.5, pad=0):
+        """Run cluster and add dendrogram
 
         .. note::
-            Notice that we only use method and metric
-            when you add the first dendrogram.
+
+            #. method and metric only works when you
+                add the first row/col dendrogram.
+            #. If `add_meta=False` and `add_base=False`, the dendrogram
+                axes will not be created.
 
         Parameters
         ----------
         side
-        name
-        method
-        metric
-        show
-        size
+        method : str
+            See scipy's :meth:`linkage <scipy.cluster.hierarchy.linkage>`
+        metric : str
+            See scipy's :meth:`linkage <scipy.cluster.hierarchy.linkage>`
+        add_meta : bool
+            If the data is split, a meta dendrogram can be drawn for data
+            chunks. The mean value of the data chunk is used to calculate
+            linkage matrix for meta dendrogram.
+        add_base : bool
+            Draw the base dendrogram for each data chunk. You can turn this
+            off if the base dendrogram is too crowded.
+        add_divider : bool
+            Draw a divide line that tells the difference between
+            base and meta dendrogram.
+        divider_style : str, default: "--"
+            The line style of the divide line
+        meta_color : color
+            The color of the meta dendrogram
+        linewidth : float
+            The linewidth for every dendrogram and divide line
+        colors : color, array of color
+            If only one color is specified, it will be applied to
+            every dendrogram. If an array of color is specified, it will
+            be applied to each base dendrogram.
+        show : bool
+            If False, the dendrogram will not be drawn and the axes will
+            not be created.
+        name : str
+            The name of the dendrogram axes
+        size : float
+        pad : float
 
-        Returns
-        -------
+        Examples
+        --------
+
+        You can change how the linkage matrix is calculated
+
+        .. plot::
+            :context: close-figs
+
+            >>> data = np.random.rand(10, 11)
+            >>> import heatgraphy as hg
+            >>> h = hg.Heatmap(data)
+            >>> h.add_dendrogram("left", method="ward", colors="green")
+            >>> h.render()
+
+        Only show the meta dendrogram to avoid crowded dendrogram
+
+        .. plot::
+            :context: close-figs
+
+            >>> h = hg.Heatmap(data)
+            >>> h.split_row(cut=[4, 8])
+            >>> h.add_dendrogram("left", add_base=False)
+            >>> h.render()
+
+        Change color for each base dendrogram
+
+        .. plot::
+            :context: close-figs
+
+            >>> h = hg.Heatmap(data)
+            >>> h.split_row(cut=[4, 8])
+            >>> h.add_dendrogram("left", colors=["#5470c6", "#91cc75", "#fac858"])
+            >>> h.render()
 
         """
         if not self._allow_cluster:
@@ -369,20 +432,35 @@ class MatrixBase(Base):
                   f"'{self.__class__.__name__}' class."
             raise ValueError(msg)
         plot_name = get_plot_name(name, side, "Dendrogram")
+
+        # if only colors is passed
+        # the color should be applied to all
+        if (colors is not None) & (is_color_like(colors)) & (meta_color is None):
+            meta_color = colors
+
+        # if nothing is added
+        # close the dendrogram
+        if (not add_meta) & (not add_base):
+            show = False
+
         if show:
             self.grid.add_ax(side, name=plot_name, size=size, pad=pad)
 
+        den_options = dict(name=plot_name, show=show, side=side,
+                           add_meta=add_meta, add_base=add_base,
+                           add_divider=add_divider, meta_color=meta_color,
+                           linewidth=linewidth, colors=colors,
+                           divider_style=divider_style)
+
         deform = self.get_deform()
         if side in ["right", "left"]:
-            self._row_den.append(dict(name=plot_name, show=show,
-                                      pos="row", side=side))
-            deform.set_cluster(row=True)
-            deform.set_row_cluster_params(method=method, metric=metric)
+            den_options['pos'] = "row"
+            self._row_den.append(den_options)
+            deform.set_cluster(row=True, method=method, metric=metric)
         else:
-            self._col_den.append(dict(name=plot_name, show=show,
-                                      pos="col", side=side))
-            deform.set_cluster(col=True)
-            deform.set_col_cluster_params(method=method, metric=metric)
+            den_options['pos'] = "col"
+            self._col_den.append(den_options)
+            deform.set_cluster(col=True, method=method, metric=metric)
 
     def split_row(self, cut=None, labels=None, order=None, spacing=0.01):
         if self._split_row:
@@ -464,7 +542,23 @@ class MatrixBase(Base):
                 if den['pos'] == "col":
                     spacing = deform.wspace
                     den_obj = deform.get_col_dendrogram()
-                den_obj.draw(ax, orient=den['side'], spacing=spacing)
+                if isinstance(den_obj, Dendrogram):
+                    color = den['colors']
+                    if (color is not None) & (not is_color_like(color)):
+                        color = color[0]
+                    den_obj.draw(ax, orient=den['side'], color=color,
+                                 linewidth=den['linewidth'])
+                else:
+                    den_obj.draw(ax, orient=den['side'],
+                                 spacing=spacing,
+                                 add_meta=den['add_meta'],
+                                 add_base=den['add_base'],
+                                 base_colors=den['colors'],
+                                 meta_color=den['meta_color'],
+                                 linewidth=den['linewidth'],
+                                 divide=den['add_divider'],
+                                 divide_style=den['divider_style'],
+                                 )
 
     def _render_plan(self):
         deform = self.get_deform()

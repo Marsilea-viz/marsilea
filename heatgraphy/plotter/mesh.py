@@ -97,7 +97,6 @@ class _MeshBase(RenderPlan):
     def create_render_datasets(self, *datasets):
         if not self.is_deform:
             return datasets
-
         datasets = [self.deform_func(d) for d in datasets]
         if self.is_split:
             return [d for d in zip(*datasets)]
@@ -239,6 +238,9 @@ class ColorMesh(_MeshBase):
 
     def render_ax(self, ax, data):
         values, texts = data
+        if self.is_flank:
+            values = values.T
+            texts = texts.T
         mesh = ax.pcolormesh(values, cmap=self.cmap, norm=self.norm,
                              linewidth=self.linewidth,
                              edgecolor=self.linecolor,
@@ -395,7 +397,7 @@ class SizedMesh(_MeshBase):
             size_norm = Normalize()
             size_norm.autoscale(size)
         self.orig_size = size
-        self.size = size_norm(size) * (sizes[1] - sizes[0]) + sizes[0]
+        self.size_matrix = size_norm(size) * (sizes[1] - sizes[0]) + sizes[0]
         self.color = None
         self.color2d = None
         self.palette = palette
@@ -453,7 +455,7 @@ class SizedMesh(_MeshBase):
             show_at=(.1, .25, .5, .75, 1.),
             handler_kw=handler_kw)
         options.update(self.size_legend_kws)
-        size_legend = SizeLegend(self.size,
+        size_legend = SizeLegend(self.size_matrix,
                                  array=self.orig_size,
                                  **options
                                  )
@@ -482,10 +484,13 @@ class SizedMesh(_MeshBase):
             return size_legend
 
     def get_render_data(self):
-        return self.create_render_datasets(self.size, self.color2d)
+        return self.create_render_datasets(self.size_matrix, self.color2d)
 
     def render_ax(self, ax, data):
         size, color = data
+        if self.is_flank:
+            size = size.T
+            color = color.T
         Y, X = size.shape
         xticks = np.arange(X) + 0.5
         yticks = np.arange(Y) + 0.5

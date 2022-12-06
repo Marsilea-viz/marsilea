@@ -73,11 +73,15 @@ class Deformation:
         self.data_col_reindex = reindex
         self._col_clustered = False
 
-    def set_cluster(self, col=None, row=None):
+    def set_cluster(self, col=None, row=None, **kwargs):
         if col is not None:
             self.is_col_cluster = col
+            self.col_cluster_kws = kwargs
+            self._col_clustered = False
         if row is not None:
             self.is_row_cluster = row
+            self.row_cluster_kws = kwargs
+            self._row_clustered = False
 
     def get_data(self):
         data = self.data
@@ -189,14 +193,6 @@ class Deformation:
             self.col_reorder_index = dg.reorder_index
         self.col_dendrogram = dg
 
-    def set_row_cluster_params(self, **kws):
-        self.row_cluster_kws = {**kws}
-        self._row_clustered = False
-
-    def set_col_cluster_params(self, **kws):
-        self.col_cluster_kws = {**kws}
-        self._col_clustered = False
-
     def _run_cluster(self):
         """Calculation of dendrogram is expensive,
         so only calculated once"""
@@ -295,15 +291,14 @@ class Deformation:
         return trans_data
 
     def transform_row(self, data: np.ndarray):
+        data = data.T
         if data.ndim == 1:
             assert len(data) == self._nrow
         else:
-            assert data.shape[1] == self._nrow
+            assert data.shape[0] == self._nrow
 
         if self.data_row_reindex is not None:
             data = data[self.data_row_reindex]
-
-        data = data.T
 
         trans_data = self.split_by_row(data)
         trans_data = self.reorder_by_row(trans_data, split="1d")
