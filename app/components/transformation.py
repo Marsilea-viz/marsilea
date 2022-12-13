@@ -66,20 +66,19 @@ def norm():
 
 
 def transformation():
-    with st.expander("Apply data transformation?"):
 
-        reset = st.button("Reset")
-        if reset:
-            st.session_state["data"] = st.session_state["raw_data"]
-            st.session_state["transform"] = None
+    reset = st.button("Reset")
+    if reset:
+        st.session_state["data"] = st.session_state["raw_data"]
+        st.session_state["transform"] = None
 
-        method = st.selectbox("Select transformation",
-                              options=["Robust", "Standard Scale",
-                                       "Normalize"])
-        match method:
-            case "Robust":
-                robust()
-            case "Standard Scale":
-                standard_scale()
-            case "Normalize":
-                norm()
+    method = st.selectbox("Select transformation",
+                          options=["Robust", "Standard Scale",
+                                   "Normalize"])
+    match method:
+        case "Robust":
+            robust()
+        case "Standard Scale":
+            standard_scale()
+        case "Normalize":
+            norm()

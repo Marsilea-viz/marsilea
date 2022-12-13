@@ -1,10 +1,16 @@
-from streamlit.delta_generator import *
+import functools
+
+from streamlit import cursor
+from streamlit.delta_generator import DeltaGenerator, Block_pb2
 from streamlit.delta_generator import _enqueue_message
+from streamlit.elements.form import FormData, current_form_id
+from streamlit.proto import ForwardMsg_pb2
+from streamlit.runtime import caching
 
 
 def _nestable_block(
-    self,
-    block_proto: Block_pb2.Block = Block_pb2.Block(),
+        self,
+        block_proto: Block_pb2.Block = Block_pb2.Block(),
 ) -> "DeltaGenerator":
     # Operate on the active DeltaGenerator, in case we're in a `with` block.
     dg = self._active_dg
@@ -60,4 +66,6 @@ def _nestable_block(
     return block_dg
 
 
-DeltaGenerator._block = _nestable_block
+@functools.cache
+def register():
+    DeltaGenerator._block = _nestable_block
