@@ -30,9 +30,9 @@ def get_aspect(ratio, w=None, h=None):
     canvas_height, canvas_width = None, None
 
     if set_w & set_h:
-        canvas_height = h
+        canvas_height = float(h)
     elif set_w:
-        canvas_width = w
+        canvas_width = float(w)
     else:
         if ratio >= 1:
             canvas_height = 4
@@ -353,9 +353,9 @@ class MatrixBase(Base):
         .. note::
 
             #. method and metric only works when you
-                add the first row/col dendrogram.
+               add the first row/col dendrogram.
             #. If `add_meta=False` and `add_base=False`, the dendrogram
-                axes will not be created.
+               axes will not be created.
 
         Parameters
         ----------
@@ -621,7 +621,7 @@ class MatrixBase(Base):
         new_list.add_matrix(other)
         return new_list
 
-    def render(self, figure=None, aspect=1, scale=1.1):
+    def render(self, figure=None, aspect=1, scale=1):
         self._freeze_legend()
         if figure is None:
             self.figure = plt.figure()
@@ -688,7 +688,7 @@ class MatrixList(LegendMaker):
         new_list.add_matrix(other)
         return new_list
 
-    def render(self, figure=None, aspect=1, scale=1.1):
+    def render(self, figure=None, aspect=1, scale=1):
         self._freeze_legend()
         if figure is None:
             self.figure = plt.figure()

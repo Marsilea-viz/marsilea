@@ -18,7 +18,7 @@ class WhiteBoard(Base):
     def __init__(self, width=None, height=None, aspect=1):
         super().__init__(w=width, h=height, main_aspect=aspect)
 
-    def render(self, figure=None, aspect=1, scale=1.1):
+    def render(self, figure=None, aspect=1, scale=1):
         self._freeze_legend()
         if figure is None:
             self.figure = plt.figure()
@@ -68,14 +68,16 @@ class Heatmap(MatrixBase):
                  ):
         self.square = square
 
-        data_aspect = 1
+        main_aspect = 1
+        if (width is not None) & (height is not None):
+            main_aspect = height / width
         if square:
             Y, X = data.shape
-            data_aspect = Y / X
+            main_aspect = Y / X
         if cluster_data is None:
             cluster_data = data
         super().__init__(cluster_data, w=width, h=height,
-                         main_aspect=data_aspect)
+                         main_aspect=main_aspect)
         mesh = ColorMesh(data, vmin=vmin, vmax=vmax, cmap=cmap,
                          norm=norm, center=center,
                          mask=mask, alpha=alpha, linewidth=linewidth,

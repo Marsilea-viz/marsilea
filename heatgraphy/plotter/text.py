@@ -528,6 +528,7 @@ align_pos = {
 
 
 class Title(_LabelBase):
+    no_split = True
 
     def __init__(self, title, align="center", text_pad=0.5, va=None, ha=None,
                  fontsize=None, rotation=None, **options):
