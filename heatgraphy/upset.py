@@ -185,7 +185,7 @@ class Upset(Base):
                  max_size=None,
                  color=".1",
                  shading=.3,
-                 radius=.25,
+                 radius=None,
                  linewidth=1.5,
                  grid_background=0.1,
                  fontsize=None,
@@ -213,13 +213,12 @@ class Upset(Base):
         if min_size is not None:
             sets_table = sets_table[sets_table["size"] >= min_size]
         if max_size is not None:
-            sets_table = sets_table[sets_table["size"] >= max_size]
+            sets_table = sets_table[sets_table["size"] <= max_size]
 
         self.data = data
         self.orient = orient
         self.color = color
         self.shading = shading
-        self.radius = radius
         self.linewidth = linewidth
         self.grid_background = grid_background
         self.fontsize = fontsize
@@ -233,11 +232,15 @@ class Upset(Base):
         self._intersection_bar = None
         self._sets_size_bar = None
 
-        h = len(self.sets_table)
-        w = len(self.sets_table.index)
+        h, w = self.sets_table.index.to_frame().shape
 
         if orient == "h":
             h, w = w, h
+        if radius is None:
+            # TODO: Need a better equation to handle this
+            radius = h * w * -.05 + 50
+            radius = np.clip(radius, 5, 50)
+        self.radius = radius
         super().__init__(w=width, h=height, main_aspect=h / w * ratio)
         if add_intersections:
             side = "top" if orient == "h" else "right"
@@ -387,8 +390,8 @@ class Upset(Base):
         if self.shading > 0:
             if self.orient == "v":
                 xv, yv = yv, xv
-            ax.scatter(xv, yv, facecolor=self.color, alpha=self.shading,
-                       edgecolor="none")
+            ax.scatter(xv, yv, s=self.radius, facecolor=self.color,
+                       alpha=self.shading, edgecolor="none")
 
         for ix1, chunk in enumerate(matrix):
             custom_style = self._subset_styles.get(ix1)
@@ -414,7 +417,7 @@ class Upset(Base):
                 cx, cy = cy, cx
             current_style = {'facecolor': self.color, 'zorder': 100,
                              'alpha': 1, **custom_style}
-            ax.scatter(cx, cy, **current_style)
+            ax.scatter(cx, cy, s=self.radius, **current_style)
 
         xlow, xup = 0 - 0.5, np.max(xv) + 0.5
         ylow, yup = np.max(yv) + 0.5, 0 - 0.5
@@ -454,7 +457,7 @@ class Upset(Base):
         highlight_legend.figure = None
         return {'highlight_subsets': [highlight_legend]}
 
-    def render(self, figure=None, aspect=1, scale=1.1):
+    def render(self, figure=None, aspect=1, scale=1):
 
         self._freeze_legend()
 

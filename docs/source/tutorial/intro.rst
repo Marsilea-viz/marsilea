@@ -186,3 +186,96 @@ Here we can try to label the data that are larger than 4.
     >>> h.add_layer(hg.plotter.MarkerMesh(iris.data[ix] > 4, label="Larger than 4"))
     >>> h.add_legends()
     >>> h.render()
+
+
+Adjust plot size and spacing
+-----------------------------
+
+Adjust figure size
+##################
+
+To adjust the overall figure size. You can simply pass :obj:`scale` parameter to :meth:`render()`
+
+.. plot::
+    :context: close-figs
+
+    >>> data = np.random.rand(10, 10)
+    >>> h = hg.Heatmap(data)
+    >>> h.render()
+
+
+.. plot::
+    :context: close-figs
+
+    >>> h = hg.Heatmap(data)
+    >>> h.render(scale=0.1)
+
+You can also adjust the canvas size by :obj:`width` and :obj:`height`.
+The unit are proportional to the figure size. Suppose the figure width is 12 inches,
+you have a main canvas with width of 5 and a side plot with width of 1. As a result,
+your main canvas is 10 inches width and the side plot is 2 inches width.
+
+.. plot::
+    :context: close-figs
+
+    >>> h = hg.Heatmap(data, width=10, height=5)
+    >>> h.render()
+
+Adjust size of side plot
+########################
+
+You may already notice that you can change
+the size of the side plots by :obj:`size` and add spacing by :obj:`pad`.
+
+
+.. plot::
+    :context: close-figs
+
+    >>> from heatgraphy.plotter import Colors
+    >>> h = hg.Heatmap(iris.data)
+    >>> h.add_left(Colors(iris.target), size=.2, pad=.1)
+    >>> h.render()
+
+
+.. plot::
+    :context: close-figs
+
+    >>> from heatgraphy.plotter import Colors
+    >>> h = hg.Heatmap(iris.data)
+    >>> h.add_left(Colors(iris.target), size=.5, pad=.2)
+    >>> h.render()
+
+
+Adjust spacing of split heatmap
+###############################
+
+You can also adjust the spacing when split heatmap, the unit is the ratio of the axes.
+
+.. plot::
+    :context: close-figs
+
+    >>> h = hg.Heatmap(iris.data)
+    >>> h.add_dendrogram("right")
+    >>> h.split_row(labels=iris.target)
+    >>> h.render()
+
+
+.. plot::
+    :context: close-figs
+
+    >>> h = hg.Heatmap(iris.data)
+    >>> h.add_dendrogram("right")
+    >>> h.split_row(labels=iris.target, spacing=.01)
+    >>> h.render()
+
+
+You may change the spacing by supplying an array.
+
+
+.. plot::
+    :context: close-figs
+
+    >>> h = hg.Heatmap(iris.data)
+    >>> h.add_dendrogram("right")
+    >>> h.split_row(labels=iris.target, spacing=[.02, .04])
+    >>> h.render()

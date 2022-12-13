@@ -9,19 +9,35 @@ def save_fig(fig, dpi, format):
     return img
 
 
-def plot_saver(fig, anchor):
-    with anchor:
+class ChartSaver:
+    dpi: float
+    format: str
+
+    def __init__(self):
+        self.fig = st.session_state["figure"]
         with st.form("Export Options"):
-            dpi = st.number_input("DPI", min_value=90, value=90, max_value=600,
-                                  step=10)
-            format = st.selectbox("Format",
-                                  options=["png", "svg", "pdf", "jpeg"],
-                                  format_func=lambda x: x.upper())
+            self.save_options()
             save = st.form_submit_button("Confirm")
         if save:
-            img_bytes = save_fig(fig, dpi, format)
             st.download_button(
                 label=f"Download Image",
-                data=img_bytes,
-                file_name=f"Heatmap.{format}"
+                data=self.serialize(),
+                file_name=f"Heatmap.{self.format}"
             )
+
+    def serialize(self):
+        img = io.BytesIO()
+        self.fig.savefig(img, dpi=self.dpi, format=self.format,
+                         bbox_inches="tight")
+        return img
+
+    def save_options(self):
+        col1, col2, _ = st.columns([1, 1, 3])
+        with col1:
+            self.dpi = st.number_input("DPI", min_value=90, value=90,
+                                       max_value=600,
+                                       step=10)
+        with col2:
+            self.format = st.selectbox("Format",
+                                       options=["png", "svg", "pdf", "jpeg"],
+                                       format_func=lambda x: x.upper())

@@ -19,7 +19,7 @@ default_cmap = cmap_list.index("coolwarm")
 def colormap_viewer():
 
     cmap = st.selectbox("Colormap", options=cmap_list, index=default_cmap)
-    fig, ax = plt.subplots(figsize=(10, 1))
+    fig, ax = plt.subplots(figsize=(10, .5))
     ax.imshow(gradient, aspect="auto", cmap=cmap)
     ax.set_axis_off()
     st.pyplot(fig)

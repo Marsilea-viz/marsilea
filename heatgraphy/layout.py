@@ -622,7 +622,7 @@ class CrossGrid:
     def _adjust_ratios(self, figure, aspect=None):
         pass
 
-    def freeze(self, figure, aspect: float = None, scale=1.1,
+    def freeze(self, figure, aspect: float = None, scale=1,
                debug=False, ):
         self._has_freeze = True
         h_ratios = self.get_height_ratios()
