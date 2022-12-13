@@ -59,7 +59,7 @@ jobs:
           FLIT_INDEX_URL: https://test.pypi.org/legacy/
           FLIT_USERNAME: ${{ secrets.PYPI_USERNAME }}
           FLIT_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
-        run: flit publish
+        run: flit publish || exit 0
 
       - name: Publish to pypi
         if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v')
