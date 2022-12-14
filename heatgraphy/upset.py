@@ -117,7 +117,7 @@ class UpsetData:
         return container
 
     def has_item(self, item):
-        """Return the sets name the item is in"""
+        """Return """
         item_data = self._sets_table.loc[item]
         return item_data.loc[item_data == 1].index.tolist()
 
