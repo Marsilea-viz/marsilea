@@ -66,7 +66,6 @@ class UpsetData:
         self.names = list(names)  # columns
         self.items = list(items)  # row
         self._data = data  # one-hot encode matrix
-
         if sets_attrs is not None:
             sets_attrs = sets_attrs.loc[self.names]
         self._sets_attrs = sets_attrs
@@ -298,23 +297,20 @@ class Upset(Base):
         linecolor = edgecolor if edgecolor is not None else linecolor
         line_styles.update(color=linecolor)
 
-        self._legend_entries.append(styles)
-
         for i, m in enumerate(marks):
             if m:
-                style = self._subset_styles.get(i)
-                if style is not None:
-                    style.update(styles)
-                    if label is not None:
-                        if 'label' in style.keys():
-                            style['label'] += f"; {label}"
-                        else:
-                            style['label'] = label
+                current_styles = styles.copy()
+                sub_set_style = self._subset_styles.get(i)
+                if sub_set_style is not None:
+                    sub_set_style.update(current_styles)
                     self._subset_line_styles[i].update(line_styles)
                 else:
-                    self._subset_styles[i] = styles
-                    self._subset_styles[i]['label'] = label
-                    self._subset_line_styles[i] = line_styles
+                    self._subset_styles[i] = current_styles
+                    self._subset_line_styles[i] = {**line_styles}
+
+        if 'facecolor' not in styles.keys():
+            styles['facecolor'] = 'none'
+        self._legend_entries.append(styles)
 
     def _check_side(self, side, chart_name, allow):
         options = allow[self.orient]
