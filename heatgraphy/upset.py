@@ -399,7 +399,7 @@ class Upset(Base):
             cy = np.nonzero(chunk)[0]
             cx = np.repeat(ix1, len(cy))
             line_low, line_up = np.min(cy), np.max(cy)
-            if (self.linewidth > 0) & (line_up - line_low > 1):
+            if (self.linewidth > 0) & (line_up - line_low > 0):
                 line_style = {'color': self.color, 'lw': self.linewidth,
                               **custom_line_style}
                 xs, ys = ix1, (line_low, line_up)
