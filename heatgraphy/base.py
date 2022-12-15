@@ -263,9 +263,11 @@ class Base(LegendMaker):
         for plan in self._get_layers_zorder():
             plan.render(main_ax)
 
-    def add_layer(self, plot: RenderPlan, zorder=None):
+    def add_layer(self, plot: RenderPlan, zorder=None, name=None):
+        if name is None:
+            name = plot.name
         plot_type = plot.__class__.__name__
-        name = get_plot_name(side="main", chart=plot_type)
+        name = get_plot_name(name, side="main", chart=plot_type)
         if not plot.render_main:
             msg = f"{plot_type} " \
                   f"cannot be rendered as another layer."
@@ -336,8 +338,8 @@ class MatrixBase(Base):
     _mesh = None
     square = False
 
-    def __init__(self, cluster_data, w=None, h=None, main_aspect=1):
-        super().__init__(w=w, h=h, main_aspect=main_aspect)
+    def __init__(self, cluster_data, w=None, h=None, main_aspect=1, name=None):
+        super().__init__(w=w, h=h, main_aspect=main_aspect, name=name)
         self._row_den = []
         self._col_den = []
         self._cluster_data = cluster_data
