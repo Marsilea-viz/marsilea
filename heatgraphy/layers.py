@@ -15,7 +15,7 @@ class Layers(MatrixBase):
                  layers=None,
                  pieces=None,
                  cluster_data=None,
-                 shrink=(.9, .9)
+                 shrink=(1, 1)
                  ):
 
         mesh = LayersMesh(data=data, layers=layers, pieces=pieces,
@@ -29,7 +29,9 @@ class Layers(MatrixBase):
             # create numeric data explicitly
             # in case user input string data
             cluster_data = np.random.randn(*data_shape)
-        super().__init__(cluster_data)
+        Y, X = cluster_data.shape
+        main_aspect = Y * 3 / X
+        super().__init__(cluster_data, main_aspect=main_aspect)
 
         self.add_layer(mesh)
 
@@ -38,12 +40,16 @@ class Piece:
     frac_x = 1
     frac_y = 1
     label = None
+    legend_entry = True
 
     def get_label(self):
         if self.label is None:
             return self.__class__.__name__
         else:
             return self.label
+
+    def set_label(self, label):
+        self.label = label
 
     def set_frac(self, frac):
         self.frac_x, self.frac_y = frac
@@ -71,9 +77,10 @@ class Piece:
 
 class Rect(Piece):
 
-    def __init__(self, color="C0", label=None):
+    def __init__(self, color="C0", label=None, legend=True):
         self.color = color
         self.label = label
+        self.legend_entry = legend
 
     def __repr__(self):
         return f"{self.__class__.__name__}(color='{self.color}', " \
@@ -85,9 +92,10 @@ class Rect(Piece):
 
 class Bg(Piece):
 
-    def __init__(self, color="C0", label=None):
+    def __init__(self, color="C0", label=None, legend=True):
         self.color = color
         self.label = label
+        self.legend_entry = legend
 
     def __repr__(self):
         return f"{self.__class__.__name__}(color='{self.color}', " \
@@ -98,10 +106,11 @@ class Bg(Piece):
 
 
 class FracRect(Piece):
-    def __init__(self, color="C0", frac=(.9, .5), label=None):
+    def __init__(self, color="C0", frac=(.9, .5), label=None, legend=True):
         self.color = color
         self.label = label
         self.set_frac(frac)
+        self.legend_entry = legend
 
     def __repr__(self):
         return f"{self.__class__.__name__}(color='{self.color}', " \
@@ -113,10 +122,11 @@ class FracRect(Piece):
 
 
 class FrameRect(Piece):
-    def __init__(self, color="C0", width=1, label=None):
+    def __init__(self, color="C0", width=1, label=None, legend=True):
         self.color = color
         self.width = width
         self.label = label
+        self.legend_entry = legend
 
     def __repr__(self):
         return f"{self.__class__.__name__}(color={self.color}, " \
@@ -132,11 +142,12 @@ class FrameRect(Piece):
 class RightTri(Piece):
 
     def __init__(self, color="C0", right_angle="lower left",
-                 frac=(1, 1), label=None):
+                 frac=(1, 1), label=None, legend=True):
         self.color = color
         self.pos = right_angle
         self.label = label
         self.set_frac(frac)
+        self.legend_entry = legend
 
     def __repr__(self):
         return f"{self.__class__.__name__}(color={self.color}, " \

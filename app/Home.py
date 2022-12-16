@@ -112,6 +112,7 @@ st.markdown(f"""
     }}
     
     .streamlit-expanderHeader {{
+        font-weight: bold;
         padding-right: 0rem;
         padding-left: 0rem;
     }}
@@ -119,7 +120,6 @@ st.markdown(f"""
     .streamlit-expander {{
         border-left: none;
         border-right: none;
-        border-bottom: none;
         border-radius: 0rem;
     }}
 

@@ -161,6 +161,9 @@ class Upset(Base):
         The orientation of the Upset plot
     sets_order : array of str
         The order of sets
+    sets_color : array of color
+        The color for each set, this will also change the bar color
+        in set size
     sort_subset : {'size', 'degree'}
         How to sort the subset, 'size' will sort by intersection size,
         'degree' will sort by the number of intersected sets.
@@ -176,6 +179,7 @@ class Upset(Base):
     def __init__(self, data: UpsetData,
                  orient="h",
                  sets_order=None,
+                 sets_color=None,
                  sort_subset="size",  # size, degree
                  ascending=False,
                  min_degree=None,
@@ -221,6 +225,9 @@ class Upset(Base):
         self.linewidth = linewidth
         self.grid_background = grid_background
         self.fontsize = fontsize
+        if sets_color is None:
+            sets_color = [self.color for _ in range(len(sets_size))]
+        self.sets_color = np.asarray(sets_color)
 
         self.sets_table = sets_table
         self.sets_size = sets_size
@@ -242,14 +249,23 @@ class Upset(Base):
         self.radius = radius
         super().__init__(w=width, h=height, main_aspect=h / w * ratio)
         if add_intersections:
-            side = "top" if orient == "h" else "right"
+            if isinstance(add_intersections, str):
+                side = add_intersections
+            else:
+                side = "top" if orient == "h" else "right"
             self.add_intersections(side)
         if add_labels:
-            side = "right" if orient == "h" else "bottom"
+            if isinstance(add_labels, str):
+                side = add_labels
+            else:
+                side = "right" if orient == "h" else "bottom"
             self.add_sets_label(side)
         if add_sets_size:
-            side = "left" if orient == "h" else "top"
-            self.add_sets_size(side)
+            if isinstance(add_sets_size, str):
+                side = add_sets_size
+            else:
+                side = "left" if orient == "h" else "top"
+            self.add_sets_size(side, color=self.sets_color)
 
     def _mark_subsets(self, present=None, absent=None,
                       min_size=None, max_size=None,
@@ -328,25 +344,27 @@ class Upset(Base):
         size = min(self.height, self.width) * .4
         self.add_plot(side, self._intersection_bar, size=size, pad=pad)
 
-    def add_sets_size(self, side, pad=.1):
+    def add_sets_size(self, side, pad=.1, **props):
         self._check_side(side, 'Sets size',
                          dict(h=["left", "right"], v=["top", "bottom"]))
         data = self.sets_size
-        self._sets_size_bar = Numbers(data, color=self.color)
+        options = dict(color=self.color)
+        options.update(props)
+        self._sets_size_bar = Numbers(data, **options)
         size = min(self.height, self.width) * .4
         self.add_plot(side, self._sets_size_bar, size=size, pad=pad)
 
-    def add_sets_label(self, side, pad=.1):
+    def add_sets_label(self, side, pad=.1, **props):
         self._check_side(side, 'Sets label',
                          dict(h=["left", "right"], v=["top", "bottom"]))
         data = self.sets_table.index.names
-        self.add_plot(side, Labels(data), pad=pad)
+        self.add_plot(side, Labels(data, **props), pad=pad)
 
-    def add_sets_attrs(self, side, attr_names, plot=None):
-        # TODO: Auto detect side, more options
+    def add_sets_attrs(self, side, attr_names, plot=None, **props):
+        # TODO: Auto detect side
         data = self.data.sets_attrs
         attr = data[attr_names]
-        self.add_plot(side, plot(attr), pad=.1)
+        self.add_plot(side, plot(attr, **props), pad=.1)
 
     def add_items_attrs(self, side, attr_names, plot=None, name=None, pad=0,
                         **kwargs):
@@ -408,10 +426,10 @@ class Upset(Base):
                     xs, ys = ys, xs
                     liner = ax.hlines
                 liner(xs, *ys, **line_style)
-
+            scatter_colors = self.sets_color[cy]
             if self.orient == "v":
                 cx, cy = cy, cx
-            current_style = {'facecolor': self.color, 'zorder': 100,
+            current_style = {'facecolor': scatter_colors, 'zorder': 100,
                              'alpha': 1, **custom_style}
             ax.scatter(cx, cy, s=self.radius, **current_style)
 

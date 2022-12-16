@@ -77,7 +77,7 @@ class Heatmap(MatrixBase):
         if cluster_data is None:
             cluster_data = data
         super().__init__(cluster_data, w=width, h=height,
-                         main_aspect=main_aspect)
+                         main_aspect=main_aspect, name=name)
         mesh = ColorMesh(data, vmin=vmin, vmax=vmax, cmap=cmap,
                          norm=norm, center=center,
                          mask=mask, alpha=alpha, linewidth=linewidth,
@@ -110,7 +110,7 @@ class CatHeatmap(MatrixBase):
         mesh = Colors(data, palette=palette, cmap=cmap, mask=mask)
         if cluster_data is None:
             cluster_data = mesh.cluster_data
-        super().__init__(cluster_data, w=width, h=height)
+        super().__init__(cluster_data, w=width, h=height, name=name)
         name = get_plot_name(name, "main", mesh.__class__.__name__)
         mesh.set(name=name)
         self.add_layer(mesh)
@@ -134,11 +134,12 @@ class SizedHeatmap(MatrixBase):
     """
 
     def __init__(self, size, color=None, cluster_data=None,
+                 name=None,
                  **kwargs):
         if cluster_data is None:
             cluster_data = size
         y, x = cluster_data.shape
-        super().__init__(cluster_data, main_aspect=y / x)
+        super().__init__(cluster_data, main_aspect=y / x, name=name)
 
         mesh = SizedMesh(size=size, color=color, **kwargs)
         self.add_layer(mesh)

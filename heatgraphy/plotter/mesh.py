@@ -614,9 +614,15 @@ class LayersMesh(_MeshBase):
             handles = list(self.pieces_mapper.values())
         else:
             handles = self.pieces
-        labels = [h.get_label() for h in handles]
-        handler_map = {h: h for h in handles}
-        return ListLegend(handles=handles, labels=labels,
+        new_handles = []
+        labels = []
+        handler_map = {}
+        for h in handles:
+            if h.legend_entry:
+                new_handles.append(h)
+                labels.append(h.get_label())
+                handler_map[h] = h
+        return ListLegend(handles=new_handles, labels=labels,
                           handler_map=handler_map)
 
     def render_ax(self, ax, data):
