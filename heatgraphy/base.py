@@ -86,9 +86,13 @@ class LegendMaker:
     grid: CrossGrid
     _legend_box: List[Artist] = None
     _legend_name: str = None
-    _legend_grid_kws: Dict = {}
-    _legend_draw_kws: Dict = {}
-    _draw_legend: bool = False
+
+
+    def __init__(self) -> None:
+        self._legend_grid_kws: Dict = {}
+        self._legend_draw_kws: Dict = {}
+        self._draw_legend: bool = False
+
 
     def get_legends(self) -> Dict:
         """To get legends in a dict
@@ -143,6 +147,16 @@ class LegendMaker:
 
     def _legends_drawer(self, ax):
         legends = self.get_legends()
+
+        # force to remove all legends before drawing
+        # In case some legends are added implicitly
+        # This may not be a good solution
+        for _, legs in legends.items():
+            for leg in legs:
+                try:
+                    leg.remove()
+                except Exception:
+                    pass
 
         legend_order = self._legend_draw_kws['order']
         stack_by = self._legend_draw_kws['stack_by']
@@ -217,6 +231,7 @@ class Base(LegendMaker):
         self._col_plan = []
         self._row_plan = []
         self._layer_plan = []
+        super().__init__()
 
     def add_plot(self, side, plot: RenderPlan, name=None, size=None, pad=0.):
         plot_name = get_plot_name(name, side, plot.__class__.__name__)
@@ -651,6 +666,7 @@ class MatrixList(LegendMaker):
     def __init__(self, new_grid):
         self.grid = new_grid
         self._matrix_list = []
+        super().__init__()
 
     def add_matrices(self, matrices):
         for m in matrices:

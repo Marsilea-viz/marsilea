@@ -533,7 +533,7 @@ class MarkerMesh(_MeshBase):
 
     def get_legends(self):
         return CatLegend(colors=[self.color], labels=[self.label],
-                         handle=self.marker)
+                         handle=self.marker, draw=False)
 
     def render_ax(self, ax, data):
         Y, X = data.shape
