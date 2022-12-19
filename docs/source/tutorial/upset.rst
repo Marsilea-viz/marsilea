@@ -17,6 +17,7 @@ For example, if you want know size of each set , you could use :meth:`set_size()
     >>> from heatgraphy.upset import UpsetData
     >>> from heatgraphy.upset import Upset
     >>> import pandas as pd
+    >>> import matplotlib as mpl
     >>> src = "https://raw.githubusercontent.com/peetck/IMDB-Top1000-Movies/master/IMDB-Movie-Data.csv"
     >>> imdb = pd.read_csv(src).drop_duplicates('Title')
     >>> items_attrs = imdb[['Title', 'Year',
@@ -71,7 +72,7 @@ Then we can add labels and size numbers. The order in which they are added will 
 Highlight specific objects
 --------------------------
 
-If we want to highlight certain parts, we could call :meth:`highlight_subsets() <heatgraphy.upset.Upset.highlight_subsets>`
+If we want to highlight certain parts, we can call :meth:`highlight_subsets() <heatgraphy.upset.Upset.highlight_subsets>`
 to change color.
 
 .. plot::
@@ -81,6 +82,20 @@ to change color.
     >>> usp.add_legends()
     >>> usp.add_sets_label(side="left")
     >>> usp.add_sets_size(side="left",pad=0.5)
+    >>> usp.highlight_subsets(facecolor='blue', min_size=30,max_size = 40,label="40 >= intersections >= 30")
+    >>> usp.highlight_subsets(facecolor='red', min_size=20,max_size = 30,label="30 >= intersections >= 20")
+    >>> usp.render()
+
+|
+Color of each set size can also be adjusted.
+
+.. plot::
+    :context: close-figs
+
+    >>> usp = Upset(upset_data,add_labels=False,add_sets_size=False,min_size=20)
+    >>> usp.add_legends()
+    >>> usp.add_sets_label(side="left")
+    >>> usp.add_sets_size(side="left",pad=0.5, color = mpl.colormaps['tab20'].colors)
     >>> usp.highlight_subsets(facecolor='blue', min_size=30,max_size = 40,label="40 >= intersections >= 30")
     >>> usp.highlight_subsets(facecolor='red', min_size=20,max_size = 30,label="30 >= intersections >= 20")
     >>> usp.render()
