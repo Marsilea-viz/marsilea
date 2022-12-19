@@ -15,7 +15,10 @@ class Layers(MatrixBase):
                  layers=None,
                  pieces=None,
                  cluster_data=None,
-                 shrink=(1, 1)
+                 shrink=(1, 1),
+                 height=None,
+                 width=None,
+                 name=None,
                  ):
 
         mesh = LayersMesh(data=data, layers=layers, pieces=pieces,
@@ -29,9 +32,13 @@ class Layers(MatrixBase):
             # create numeric data explicitly
             # in case user input string data
             cluster_data = np.random.randn(*data_shape)
-        Y, X = cluster_data.shape
-        main_aspect = Y * 3 / X
-        super().__init__(cluster_data, main_aspect=main_aspect)
+        if (width is not None) & (height is not None):
+            main_aspect = height / width
+        else:
+            Y, X = cluster_data.shape
+            main_aspect = Y * 3 / X
+        super().__init__(cluster_data, main_aspect=main_aspect, 
+                         w=width, h=height, name=name)
 
         self.add_layer(mesh)
 
