@@ -33,8 +33,8 @@ class SubLayout:
 class BaseCell:
     row: int
     col: int
-    height: float
-    width: float
+    # height: float
+    # width: float
     side: str  # For debug purpose
     attach_main: str  # the main canvas it attaches to
 
@@ -116,7 +116,7 @@ class CrossGrid:
         self.side_tracker = {"right": [], "left": [], "top": [], "bottom": []}
         self.main_cell = GridCell(name=self.main_name,
                                   row=self.crow_ix, col=self.ccol_ix,
-                                  side="main", height=h, width=w,
+                                  side="main", #height=h, width=w,
                                   attach_main=self.main_name)
         self.layout = {name: self.main_cell}
         self._pad = []
@@ -183,19 +183,21 @@ class CrossGrid:
             key = lambda cell: cell.col
         return sorted(cells, key=key, reverse=not ascending)
 
-    def set_id_span(self, cells: List[GridCell | Pad], gridlines,
+    def set_id_span(self, cells: List[GridCell | Pad], grid, gridlines,
                     side="top", start_ix=0):
         side_v = side in ["top", "bottom"]
         side_first = side in ["top", "left"]
-        attr = "height" if side_v else "width"
+        # attr = "height" if side_v else "width"
         by = "row" if side_v else "col"
         ascending = not side_first
 
-        group_cells = self.group_cells(cells)
+        # group_cells = self.group_cells(cells)
 
-        for group, cells in group_cells.items():
-            sorted_cells = self.sort_cells(cells, by=by, ascending=ascending)
-            segments = [getattr(cell, attr) for cell in sorted_cells]
+        # for group, cells in group_cells.items():
+        sorted_cells = self.sort_cells(cells, by=by, ascending=ascending)
+        # segments = [getattr(cell, attr) for cell in sorted_cells]
+        segments = grid.side_ratios[side]
+        if len(segments) > 0:
             it = enumerate(gridlines)
             pre_add = 0
             ixs = []
@@ -214,7 +216,7 @@ class CrossGrid:
                 ordered_ixs = start_ix + 1 + np.array(ixs)[1::] - (spans - 1)
                 ordered_ixs = [start_ix + 1, *ordered_ixs]
             spans = [ixs[0] + 1, *spans]
-            for cell, ix, span in zip(cells, ordered_ixs, spans):
+            for cell, ix, span in zip(sorted_cells, ordered_ixs, spans):
                 if side_v:
                     cell.row = ix
                     cell.row_span = span
@@ -280,7 +282,6 @@ class CrossGrid:
     def append_horizontal(self, other: CrossGrid) -> CrossGrid:
 
         self._check_duplicated_names(other)
-        assert self.main_h == other.main_h
 
         # return as new grid
         new_grid = CrossGrid(self.main_w,
@@ -311,7 +312,8 @@ class CrossGrid:
         new_grid.crow_ix = self.crow_ix
 
         top_cells = other_cells['top'] + current_cells['top']
-        self.set_id_span(top_cells, gridlines, side="top")
+        self.set_id_span(current_cells['top'], self, gridlines, side="top")
+        self.set_id_span(other_cells['top'], other, gridlines, side="top")
 
         # handle bottom
         gridlines, bottom_ratios, voffset_current, voffset_other = \
@@ -322,7 +324,9 @@ class CrossGrid:
                           other_cells, "h")
 
         bottom_cells = other_cells['bottom'] + current_cells['bottom']
-        self.set_id_span(bottom_cells, gridlines, side="bottom",
+        self.set_id_span(current_cells['bottom'], self, gridlines, side="bottom",
+                         start_ix=len(top_ratios))
+        self.set_id_span(other_cells['bottom'], other, gridlines, side="bottom",
                          start_ix=len(top_ratios))
 
         # setup new_grid
@@ -344,7 +348,6 @@ class CrossGrid:
     def append_vertical(self, other: CrossGrid) -> CrossGrid:
 
         self._check_duplicated_names(other)
-        assert self.main_w == other.main_w
 
         # return as new grid
         new_grid = CrossGrid(self.main_w,
@@ -375,7 +378,8 @@ class CrossGrid:
         new_grid.crow_ix = self.crow_ix
 
         left_cells = other_cells['left'] + current_cells['left']
-        self.set_id_span(left_cells, gridlines, side="left")
+        self.set_id_span(current_cells['left'], self, gridlines, side="left")
+        self.set_id_span(other_cells['left'], other, gridlines, side="left")
 
         # handle right
         gridlines, right_ratios, hoffset_current, hoffset_other = \
@@ -386,7 +390,9 @@ class CrossGrid:
                           other_cells, "v")
 
         right_cells = other_cells['right'] + current_cells['right']
-        self.set_id_span(right_cells, gridlines, side="right",
+        self.set_id_span(current_cells['right'], self, gridlines, side="right",
+                         start_ix=len(left_ratios))
+        self.set_id_span(other_cells['right'], other, gridlines, side="right",
                          start_ix=len(left_ratios))
 
         # setup new_grid
@@ -447,7 +453,7 @@ class CrossGrid:
 
         self._adjust_top()
         gb = GridCell(name=name, row=0, col=self.ccol_ix, side="top",
-                      height=size, width=self.main_w,
+                      # height=size, width=self.main_w,
                       attach_main=self.main_name)
         self.layout[name] = gb
         self.side_tracker['top'].append(gb)
@@ -459,7 +465,7 @@ class CrossGrid:
             return
         self._adjust_top()
         pad_block = Pad(row=1, col=self.ccol_ix, side="top",
-                        height=pad, width=self.main_w,
+                        # height=pad, width=self.main_w,
                         attach_main=self.main_name)
         self._pad.append(pad_block)
         self.side_tracker['top'].append(pad_block)
@@ -471,7 +477,7 @@ class CrossGrid:
         self.bottom_pad(pad)
 
         gb = GridCell(name=name, row=self.nrow, col=self.ccol_ix,
-                      side="bottom", height=size, width=self.main_w,
+                      side="bottom", # height=size, width=self.main_w,
                       attach_main=self.main_name)
         self.layout[name] = gb
         self.side_tracker['bottom'].append(gb)
@@ -483,7 +489,7 @@ class CrossGrid:
         if pad <= 0:
             return
         pad_block = Pad(row=self.nrow, col=self.ccol_ix, side="bottom",
-                        height=pad, width=self.main_w,
+                        # height=pad, width=self.main_w,
                         attach_main=self.main_name)
         self._pad.append(pad_block)
         self.side_tracker['bottom'].append(pad_block)
@@ -497,7 +503,7 @@ class CrossGrid:
 
         self._adjust_left()
         gb = GridCell(name=name, row=self.crow_ix, col=0, side="left",
-                      height=self.main_h, width=size,
+                      # height=self.main_h, width=size,
                       attach_main=self.main_name)
         self.layout[name] = gb
         self.side_tracker['left'].append(gb)
@@ -509,7 +515,7 @@ class CrossGrid:
             return
         self._adjust_left()
         pad_block = Pad(row=self.crow_ix, col=1, side="left",
-                        height=self.main_h, width=pad,
+                        # height=self.main_h, width=pad,
                         attach_main=self.main_name)
         self._pad.append(pad_block)
         self.side_tracker['left'].append(pad_block)
@@ -521,7 +527,7 @@ class CrossGrid:
         self.right_pad(pad)
 
         gb = GridCell(name=name, row=self.crow_ix, col=self.ncol,
-                      side="right", height=self.main_h, width=size,
+                      side="right", # height=self.main_h, width=size,
                       attach_main=self.main_name)
         self.layout[name] = gb
         self.side_tracker['right'].append(gb)
@@ -533,7 +539,7 @@ class CrossGrid:
         if pad <= 0:
             return
         pad_block = Pad(row=self.crow_ix, col=self.ncol, side="right",
-                        height=self.main_h, width=pad,
+                        # height=self.main_h, width=pad,
                         attach_main=self.main_name)
         self._pad.append(pad_block)
         self.side_tracker["right"].append(pad_block)
@@ -772,6 +778,12 @@ class CrossGrid:
 
     def get_main_ax(self):
         return self.get_canvas_ax(self.main_name)
+
+    def set_main_width(self, width):
+        self.main_w = width
+
+    def set_main_height(self, height):
+        self.main_h = height
 
     def plot(self, figure=None, **kwargs):
         if self.gs is None:
