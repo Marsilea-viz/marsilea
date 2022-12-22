@@ -43,11 +43,15 @@ def _fmt_func(v):
     else:
         return ""
 
+def fmt_func2(v):
+
+    return ""
+
 
 def stacked_bar(data, ax: Axes = None,
                 labels=None, colors=None,
                 show_value=True,
-                orient="v", width=.8,
+                orient="v", width=.5,
                 **kwargs,
                 ):
     if ax is None:
@@ -66,13 +70,20 @@ def stacked_bar(data, ax: Axes = None,
     data = data[::-1]
 
     locs = np.arange(0, data.shape[1]) + 0.5
+    ax.set_ylim(0, data.shape[1])
+    # Add limitation here to make bars in center
+
+
     bottom = np.zeros(data.shape[1])
     for ix, row in enumerate(data):
         bars = bar(locs, row, width, bottom,
                    fc=colors[ix], **kwargs)
         bottom += row
+
         if show_value:
             ax.bar_label(bars, [fmt_func(v) for v in row], label_type="center")
+
+
     return ax
 
 
@@ -113,16 +124,20 @@ class Numbers(StatsBase):
 
 # TODO: Not fully implemented
 #       Align the axis lim
+
+
 class StackBar(StatsBase):
 
     def __init__(self, data,
                  labels=None, colors=None,
                  show_value=True,
-                 width=.7,
+                 width=.5,
                  **kwargs,
                  ):
         self.data = data
+        self.show_value = show_value
+        self.width = width
 
     def render_ax(self, ax, data):
         orient = "h" if self.is_flank else "v"
-        stacked_bar(data, ax=ax, orient=orient)
+        stacked_bar(data, ax=ax, orient=orient, show_value=self.show_value, width=self.width)

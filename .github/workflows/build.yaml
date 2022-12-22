@@ -54,9 +54,9 @@ jobs:
           pip install flit
           pip install .
 
-      - name: Publish to test pypi
+      - name: Publish to test.ipynb pypi
         env:
-          FLIT_INDEX_URL: https://test.pypi.org/legacy/
+          FLIT_INDEX_URL: https://test.ipynb.pypi.org/legacy/
           FLIT_USERNAME: ${{ secrets.PYPI_USERNAME }}
           FLIT_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
         run: flit publish || exit 0
