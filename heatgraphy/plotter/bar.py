@@ -43,15 +43,11 @@ def _fmt_func(v):
     else:
         return ""
 
-def fmt_func2(v):
-
-    return ""
-
 
 def stacked_bar(data, ax: Axes = None,
                 labels=None, colors=None,
                 show_value=True,
-                orient="v", width=.5,
+                orient="v", width=.5, value_size=6,
                 **kwargs,
                 ):
     if ax is None:
@@ -81,7 +77,7 @@ def stacked_bar(data, ax: Axes = None,
         bottom += row
 
         if show_value:
-            ax.bar_label(bars, [fmt_func(v) for v in row], label_type="center")
+            ax.bar_label(bars, [fmt_func(v) for v in row], label_type="center", fontsize=value_size)
 
 
     return ax
@@ -132,12 +128,14 @@ class StackBar(StatsBase):
                  labels=None, colors=None,
                  show_value=True,
                  width=.5,
+                 value_size=6,
                  **kwargs,
                  ):
         self.data = data
         self.show_value = show_value
         self.width = width
+        self.value_size = value_size
 
     def render_ax(self, ax, data):
         orient = "h" if self.is_flank else "v"
-        stacked_bar(data, ax=ax, orient=orient, show_value=self.show_value, width=self.width)
+        stacked_bar(data, ax=ax, orient=orient, show_value=self.show_value, width=self.width, value_size=self.value_size)
