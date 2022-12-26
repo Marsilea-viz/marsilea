@@ -6,7 +6,7 @@ from __future__ import annotations
 from collections import Counter
 from dataclasses import dataclass
 from itertools import cycle
-from typing import List, Set
+from typing import List, Set, Mapping
 
 import numpy as np
 import pandas as pd
@@ -81,19 +81,43 @@ class UpsetData:
     def from_sets(cls, sets: List[Set], names=None,
                   sets_attrs: pd.DataFrame = None,
                   items_attrs: pd.DataFrame = None) -> UpsetData:
-        if names is None:
-            names = [f"Set {i + 1}" for i in range(len(sets))]
+        """Create UpsetData from a series of sets
+
+        Parameters
+        ----------
+        sets : array of sets, dict
+            The sets data
+        names : optionsal
+            The name of sets, if name is not provided, it will
+            be automatically named as "Set 1, Set 2, ..."
+        sets_attrs : optional, pd.DataFrame
+            The attributes of sets, the input index should be the
+            same as names
+
+        
+        """
         items = set()
         new_sets = []
+        new_names = []
         sets_total = {}
-        for name, s in zip(names, sets):
+
+        if isinstance(sets, Mapping):
+            it = sets.items()
+        else:
+            if names is None:
+                names = [f"Set {i + 1}" for i in range(len(sets))]
+            it = zip(names, sets)
+        
+        for name, s in it:
             s = set(s)
             new_sets.append(s)
+            new_names.append(name)
             items.update(s)
             sets_total[name] = len(s)
+
         items = np.array(list(items))
         data = []
-        for name, s in zip(names, new_sets):
+        for name, s in zip(new_names, new_sets):
             d = [i in s for i in items]
             data.append(d)
         data = np.array(data, dtype=int).T
@@ -116,26 +140,28 @@ class UpsetData:
         return container
 
     def has_item(self, item):
-        """Return the sets name the item is in"""
+        """Return a list of sets' name the item is in"""
         item_data = self._sets_table.loc[item]
         return item_data.loc[item_data == 1].index.tolist()
 
     def intersection(self, sets_name):
-        """Return the items that appears in sets"""
+        """Return the items that are shared in different sets"""
         expr = "&".join([f"(`{s}`==1)" for s in sets_name])
         return self._sets_table.query(expr).index.tolist()
 
     def intersection_count(self):
-        """The number of sets an item has occurred"""
+        """The item has occurred in how many sets"""
         return self._sets_table.sum(axis=1)
 
     def sets_table(self):
         return self._sets_table
 
     def cardinality(self):
+        """Intersection size"""
         return self._sets_table.groupby(self.names).size()
 
     def degree(self):
+        """Intersection between how many sets"""
         return self._sets_table.groupby(self.names).sum(axis=1)
 
     def sets_size(self):
@@ -171,8 +197,37 @@ class Upset(Base):
         The sorting order
     min_degree, max_degree : int
         Select a fraction of subset to render by degree
-    min_size, max_size :
+    min_size, max_size : int
+        Select a fraction of subset to render by intersection size
+    color : color
+        The main color to use
+    shading : float
+        The value to dilute the main color
+    radius : float
+        The size of the dot
+    linewidth : float
+        The width of lines that connect the dots
+    grid_background : float
+        The value to dilute the main color for background
+    fontsize : int
+        Set the fontsize for the plot
+    add_intersections : bool, str, default: True
+        Whether or which side to add the intersection size.
+    add_sets_size : bool, str, default: True
+        Whether or which side to add the sets size.
+    add_labelss : bool, str, default: True
+        Whether or which side to add the label.
+    width : float
+    height : float
+    ratio : float
 
+    .. plot::
+        :context: close-figs
+
+        >>> from heatgraphy.upset import UpsetData, Upset
+        >>> data = UpsetData.from_sets([[1,2,3,4], [3,4,5,6]])
+        >>> Upset(data).render()
+    
 
     """
 

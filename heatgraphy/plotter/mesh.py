@@ -15,14 +15,8 @@ from matplotlib.offsetbox import AnchoredText
 
 from .base import RenderPlan
 from ..layout import close_ticks
-from ..utils import relative_luminance, get_colormap
+from ..utils import relative_luminance, get_colormap, ECHARTS16
 
-ECHARTS16 = [
-    "#5470c6", "#91cc75", "#fac858", "#ee6666",
-    "#9a60b4", "#73c0de", "#3ba272", "#fc8452",
-    "#27727b", "#ea7ccc", "#d7504b", "#e87c25",
-    "#b5c334", "#fe8463", "#26c0c0", "#f4e001"
-]
 
 default_label_props = {
     "left": dict(loc="center right", bbox_to_anchor=(0, 0.5)),
@@ -39,24 +33,6 @@ default_label_loc = {
     "left": "bottom",
     "right": "bottom",
 }
-
-
-def _add_label(label, ax, side, label_loc=None, props=None):
-    if side != "main":
-        if label_loc is None:
-            label_loc = default_label_loc[side]
-        label_props = default_label_props[label_loc]
-        loc = label_props["loc"]
-        bbox_to_anchor = label_props['bbox_to_anchor']
-        prop = label_props.get('prop')
-        if props is not None:
-            prop.update(props)
-
-        title = AnchoredText(label, loc=loc,
-                             bbox_to_anchor=bbox_to_anchor,
-                             prop=prop, pad=0.3, borderpad=0,
-                             bbox_transform=ax.transAxes, frameon=False)
-        ax.add_artist(title)
 
 
 def _mask_data(data, mask=None):
@@ -94,14 +70,22 @@ class _MeshBase(RenderPlan):
         if center is not None:
             self.norm = TwoSlopeNorm(center, vmin=vmin, vmax=vmax)
 
-    def create_render_datasets(self, *datasets):
-        if not self.is_deform:
-            return datasets
-        datasets = [self.deform_func(d) for d in datasets]
-        if self.is_split:
-            return [d for d in zip(*datasets)]
-        else:
-            return datasets
+    def _add_label(self, ax):
+        if self.side != "main":
+            if self.label_loc is None:
+                self.label_loc = default_label_loc[self.side]
+            label_props = default_label_props[self.label_loc]
+            loc = label_props["loc"]
+            bbox_to_anchor = label_props['bbox_to_anchor']
+            prop = label_props.get('prop')
+            if self.props is not None:
+                prop.update(self.props)
+
+            title = AnchoredText(self.label, loc=loc,
+                                bbox_to_anchor=bbox_to_anchor,
+                                prop=prop, pad=0.3, borderpad=0,
+                                bbox_transform=ax.transAxes, frameon=False)
+            ax.add_artist(title)
 
     def render(self, axes):
         render_data = self.get_render_data()
@@ -116,7 +100,7 @@ class _MeshBase(RenderPlan):
         else:
             self.render_ax(axes, render_data)
             label_ax = axes
-        _add_label(self.label, label_ax, self.side, self.label_loc, self.props)
+        self._add_label(label_ax)
 
     def set_legends(self, **kwargs):
         self._legend_kws.update(kwargs)
@@ -290,7 +274,14 @@ class Colors(_MeshBase):
     palette : dict, array-like
         Could be a mapping of label and colors or an array match
         the shape of data
-    cmap:
+    cmap :
+    mask : 
+    label : 
+    label_loc : 
+    props : 
+    legend_kws : 
+    kwargs : 
+        Pass to :meth:`pcolormesh <matplotlib.axes.Axes.pcolormesh>`
 
     """
 
@@ -380,6 +371,25 @@ class SizedMesh(_MeshBase):
     color: color-like or 2d array
         The color of circles, could be numeric / categorical matrix
         If using one color name, all circles will have the same color.
+    cmap : 
+    norm : 
+    vmin, vmax : 
+    alpha :
+    center :
+    sizes :
+    size_norm : 
+    edgecolor : 
+    linewidth : 
+    frameon :
+    palette : 
+    marker : 
+    label :
+    label_loc : 
+    props : 
+    legend : bool, default: True
+    size_legend_kws :
+    color_legend_kws :
+    kwargs :
 
     """
 
@@ -519,6 +529,20 @@ class PatchMesh(_MeshBase):
 
 
 class MarkerMesh(_MeshBase):
+    """The mesh that draw marker shape
+
+    Parameters
+    ----------
+
+    data :
+    color :
+    marker :
+    label :
+    label_loc : 
+    props :
+    kwargs :
+
+    """
     render_main = True
 
     def __init__(self, data, color="black", marker="*",
@@ -556,6 +580,20 @@ class TextMesh(_MeshBase):
 
 
 class LayersMesh(_MeshBase):
+    """The mesh that draw customized elements in multi-layers
+
+    Parameters
+    ----------
+
+    data :
+    layers :
+    pieces :
+    shrink :
+    label :
+    label_loc :
+    props :
+    
+    """
     render_main = True
 
     def __init__(self,

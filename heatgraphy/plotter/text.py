@@ -366,7 +366,7 @@ class AnnoLabels(_LabelBase):
                  connectionstyle=None, relpos=None, **options):
         # if mark_labels.ndim > 1:
         #     mark_labels = mark_labels.flatten()
-        self.data = mark_labels
+        self.data = self.data_validator(mark_labels, target="1d")
         self.canvas_size = None
         self.side = side
         self.pointer_length = pointer_length
@@ -467,7 +467,7 @@ class Labels(_LabelBase):
                  va=None, ha=None, rotation=None,
                  text_pad=0,
                  **options):
-        self.data = np.asarray(labels)
+        self.data = self.data_validator(labels, target="1d")
         self.align = None
         self.pad = text_pad
 

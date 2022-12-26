@@ -6,6 +6,14 @@ from matplotlib import colors as mcolors
 from matplotlib.colors import Colormap
 
 
+ECHARTS16 = [
+    "#5470c6", "#91cc75", "#fac858", "#ee6666",
+    "#9a60b4", "#73c0de", "#3ba272", "#fc8452",
+    "#27727b", "#ea7ccc", "#d7504b", "#e87c25",
+    "#b5c334", "#fe8463", "#26c0c0", "#f4e001"
+]
+
+
 def pairwise(iterable):
     """This is not available in itertools until 3.10"""
     a, b = tee(iterable)

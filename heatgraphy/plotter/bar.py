@@ -5,13 +5,7 @@ from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
 
 from .base import StatsBase
-
-ECHARTS16 = [
-    "#5470c6", "#91cc75", "#fac858", "#ee6666",
-    "#9a60b4", "#73c0de", "#3ba272", "#fc8452",
-    "#27727b", "#ea7ccc", "#d7504b", "#e87c25",
-    "#b5c334", "#fe8463", "#26c0c0", "#f4e001"
-]
+from ..utils import ECHARTS16
 
 
 def simple_bar(data,
@@ -81,7 +75,7 @@ class Numbers(StatsBase):
     def __init__(self, data, width=.7, color="C0",
                  show_value=True, fmt=None, label=None, label_pad=2,
                  props=None, **kwargs):
-        self.data = data
+        self.data = self.data_validator(data, target="1d")
         self.width = width
         self.color = color
         self.show_value = show_value

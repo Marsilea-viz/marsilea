@@ -112,6 +112,18 @@ class _DendrogramBase:
 
 
 class Dendrogram(_DendrogramBase):
+    """A dendrogram class
+    
+    Parameters
+    ----------
+
+    data : np.ndarray
+    method : str
+        Refer to :func:`scipy.cluster.hierachy.linkage`
+    metric : str
+        Refer to :func:`scipy.cluster.hierachy.linkage`
+    
+    """
 
     def __init__(self,
                  data: np.ndarray,
@@ -181,6 +193,17 @@ class Dendrogram(_DendrogramBase):
 
 
 class GroupDendrogram(_DendrogramBase):
+    """Meta dendrogram
+
+    Parameters
+    ----------
+
+    dens : array of :class:`Dendrogram`
+        A list of :class:`Dendrogram`
+    method : str
+    metric : str
+    
+    """
     def __init__(self,
                  dens: List[Dendrogram],
                  method=None,
