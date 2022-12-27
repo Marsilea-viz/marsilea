@@ -71,9 +71,31 @@ def stacked_bar(data, ax: Axes = None,
 
 
 class Numbers(StatsBase):
+    """Show numbers in bar plot
+
+    Parameters
+    ----------
+    data : np.ndarray
+        1D data
+    width : float
+        The width of bar
+    color : color
+        The color of bar
+    show_value : bool
+        Whether to show value on the bar
+    fmt : str
+        Format the value show on the bar
+    label : str
+        The label of the plot
+    label_pad : float
+        The spacing between label and the plot
+    props : dict
+        See :class:`matplotlib.text.Text`
+    
+    """
 
     def __init__(self, data, width=.7, color="C0",
-                 show_value=True, fmt=None, label=None, label_pad=2,
+                 show_value=True, fmt=None, label=None, label_pad=2.,
                  props=None, **kwargs):
         self.data = self.data_validator(data, target="1d")
         self.width = width

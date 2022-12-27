@@ -94,7 +94,7 @@ def apply_transform(action, data):
         st.error("Transformation failed", icon="🚨")
 
 # Hack the style of elements in streamlit
-st.markdown(f"""
+st.markdown("""
 <style>
     .main .block-container{{
         min-width: 800px;

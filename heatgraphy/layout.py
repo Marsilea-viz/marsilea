@@ -1,4 +1,5 @@
 from __future__ import annotations
+from itertools import groupby
 
 import logging
 from copy import deepcopy
@@ -638,7 +639,10 @@ class CrossGrid:
         offset_w_gb = []
         offset_h = []
         offset_h_gb = []
-
+        
+        # TODO: Handle render size here
+        # If a block is span multiple cell
+        # How to handle the render size?
         for gb in self._adjust_render_size:
             if gb.side in ["top", "bottom"]:
                 h_ratios[gb.row] = 0

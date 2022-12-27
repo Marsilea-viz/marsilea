@@ -6,10 +6,10 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
-from .data_input import FileUpload, PasteText
+from .data_input import FileUpload
 from heatgraphy.base import MatrixBase
 from heatgraphy.plotter import (Bar, Box, Boxen, Colors, Count, Strip, Violin,
-                                Point, Swarm, ColorMesh, Labels, Title)
+                                Point, Swarm, ColorMesh, AnnoLabels, Labels, Title)
 from heatgraphy.plotter import RenderPlan
 
 
@@ -56,6 +56,7 @@ plotter_mapper = dict(
     violin=Violin,
     point=Point,
     labels=Labels,
+    annolabels=AnnoLabels,
     dendrogram=None,
     title=Title,
 )
@@ -96,7 +97,7 @@ class PlotAdder:
             # rerender figure
             # TODO: Check the data input and tips prompt
             if not self.no_data:
-                self.data = self.user_input.parse()
+                self.data = self.get_data()
                 print(self.data)
                 main_data = st.session_state["data"]
                 if self.side in ["left", "right"]:
@@ -109,6 +110,9 @@ class PlotAdder:
                     if len(self.data) < match_num:
                         st.error("Your input data is less than required.")
             self.write_action()
+
+    def get_data(self):
+        return self.user_input.parse()
 
     def form(self):
         return st.form(self.plot_key)
@@ -185,21 +189,19 @@ class DendrogramAdder(PlotAdder):
     colors: Any
     linewidth: float
 
+    methods = ["single", "complete", "average", "weighted",
+               "centroid", "median", "ward"]
+    metrics = ["euclidean", "minkowski", "cityblock",
+               "sqeuclidean", "cosine", "correlation",
+               "jaccard", "jensenshannon", "chebyshev",
+               "canberra", "braycurtis", "mahalanobis"]
+
     def input_panel(self):
         pass
 
-    def handle_input(self):
-        pass
-
     def extra_options(self):
-        methods = ["single", "complete", "average", "weighted",
-                   "centroid", "median", "ward"]
-        metrics = ["euclidean", "minkowski", "cityblock",
-                   "sqeuclidean", "cosine", "correlation",
-                   "jaccard", "jensenshannon", "chebyshev",
-                   "canberra", "braycurtis", "mahalanobis"]
-        self.method = st.selectbox("Method", options=methods)
-        self.metric = st.selectbox("Metric", options=metrics)
+        self.method = st.selectbox("Method", options=self.methods)
+        self.metric = st.selectbox("Metric", options=self.metrics)
         self.add_divider = st.checkbox("Add divide line")
         self.add_base = st.checkbox("Add base dendrogram", value=True)
         self.add_meta = st.checkbox("Add meta dendrogram", value=True)
@@ -233,11 +235,11 @@ class BarAdder(PlotAdder):
     errcolor: str
     errwidth: float
     capsize: float
-    width: float
+    bar_width: float
     show_value: bool
 
     def extra_options(self):
-        c1, c2, c3, c4 = st.columns(4)
+        c1, c2, c3, c4, c5 = st.columns(5)
         with c1:
             self.color = st.color_picker("Color", value="#00b796")
         with c2:
@@ -248,18 +250,188 @@ class BarAdder(PlotAdder):
         with c4:
             self.capsize = st.number_input("Error Cap Size", value=.3,
                                            min_value=.1, max_value=1.)
-        # self.width = st.slider("Bar Width", value=.8,
-        #                        min_value=.1, max_value=1.)
+        with c5:
+            self.bar_width = st.number_input("Bar Width", value=.8,
+                                             min_value=.1, max_value=1.)
 
     def get_options(self):
         return dict(color=self.color, errcolor=self.errcolor,
                     errwidth=self.errwidth, capsize=self.capsize,
+                    width=self.bar_width
                     )
+
+
+class BoxAdder(PlotAdder):
+    color: str
+    linewidth: float
+    box_width: float
+
+    def extra_options(self):
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            self.color = st.color_picker("Color", value="#00b796")
+        with c2:
+            self.linewidth = st.number_input("Line Width", value=1.,
+                                             min_value=0., max_value=5.)
+        with c3:
+            self.box_width = st.number_input("Box Width", value=.8,
+                                             min_value=.1, max_value=1.)
+
+    def get_options(self):
+        return dict(color=self.color,
+                    linewidth=self.linewidth,
+                    width=self.box_width
+                    )
+
+
+class BoxenAdder(PlotAdder):
+    color: str
+    linewidth: float
+    box_width: float
+
+    def extra_options(self):
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            self.color = st.color_picker("Color", value="#00b796")
+        with c2:
+            self.linewidth = st.number_input("Line Width", value=1.,
+                                             min_value=0., max_value=5.)
+        with c3:
+            self.box_width = st.number_input("Box Width", value=.8,
+                                             min_value=.1, max_value=1.)
+
+    def get_options(self):
+        return dict(color=self.color,
+                    linewidth=self.linewidth,
+                    width=self.box_width
+                    )
+
+
+class PointAdder(PlotAdder):
+    color: str
+    linestyle: str
+    errwidth: float
+    capsize: float
+
+    ls = {
+        "No Line": "",
+        "Straight": "-",
+        "Dashed": "--"
+    }
+
+    def extra_options(self):
+        c1, c2, c3, c4 = st.columns(4)
+        with c1:
+            self.color = st.color_picker("Color", value="#00b796")
+        with c2:
+            linestyle = st.selectbox(
+                "Line", options=["No Line", "Straight", "Dashed"])
+            self.linestyle = self.ls[linestyle]
+        with c3:
+            self.errwidth = st.number_input("Error Bar Width", value=1.,
+                                            min_value=0., max_value=5.)
+        with c4:
+            self.capsize = st.number_input("Error Cap Size", value=.3,
+                                           min_value=.1, max_value=1.)
+
+    def get_options(self):
+        return dict(color=self.color,
+                    linestyles=self.linestyle,
+                    errwidth=self.errwidth,
+                    capsize=self.capsize
+                    )
+
+
+class ViolinAdder(PlotAdder):
+    scale: str | None
+    color: str
+    inner: str | None
+    linewidth: float
+
+    def extra_options(self):
+        c1, c2, c3, c4 = st.columns(4)
+        with c1:
+            self.color = st.color_picker("Color", value="#00b796")
+        with c2:
+            self.scale = st.selectbox("Scale Method", options=["area", "count", "width"],
+                                      help="The method used to scale the width of each violin."
+                                      "If area, each violin will have the same area. "
+                                      "If count, the width of the violins will be scaled by "
+                                      "the number of observations in that bin."
+                                      "If width, each violin will have the same width.")
+        with c3:
+            self.inner = st.selectbox("Violin Interior", options=[
+                                      "box", "quartile", "point", "stick"])
+        with c4:
+            self.linewidth = st.number_input("Line Width", value=1.,
+                                             min_value=0., max_value=5.)
+
+    def get_options(self):
+        return dict(color=self.color,
+                    scale=self.scale, inner=self.inner,
+                    linewidth=self.linewidth,
+                    )
+
+
+# For Strip and Swarm
+class StripAdder(PlotAdder):
+    color: str
+    edgecolor: str
+    marker_size: float
+
+    def extra_options(self):
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            self.color = st.color_picker("Point Color", value="#00b796")
+        with c2:
+            self.edgecolor = st.color_picker(
+                "Point Edge Color", value="#eeeeee")
+        with c3:
+            self.marker_size = st.number_input("Marker Size", value=1.,
+                                               min_value=0., max_value=5.)
+
+    def get_options(self):
+        return dict(color=self.color,
+                    edgecolor=self.edgecolor,
+                    size=self.marker_size,
+                    )
+
+
+class CountAdder(PlotAdder):
+    color: str
+
+    def extra_options(self):
+        self.color = st.color_picker("Color", value="#00b796")
+
+    def get_options(self):
+        return dict(color=self.color)
+
+
+class AnnoLabelsAdder(PlotAdder):
+
+    def input_panel(self):
+
+        super().input_panel()
+        self.anno_texts = st.text_input(
+            "The label to show, seperated by comma(,)")
+        self.anno_texts = self.anno_texts.split(",")
+
+    def get_data(self):
+        texts = self.user_input.parse()
+        return np.ma.masked_where(~np.in1d(texts, self.anno_texts), texts)
 
 
 plotter_adder = dict(bar=BarAdder,
                      dendrogram=DendrogramAdder,
                      title=TitleAdder,
+                     annolabels=AnnoLabelsAdder,
+                     box=BoxAdder,
+                     boxen=BoxenAdder,
+                     count=CountAdder,
+                     strip=StripAdder,
+                     swarm=StripAdder,
+                     violin=ViolinAdder,
+                     point=PointAdder,
                      )
 
 
@@ -306,15 +478,17 @@ def spliter(orient):
                             help="Use number seperated by comma to indicate "
                                  "where to split the heatmap eg. 10,15"
                             )
-        labels = st.text_input("Labels",
-                               help="Labels should be seperated by comma,"
-                                    "eg. a,a,b,b"
-                               )
+        # labels = st.text_input("Labels",
+        #                        help="Labels should be seperated by comma,"
+        #                             "eg. a,a,b,b"
+        #                        )
+        labels = FileUpload()
         order = st.text_input("Order", help="eg. a,b")
         submit = st.form_submit_button("Confirm")
         if submit:
             cut = [int(c) for c in cut.split(",")]
-            labels = [str(label) for label in labels.split(",")]
+            # labels = [str(label) for label in labels.split(",")]
+            labels = labels.parse()
             order = [str(o) for o in order]
             st.session_state[f"split_{orient}"] = (
                 SplitAction(orient=orient, cut=cut,

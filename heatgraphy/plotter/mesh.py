@@ -126,15 +126,25 @@ class ColorMesh(_MeshBase):
     mask : array of bool
         Indicate which cell will be masked and not rendered
     alpha : float
-    linewidth
-    linecolor
-    annot
-    fmt
-    annot_kws
-    cbar_kws
-    label
-    label_loc
-    props
+        The transparency value
+    linewidth : float
+        The width of grid line 
+    linecolor : 
+        The color of grid line
+    annot : bool
+        Whether to show the value
+    fmt : str
+        The format string
+    annot_kws : dict
+        See :class:`matplotlib.text.Text`
+    cbar_kws : dict
+        See :class:`matplotlib.colorbar.Colorbar`,
+    label : str
+        The label of the plot, only show if added to the side plot
+    label_loc : str
+        Where to add the label
+    props : dict
+        See :class:`matplotlib.text.Text`
     kwargs :
 
     Examples
@@ -274,12 +284,18 @@ class Colors(_MeshBase):
     palette : dict, array-like
         Could be a mapping of label and colors or an array match
         the shape of data
-    cmap :
-    mask : 
-    label : 
-    label_loc : 
-    props : 
+    cmap : str or :class:`matplotlib.colors.Colormap`
+        The colormap used to map the value to the color
+    mask : array of bool
+        Indicate which cell will be masked and not rendered
+    label : str
+        The label of the plot, only show if added to the side plot
+    label_loc : str
+        Where to add the label
+    props : dict
+        See :class:`matplotlib.text.Text`
     legend_kws : 
+        See :func:`legendkit.legend`
     kwargs : 
         Pass to :meth:`pcolormesh <matplotlib.axes.Axes.pcolormesh>`
 
@@ -371,24 +387,44 @@ class SizedMesh(_MeshBase):
     color: color-like or 2d array
         The color of circles, could be numeric / categorical matrix
         If using one color name, all circles will have the same color.
-    cmap : 
-    norm : 
-    vmin, vmax : 
-    alpha :
-    center :
-    sizes :
-    size_norm : 
-    edgecolor : 
-    linewidth : 
-    frameon :
-    palette : 
-    marker : 
-    label :
-    label_loc : 
-    props : 
+    cmap : str or :class:`matplotlib.colors.Colormap`
+        The colormap used to map the value to the color
+    norm : :class:`matplotlib.colors.Normalize`
+        A Normalize instance to map data
+    vmin, vmax : number, optional
+        Value to determine the value mapping behavior
+    center : number, optional
+        The value to center on colormap, notice that this is different from
+        seaborn; If set, a :class:`matplotlib.colors.TwoSlopeNorm` will be used
+        to center the colormap.
+    alpha : float
+        The transparency value
+    sizes : tuple of float
+        The range of the size of elements
+    size_norm : :class:`matplotlib.colors.Normalize`
+        A Normalize instance to map size
+    edgecolor : color
+        The border color of each elements
+    linewidth : float
+        The width of the border of each elements
+    frameon : bool
+        Whether to draw a frame
+    palette : dict
+        Use to map color if input categorical data
+    marker : str
+        See :mod:`matplotlib.markers`
+    label : str
+        The label of the plot, only show if added to the side plot
+    label_loc : str
+        Where to add the label
+    props : dict
+        See :class:`matplotlib.text.Text`
     legend : bool, default: True
-    size_legend_kws :
-    color_legend_kws :
+        Whether to add a legend
+    size_legend_kws : dict
+        Control the size legend, See :func:`legendkit.size_legend`
+    color_legend_kws : dict
+        Control the color legend, See :func:`legendkit.legend`
     kwargs :
 
     """
@@ -534,13 +570,31 @@ class MarkerMesh(_MeshBase):
     Parameters
     ----------
 
-    data :
-    color :
-    marker :
-    label :
-    label_loc : 
-    props :
+    data : np.ndarray
+        Must be bool matrix to indicate if a marker is drawn at specific cell
+    color : color
+        The color of the marker
+    marker : str
+        See :mod:`matplotlib.markers`
+    label : str
+        The label of the plot, only show when added to the side plot
+    label_loc : str
+        The position of the label
+    props : dict
+        See :class:`matplotlib.text.Text`
     kwargs :
+
+
+    Examples
+    --------
+
+    .. plot::
+        :context: close-figs
+
+        >>> from heatgraphy.plotter import MarkerMesh
+        >>> data = np.random.randn(10, 10) > 0
+        >>> _, ax = plt.subplots()
+        >>> MarkerMesh(data, color="darkgreen", marker="h").render(ax)
 
     """
     render_main = True
@@ -582,16 +636,61 @@ class TextMesh(_MeshBase):
 class LayersMesh(_MeshBase):
     """The mesh that draw customized elements in multi-layers
 
+    You can specify layers in two ways.
+
+        #. One layer of data with different elements
+        #. Multiple layers of data, each layer is a customized element.
+            This will overlay elements on each other.
+
     Parameters
     ----------
 
-    data :
-    layers :
-    pieces :
-    shrink :
-    label :
-    label_loc :
-    props :
+    data : np.ndarray, optional
+        If you only have one layer, use this
+    layers : list of data
+        If you have multiple layer, use this. 
+        Each layer must be a bool matrix to indicate if the element
+        is render at specific cell.
+    pieces : dict or array
+        If you have one layer, use a dict to define how to render each element.
+        If you have multiple layer, use an array to define how to render each layer.
+    label : str
+        The label of the mesh, only show when added to the side plot
+    label_loc : str
+        The location of the label
+    props : dict
+        See :class:`matplotlib.text.Text`
+
+    Examples
+    --------
+
+    Draw one layer
+
+    .. plot::
+        :context: close-figs
+
+        >>> from heatgraphy.plotter import LayersMesh
+        >>> from heatgraphy.layers import Rect, FrameRect
+        >>> data = np.random.chice([1, 2, 3], (10, 10))
+        >>> pieces = {1: Rect(color="r", label="1"), 
+        ...           2: FrameRect(color="g", label="2"),
+        ...           3: Rect(color="b", label="3")}
+        >>> _, ax = plt.subplots()
+        >>> LayersMesh(data=data, pieces=pieces).render(ax)
+
+    Draw multiple layers
+
+    .. plot::
+        :context: close-figs
+
+        >>> d1 = np.random.chice([1, 2, 3], (10, 10))
+        >>> d2 = np.random.chice([1, 2, 3], (10, 10))
+        >>> d3 = np.random.chice([1, 2, 3], (10, 10))
+        >>> pieces = [Rect(color="r", label="1"), 
+        ...           FrameRect(color="g", label="2"),
+        ...           Rect(color="b", label="3")]
+        >>> _, ax = plt.subplots()
+        >>> LayersMesh(layers=[d1, d2, d3], pieces=pieces).render(ax)
     
     """
     render_main = True
