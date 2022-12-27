@@ -48,6 +48,9 @@ def stacked_bar(data, ax: Axes = None,
                 labels=None, colors=None,
                 show_value=True,
                 orient="v", width=.5, value_size=6,
+                show_labels=False,
+                label_position=(1.1, 0.9),
+                label_size=8,
                 **kwargs,
                 ):
     if ax is None:
@@ -63,6 +66,9 @@ def stacked_bar(data, ax: Axes = None,
         if show_value:
             fmt_func = _fmt_func
 
+    if labels is None:
+        labels = list(range(1, data.shape[0]+1))
+
     data = data[::-1]
 
     locs = np.arange(0, data.shape[1]) + 0.5
@@ -73,12 +79,14 @@ def stacked_bar(data, ax: Axes = None,
     bottom = np.zeros(data.shape[1])
     for ix, row in enumerate(data):
         bars = bar(locs, row, width, bottom,
-                   fc=colors[ix], **kwargs)
+                   fc=colors[ix], label=labels[ix], **kwargs)
         bottom += row
 
         if show_value:
             ax.bar_label(bars, [fmt_func(v) for v in row], label_type="center", fontsize=value_size)
 
+    if show_labels:
+        ax.legend(loc=2, bbox_to_anchor=label_position, borderaxespad=0., fontsize=label_size)
 
     return ax
 
@@ -118,6 +126,8 @@ class Numbers(StatsBase):
                          **self.props)
 
 
+
+
 # TODO: Not fully implemented
 #       Align the axis lim
 
@@ -129,13 +139,43 @@ class StackBar(StatsBase):
                  show_value=True,
                  width=.5,
                  value_size=6,
+                 show_labels=False,
+                 label_position=(1.1, 0.9),
+                 label_size=8,
                  **kwargs,
                  ):
         self.data = data
+        self.labels = labels
         self.show_value = show_value
         self.width = width
         self.value_size = value_size
+        self.show_labels = show_labels
+        self.label_position = label_position
+        self.label_size = label_size
+
 
     def render_ax(self, ax, data):
         orient = "h" if self.is_flank else "v"
-        stacked_bar(data, ax=ax, orient=orient, show_value=self.show_value, width=self.width, value_size=self.value_size)
+
+        if self.is_flank:
+            data = data[::-1]
+
+        if self.is_body:
+            ax.set_xlim(0, len(data))
+        else:
+            ax.set_ylim(0, len(data))
+        if self.side == "left":
+            ax.invert_xaxis()
+
+
+
+
+        stacked_bar(data, ax=ax, orient=orient,
+                    labels=self.labels,
+                    show_value=self.show_value,
+                    width=self.width, value_size=self.value_size,
+                    show_labels=self.show_labels,
+                    label_position=self.label_position,
+                    label_size=self.label_size
+                    )
+
