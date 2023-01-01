@@ -53,8 +53,8 @@ def stacked_bar(data, ax: Axes = None,
                 label_size=8,
                 **kwargs,
                 ):
-    if ax is None:
-        ax = plt.gca()
+    #if ax is None:
+    ax = plt.gca()
     bar = ax.bar if orient == "v" else ax.barh
 
     if colors is None:
@@ -133,6 +133,33 @@ class Numbers(StatsBase):
 
 
 class StackBar(StatsBase):
+    """Stacked Bar
+
+
+     Parameters
+     ----------------
+     data : np.ndarray, pd.DataFrame
+        2D data
+     labels : str or list of str, optional
+        A list with the same length as data
+     colors : color or list of color, optional
+        The colors of the bar faces.
+
+
+    .. plot::
+        :context: close-figs
+
+        >>> import heatgraphy as hg
+        >>> import numpy as np
+        >>> d1 = np.random.rand(10,12)
+        >>> d2 = np.random.randint(1,100,(12,10))
+        >>> plot = {cls_name}(np.random.randint(0, 10, {shape}))
+        >>> hg.plotter.StackBar(d2,show_value=True, value_size = 4, show_labels=True, label_position=(-0.4,0.9))
+
+
+
+     """
+
 
     def __init__(self, data,
                  labels=None, colors=None,
