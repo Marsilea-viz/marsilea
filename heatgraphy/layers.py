@@ -15,9 +15,10 @@ class Layers(MatrixBase):
                  layers=None,
                  pieces=None,
                  cluster_data=None,
-                 shrink=(1, 1),
+                 shrink=(1., 1.),
                  height=None,
                  width=None,
+                 aspect=1.,
                  name=None,
                  ):
 
@@ -36,7 +37,7 @@ class Layers(MatrixBase):
             main_aspect = height / width
         else:
             Y, X = cluster_data.shape
-            main_aspect = Y * 3 / X
+            main_aspect = Y * aspect / X
         super().__init__(cluster_data, main_aspect=main_aspect, 
                          w=width, h=height, name=name)
 
@@ -44,10 +45,10 @@ class Layers(MatrixBase):
 
 
 class Piece:
-    frac_x = 1
-    frac_y = 1
     label = None
     legend_entry = True
+    zorder = 0
+    color = "C0"
 
     def get_label(self):
         if self.label is None:
@@ -58,8 +59,11 @@ class Piece:
     def set_label(self, label):
         self.label = label
 
-    def set_frac(self, frac):
-        self.frac_x, self.frac_y = frac
+    @staticmethod
+    def draw_center(x, y, w, h):
+        cx = x + w / 2.
+        cy = y + h / 2.
+        return cx, cy
 
     def transform_frac(self, x, y, w, h):
         x = x + w * ((1 - self.frac_x) / 2)
@@ -84,10 +88,11 @@ class Piece:
 
 class Rect(Piece):
 
-    def __init__(self, color="C0", label=None, legend=True):
+    def __init__(self, color="C0", label=None, legend=True, zorder=0):
         self.color = color
         self.label = label
         self.legend_entry = legend
+        self.zorder = zorder
 
     def __repr__(self):
         return f"{self.__class__.__name__}(color='{self.color}', " \
@@ -97,43 +102,50 @@ class Rect(Piece):
         return Rectangle((x, y), w, h, facecolor=self.color)
 
 
-class Bg(Piece):
-
-    def __init__(self, color="C0", label=None, legend=True):
-        self.color = color
-        self.label = label
-        self.legend_entry = legend
-
-    def __repr__(self):
-        return f"{self.__class__.__name__}(color='{self.color}', " \
-               f"label='{self.label}')"
-
-    def draw(self, x, y, w, h):
-        return Rectangle((x, y), w, h, fc=self.color)
+# class Bg(Piece):
+#
+#     def __init__(self, color="C0", label=None, legend=True):
+#         self.color = color
+#         self.label = label
+#         self.legend_entry = legend
+#
+#     def __repr__(self):
+#         return f"{self.__class__.__name__}(color='{self.color}', " \
+#                f"label='{self.label}')"
+#
+#     def draw(self, x, y, w, h):
+#         return Rectangle((x, y), w, h, fc=self.color)
 
 
 class FracRect(Piece):
-    def __init__(self, color="C0", frac=(.9, .5), label=None, legend=True):
+    def __init__(self, color="C0", frac=(.9, .5), label=None, legend=True, zorder=0):
         self.color = color
         self.label = label
-        self.set_frac(frac)
+        self.frac = frac
         self.legend_entry = legend
+        self.zorder = zorder
 
     def __repr__(self):
         return f"{self.__class__.__name__}(color='{self.color}', " \
                f"label='{self.label}')"
 
     def draw(self, x, y, w, h):
-        x, y, w, h = self.transform_frac(x, y, w, h)
-        return Rectangle((x, y), w, h, fc=self.color)
+        fx, fy = self.frac
+        draw_w, draw_h = w * fx, h * fy
+        # compute the actual drawing bbox
+        # Lower-left corner
+        draw_x = x + (w - draw_w) / 2.
+        draw_y = y + (h - draw_h) / 2.
+        return Rectangle((draw_x, draw_y), draw_w, draw_h, fc=self.color)
 
 
 class FrameRect(Piece):
-    def __init__(self, color="C0", width=1, label=None, legend=True):
+    def __init__(self, color="C0", width=1, label=None, legend=True, zorder=0):
         self.color = color
         self.width = width
         self.label = label
         self.legend_entry = legend
+        self.zorder = zorder
 
     def __repr__(self):
         return f"{self.__class__.__name__}(color={self.color}, " \
@@ -148,33 +160,32 @@ class FrameRect(Piece):
 
 class RightTri(Piece):
 
+    point_order = {
+        "lower left": [1, 0, 3],
+        "lower right": [2, 0, 3],
+        "upper left": [0, 1, 2],
+        "upper right": [1, 2, 3],
+    }
+
     def __init__(self, color="C0", right_angle="lower left",
-                 frac=(1, 1), label=None, legend=True):
+                 label=None, legend=True, zorder=0):
         self.color = color
         self.pos = right_angle
         self.label = label
-        self.set_frac(frac)
         self.legend_entry = legend
+        self.zorder = zorder
 
     def __repr__(self):
         return f"{self.__class__.__name__}(color={self.color}, " \
                f"label={self.label})"
 
     def draw(self, x, y, w, h):
-
-        x, y, w, h = self.transform_frac(x, y, w, h)
         p0 = (x, y)
         p1 = (x, y + h)
         p2 = (x + w, y + h)
         p3 = (x + w, y)
-        if self.pos == "lower left":
-            ps = [p1, p0, p3]
-        elif self.pos == "upper left":
-            ps = [p0, p1, p2]
-        elif self.pos == "upper right":
-            ps = [p1, p2, p3]
-        else:
-            ps = [p2, p0, p3]
+        points = np.array([p0, p1, p2, p3])
+        ps = points[self.point_order[self.pos]]
         return Polygon(ps, fc=self.color)
 
 

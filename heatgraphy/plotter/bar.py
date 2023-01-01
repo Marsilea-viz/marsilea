@@ -47,8 +47,8 @@ def stacked_bar(data, ax: Axes = None,
                 label_size=8,
                 **kwargs,
                 ):
-    #if ax is None:
-    ax = plt.gca()
+    if ax is None:
+        ax = plt.gca()
     bar = ax.bar if orient == "v" else ax.barh
 
     if colors is None:
