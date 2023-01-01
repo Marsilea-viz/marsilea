@@ -4,3 +4,4 @@ openpyxl
 xlrd
 streamlit
 scikit-learn
+mpl_fontkit

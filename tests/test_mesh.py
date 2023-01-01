@@ -19,6 +19,12 @@ numbers = np.random.randint(10, 100, ROW)
 
 
 def test_colormesh():
-    data = np.random.randn(10, 30)
     ax = plt.subplot(111)
-    ColorMesh(data).render(ax)
+    ColorMesh(matrix).render(ax)
+    plt.close()
+
+
+def test_colors():
+    ax = plt.subplot(111)
+    Colors(matrix).render(ax)
+    plt.close()

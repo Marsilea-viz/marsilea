@@ -5,13 +5,7 @@ from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
 
 from .base import StatsBase
-
-ECHARTS16 = [
-    "#5470c6", "#91cc75", "#fac858", "#ee6666",
-    "#9a60b4", "#73c0de", "#3ba272", "#fc8452",
-    "#27727b", "#ea7ccc", "#d7504b", "#e87c25",
-    "#b5c334", "#fe8463", "#26c0c0", "#f4e001"
-]
+from ..utils import ECHARTS16
 
 
 def simple_bar(data,
@@ -92,11 +86,33 @@ def stacked_bar(data, ax: Axes = None,
 
 
 class Numbers(StatsBase):
+    """Show numbers in bar plot
+
+    Parameters
+    ----------
+    data : np.ndarray
+        1D data
+    width : float
+        The width of bar
+    color : color
+        The color of bar
+    show_value : bool
+        Whether to show value on the bar
+    fmt : str
+        Format the value show on the bar
+    label : str
+        The label of the plot
+    label_pad : float
+        The spacing between label and the plot
+    props : dict
+        See :class:`matplotlib.text.Text`
+    
+    """
 
     def __init__(self, data, width=.7, color="C0",
-                 show_value=True, fmt=None, label=None, label_pad=2,
+                 show_value=True, fmt=None, label=None, label_pad=2.,
                  props=None, **kwargs):
-        self.data = data
+        self.data = self.data_validator(data, target="1d")
         self.width = width
         self.color = color
         self.show_value = show_value

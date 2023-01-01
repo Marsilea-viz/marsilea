@@ -364,7 +364,7 @@ class MatrixBase(Base):
                        add_meta=True, add_base=True, add_divider=True,
                        meta_color=None, linewidth=None, colors=None,
                        divider_style="--",
-                       show=True, name=None, size=0.5, pad=0):
+                       show=True, name=None, size=0.5, pad=0.):
         """Run cluster and add dendrogram
 
         .. note::

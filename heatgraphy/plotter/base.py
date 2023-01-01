@@ -1,13 +1,73 @@
 from __future__ import annotations
 
-from typing import Any, List, Callable
+from typing import Any, List, Iterable
 
 import numpy as np
+import pandas as pd
 from matplotlib.artist import Artist
 from matplotlib.axes import Axes
 from seaborn import despine
 
+from ..exceptions import DataError
 from .._deform import Deformation
+
+
+class DataLoader:
+    """Handle user data"""
+
+    def __init__(self, data, target="2d", plotter: str = None):
+        self.plotter = plotter
+        self.data = self.from_any(data, target=target)
+
+    def get_array(self):
+        return np.asarray(self.data)
+    
+    def from_any(self, data, target="2d"):
+        if isinstance(data, pd.DataFrame):
+            return self.from_dataframe(data, target=target)
+        elif isinstance(data, np.ndarray):
+            return self.from_ndarray(data, target=target)
+        elif isinstance(data, Iterable):
+            return self.from_iterable(data, target=target)
+        else:
+            raise TypeError(f"Your input data with type {type(data)} is not supported.")
+
+
+    def from_dataframe(self, data: pd.DataFrame, target="2d"):
+        ndata = data.to_numpy()
+        if target == "1d":
+            self._check_1d_compat(ndata)
+            ndata = ndata.flatten()
+        return ndata
+
+    def from_ndarray(self, data: np.ndarray, target="2d"):
+        ndata = data
+        if target == "1d":
+            self._check_1d_compat(ndata)
+            ndata = ndata.flatten()
+        if (target == "2d") & (ndata.ndim == 1):
+            ndata = ndata.reshape(1, -1)
+        return ndata
+
+    def from_iterable(self, data: Iterable, target="2d"):
+        try:
+            ndata = np.asarray(data)
+        except Exception:
+            msg = f"Cannot handle your data with type {type(data)}"
+            if self.plotter is not None:
+                 msg += f" for {self.plotter}."
+            raise DataError(msg)
+        return self.from_ndarray(ndata, target=target)
+
+    def _check_1d_compat(self, data: np.ndarray):
+        if data.ndim == 2:
+            row, col = data.shape
+            if (row == 1) or (col == 1):
+                if self.plotter is not None:
+                    msg = f"{self.plotter} require 1D data."
+                else:
+                    msg = "Require 1D data."
+                raise DataError(msg)
 
 
 class RenderPlan:
@@ -109,6 +169,15 @@ class RenderPlan:
             return self.deform_func(self.data)
         else:
             return self.data
+    
+    def create_render_datasets(self, *datasets):
+        if not self.is_deform:
+            return datasets
+        datasets = [self.deform_func(d) for d in datasets]
+        if self.is_split:
+            return [d for d in zip(*datasets)]
+        else:
+            return datasets
 
     @property
     def is_body(self):
@@ -197,6 +266,11 @@ class RenderPlan:
 
     def set_legends(self, *args, **kwargs):
         raise NotImplemented
+
+    def data_validator(self, data, target="2d"):
+        name = self.__class__.__name__
+        loader = DataLoader(data, target=target, plotter=name)
+        return loader.get_array()
 
 
 class StatsBase(RenderPlan):

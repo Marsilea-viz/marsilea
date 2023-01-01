@@ -331,6 +331,7 @@ class AnnoLabels(_LabelBase):
     connectionstyle :
     relpos :
     options :
+        Pass to :class:`matplotlib.text.Text`
 
 
     Examples
@@ -366,7 +367,7 @@ class AnnoLabels(_LabelBase):
                  connectionstyle=None, relpos=None, **options):
         # if mark_labels.ndim > 1:
         #     mark_labels = mark_labels.flatten()
-        self.data = mark_labels
+        self.data = self.data_validator(mark_labels, target="1d")
         self.canvas_size = None
         self.side = side
         self.pointer_length = pointer_length
@@ -460,6 +461,10 @@ class Labels(_LabelBase):
         Which side of the text to align
     text_pad : float
         Add padding around text, relative to the size of axes
+    va, ha, rotation : 
+        Text style
+    options : dict
+        Pass to :class:`matplotlib.text.Text`
 
     """
 
@@ -467,7 +472,7 @@ class Labels(_LabelBase):
                  va=None, ha=None, rotation=None,
                  text_pad=0,
                  **options):
-        self.data = np.asarray(labels)
+        self.data = self.data_validator(labels, target="1d")
         self.align = None
         self.pad = text_pad
 
@@ -528,6 +533,23 @@ align_pos = {
 
 
 class Title(_LabelBase):
+    """Add a title
+
+    Parameters
+    ----------
+    title : str
+        The title text
+    align : {'center', 'left', 'right', 'bottom', 'top'}
+        Where the title is placed
+    text_pad : float
+        The space around the text, relative to the fontsize
+    fontsize : int, default: 12
+        The title font size
+    rotation :
+    options : dict
+        Pass to :class:`matplotlib.text.Text`
+    
+    """
     no_split = True
 
     def __init__(self, title, align="center", text_pad=0.5, va=None, ha=None,
@@ -582,6 +604,28 @@ _default_rotation = {
 
 
 class Chunk(_LabelBase):
+    """Mark splited chunks
+
+    This is useful to mark each chunks after you split the plot
+
+    Parameters
+    ----------
+
+    texts : array of str
+        The label for each chunk
+    fill_colors : color, array of color
+        The color used as background color for each chunk
+    borderwidth, bordercolor, borderstyle : 
+        Control the style of border
+        For borderstyle, see :meth:`linestyles <matplotlib.lines.Line2D.set_linestyle>`
+    props : dict
+        See :class:`matplotlib.text.Text`
+    rotation : float
+        How many to rotate the text
+    text_pad : float
+         
+    
+    """
 
     def __init__(self, texts, rotation=None,
                  props=None, text_pad=0.5, fill_colors=None, bordercolor=None,

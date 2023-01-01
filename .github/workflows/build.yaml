@@ -37,7 +37,7 @@ jobs:
         run: |
           pip install pytest
           pip install pytest-cov
-          pytest --cov=spatialtis/ --cov-report=xml tests/
+          pytest --cov=heatgraphy/ --cov-report=xml tests/
 
   Upload_to_test_pypi:
     runs-on: ubuntu-latest
