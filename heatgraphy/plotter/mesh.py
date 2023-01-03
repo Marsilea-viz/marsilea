@@ -642,6 +642,10 @@ class LayersMesh(_MeshBase):
         #. Multiple layers of data, each layer is a customized element.
             This will overlay elements on each other.
 
+    If multiple layers are supplied, the drawing order will be
+    the order of supplied array. This can be overrided by controling
+    `zorder` attribute in your :class:`Pieces`.
+
     Parameters
     ----------
 
@@ -699,8 +703,9 @@ class LayersMesh(_MeshBase):
                  data=None,
                  layers=None,
                  pieces=None,
-                 shrink=(.9, .9),
+                 shrink=(1., 1.),
                  label=None, label_loc=None, props=None,
+                 legend_kws=None,
                  ):
         # render one layer
         # with different elements
@@ -715,12 +720,11 @@ class LayersMesh(_MeshBase):
         # render multiple layers
         # each layer is an elements
         else:
-            self.data = layers
             if not isinstance(pieces, Iterable):
                 msg = f"Expect pieces to be list " \
                       f"but found {type(pieces)} instead."
                 raise TypeError(msg)
-            self.pieces = pieces
+            self.pieces, self.data = self._sort_by_zorder(pieces, layers)
             self.mode = "layer"
         self.x_offset = (1 - shrink[0]) / 2
         self.y_offset = (1 - shrink[1]) / 2
@@ -729,6 +733,19 @@ class LayersMesh(_MeshBase):
         self.label = label
         self.label_loc = label_loc
         self.props = props
+        if legend_kws is None:
+            legend_kws = {}
+        self._legend_kws = legend_kws
+
+    @staticmethod
+    def _sort_by_zorder(pieces, layers):
+        ix_pieces = sorted(enumerate(pieces), key=lambda x: x[1].zorder)
+        sorted_pieces = []
+        sorted_layers = []
+        for (ix, piece) in ix_pieces:
+            sorted_pieces.append(piece)
+            sorted_layers.append(layers[ix])
+        return pieces, layers
 
     def get_render_data(self):
         data = self.data
@@ -760,7 +777,7 @@ class LayersMesh(_MeshBase):
                 labels.append(h.get_label())
                 handler_map[h] = h
         return ListLegend(handles=new_handles, labels=labels,
-                          handler_map=handler_map)
+                          handler_map=handler_map, **self._legend_kws)
 
     def render_ax(self, ax, data):
         if self.mode == "layer":
@@ -790,3 +807,4 @@ class LayersMesh(_MeshBase):
                     art = piece.draw(ix + self.x_offset, iy + self.y_offset,
                                      self.width, self.height)
                     ax.add_artist(art)
+        ax.invert_yaxis()
