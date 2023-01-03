@@ -3,7 +3,7 @@ from typing import Callable
 import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
-
+from legendkit import ColorArt, CatLegend, ListLegend, SizeLegend
 from .base import StatsBase
 from ..utils import ECHARTS16
 
@@ -43,8 +43,6 @@ def stacked_bar(data, ax: Axes = None,
                 show_value=True,
                 orient="v", width=.5, value_size=6,
                 show_labels=False,
-                label_position=(1.1, 0.9),
-                label_size=8,
                 **kwargs,
                 ):
     #if ax is None:
@@ -60,8 +58,7 @@ def stacked_bar(data, ax: Axes = None,
         if show_value:
             fmt_func = _fmt_func
 
-    if labels is None:
-        labels = list(range(1, data.shape[0]+1))
+
 
     data = data[::-1]
 
@@ -79,8 +76,7 @@ def stacked_bar(data, ax: Axes = None,
         if show_value:
             ax.bar_label(bars, [fmt_func(v) for v in row], label_type="center", fontsize=value_size)
 
-    if show_labels:
-        ax.legend(loc=2, bbox_to_anchor=label_position, borderaxespad=0., fontsize=label_size)
+
 
     return ax
 
@@ -183,18 +179,25 @@ class StackBar(StatsBase):
                  width=.5,
                  value_size=6,
                  show_labels=False,
-                 label_position=(1.1, 0.9),
                  label_size=8,
                  **kwargs,
                  ):
         self.data = data
         self.labels = labels
+        self.colors = colors
         self.show_value = show_value
         self.width = width
         self.value_size = value_size
         self.show_labels = show_labels
         self.label_position = label_position
         self.label_size = label_size
+
+    ''''''
+    def get_legends(self):
+        if self.labels is None:
+            self.labels = list(range(1, self.data.shape[0] + 1))
+
+        return CatLegend(colors=self.colors, labels=self.labels, **self._legend_kws)
 
 
     def render_ax(self, ax, data):
