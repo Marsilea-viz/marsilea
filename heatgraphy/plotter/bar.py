@@ -42,7 +42,7 @@ def stacked_bar(data, ax: Axes = None,
                 labels=None, colors=None,
                 show_value=True,
                 orient="v", width=.5, value_size=6,
-                show_labels=False,
+                threshold=5,
                 **kwargs,
                 ):
     if ax is None:
@@ -58,25 +58,31 @@ def stacked_bar(data, ax: Axes = None,
         if show_value:
             fmt_func = _fmt_func
 
-
-
     data = data[::-1]
 
-    locs = np.arange(0, data.shape[1]) + 0.5
-    ax.set_ylim(0, data.shape[1])
-    # Add limitation here to make bars in center
+    if data.ndim == 1:
+        ax.set_ylim(0, len(data))
+        locs = np.arange(0, len(data)) + 0.5
+        bottom = np.zeros(len(data))
+    elif data.ndim == 2:
+        ax.set_ylim(0, data.shape[1])
+        locs = np.arange(0, data.shape[1]) + 0.5
+        bottom = np.zeros(data.shape[1])
+    else:
+        # data has more than 2 dimensions
+        raise ValueError("Data has more than 2 dimensions.")
 
-
-    bottom = np.zeros(data.shape[1])
     for ix, row in enumerate(data):
         bars = bar(locs, row, width, bottom,
                    fc=colors[ix], label=labels[ix], **kwargs)
         bottom += row
 
         if show_value:
+            for i in range(len(row)):
+                if row[i] < threshold:
+                    row[i] = 0
+
             ax.bar_label(bars, [fmt_func(v) for v in row], label_type="center", fontsize=value_size)
-
-
 
     return ax
 
@@ -138,8 +144,6 @@ class Numbers(StatsBase):
                          **self.props)
 
 
-
-
 # TODO: Not fully implemented
 #       Align the axis lim
 
@@ -166,20 +170,18 @@ class StackBar(StatsBase):
         >>> d1 = np.random.rand(10,12)
         >>> d2 = np.random.randint(1,100,(12,10))
         >>> plot = {cls_name}(np.random.randint(0, 10, {shape}))
-        >>> hg.plotter.StackBar(d2,show_value=True, value_size = 4, show_labels=True, label_position=(-0.4,0.9))
+        >>> hg.plotter.StackBar(d2,show_value=True, value_size = 4, show_labels=True)
 
 
 
      """
-
 
     def __init__(self, data,
                  labels=None, colors=None,
                  show_value=True,
                  width=.5,
                  value_size=6,
-                 show_labels=False,
-                 label_size=8,
+                 threshold=5,
                  **kwargs,
                  ):
         self.data = data
@@ -188,17 +190,17 @@ class StackBar(StatsBase):
         self.show_value = show_value
         self.width = width
         self.value_size = value_size
-        self.show_labels = show_labels
-        self.label_position = label_position
-        self.label_size = label_size
+        self.threshold = threshold
 
     ''''''
+
     def get_legends(self):
         if self.labels is None:
             self.labels = list(range(1, self.data.shape[0] + 1))
+        if self.colors is None:
+            self.colors = ECHARTS16
 
-        return CatLegend(colors=self.colors, labels=self.labels, **self._legend_kws)
-
+        return CatLegend(colors=self.colors, labels=self.labels)
 
     def render_ax(self, ax, data):
         orient = "h" if self.is_flank else "v"
@@ -213,15 +215,9 @@ class StackBar(StatsBase):
         if self.side == "left":
             ax.invert_xaxis()
 
-
-
-
         stacked_bar(data, ax=ax, orient=orient,
                     labels=self.labels,
                     show_value=self.show_value,
                     width=self.width, value_size=self.value_size,
-                    show_labels=self.show_labels,
-                    label_position=self.label_position,
-                    label_size=self.label_size
+                    threshold=self.threshold
                     )
-
