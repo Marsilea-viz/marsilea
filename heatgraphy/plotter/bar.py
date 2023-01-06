@@ -42,15 +42,22 @@ def stacked_bar(data, ax: Axes = None,
                 labels=None, colors=None,
                 show_value=True,
                 orient="v", width=.5, value_size=6,
-                threshold=5,
+                fmt='％g',
                 **kwargs,
                 ):
     if ax is None:
         ax = plt.gca()
     bar = ax.bar if orient == "v" else ax.barh
 
-    if colors is None:
-        colors = ECHARTS16
+    if isinstance(colors, dict):
+        # colors is a dictionary
+        color_list = [colors[label] for label in labels]
+    elif isinstance(colors, list):
+        # colors is a list
+        color_list = colors
+    else:
+        # colors is not a dictionary or list
+        color_list = ECHARTS16
 
     if isinstance(show_value, Callable):
         fmt_func = show_value
@@ -74,15 +81,11 @@ def stacked_bar(data, ax: Axes = None,
 
     for ix, row in enumerate(data):
         bars = bar(locs, row, width, bottom,
-                   fc=colors[ix], label=labels[ix], **kwargs)
+                   fc=color_list[ix], label=labels[ix], **kwargs)
         bottom += row
 
         if show_value:
-            for i in range(len(row)):
-                if row[i] < threshold:
-                    row[i] = 0
-
-            ax.bar_label(bars, [fmt_func(v) for v in row], label_type="center", fontsize=value_size)
+            ax.bar_label(bars, fmt=fmt, label_type="center", fontsize=value_size)
 
     return ax
 
@@ -169,8 +172,12 @@ class StackBar(StatsBase):
         >>> import numpy as np
         >>> d1 = np.random.rand(10,12)
         >>> d2 = np.random.randint(1,100,(12,10))
-        >>> plot = {cls_name}(np.random.randint(0, 10, {shape}))
-        >>> hg.plotter.StackBar(d2,show_value=True, value_size = 4, show_labels=True)
+        >>> labels = ['Title', 'Year','Runtime (Minutes)', 'Rating', 'Votes', 'Revenue (Millions)','Metascore','Protagonist','Director','Country','Genre','Online']
+        >>> h1 = hg.Heatmap(d1,name='h1')
+        >>> bar1 = hg.plotter.StackBar(d2,show_value=True, value_size = 6, labels =labels)
+        >>> h1.add_right(bar1,size= 5,name = 'bar')
+        >>> h1.add_legends()
+        >>> h1.render()
 
 
 
@@ -181,7 +188,7 @@ class StackBar(StatsBase):
                  show_value=True,
                  width=.5,
                  value_size=6,
-                 threshold=5,
+                 fmt='％g',
                  **kwargs,
                  ):
         self.data = data
@@ -190,7 +197,7 @@ class StackBar(StatsBase):
         self.show_value = show_value
         self.width = width
         self.value_size = value_size
-        self.threshold = threshold
+        self.fmt = fmt
 
     ''''''
 
@@ -219,5 +226,5 @@ class StackBar(StatsBase):
                     labels=self.labels,
                     show_value=self.show_value,
                     width=self.width, value_size=self.value_size,
-                    threshold=self.threshold
+                    fmt=self.fmt
                     )
