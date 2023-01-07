@@ -14,7 +14,6 @@ Mesh
     ColorMesh
     Colors
     SizedMesh
-    LayersMesh
     MarkerMesh
 
 Seaborn plots
