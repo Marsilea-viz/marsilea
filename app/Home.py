@@ -20,7 +20,7 @@ from heatgraphy.plotter import ColorMesh, SizedMesh, MarkerMesh
 enable_nested_columns()
 
 st.set_page_config(
-    page_title="Heatmap",
+    page_title="Heatgraphy",
     layout="centered",
     page_icon="🎨",
     initial_sidebar_state="collapsed"
@@ -113,7 +113,7 @@ def render_plot(global_options,
 
 st.markdown("Try other tools: - [Upsetplot](/upset)")
 
-st.header("Beautiful heatmap creator")
+st.header("Powerful heatmap creator")
 ExampleDownloader()
 
 st.subheader("Data Input")
