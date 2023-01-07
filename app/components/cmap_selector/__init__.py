@@ -1,0 +1,1 @@
+from .selector import ColormapSelector

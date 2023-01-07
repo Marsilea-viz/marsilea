@@ -3,7 +3,7 @@ from typing import Callable
 
 import streamlit as st
 from sklearn.preprocessing import (robust_scale, normalize,
-                                   minmax_scale, StandardScaler)
+                                   StandardScaler)
 
 
 @dataclass
@@ -23,22 +23,25 @@ class TransformAction:
         return data
 
 
-def select_axis():
+def select_axis(key=None):
     direction = st.selectbox("Apply along",
-                             options=["Row", "Column", "Both"])
+                             options=["Row", "Column", "Both"],
+                             key=f"{key} apply along",
+                             )
     row = direction != "Column"
     col = direction != "Row"
     return row, col
 
 
-def robust():
-    with st.form("Robust transform"):
+def robust(key=None):
+    key = f"Robust transform {key}"
+    with st.form(key):
         low = st.number_input("Low (%)", 0, 100, value=2, step=1)
         high = st.number_input("High (%)", 0, 100, value=98, step=1)
-        row, col = select_axis()
+        row, col = select_axis(key=key)
         apply = st.form_submit_button("Apply")
     if apply:
-        st.session_state['transform'] = TransformAction(
+        return TransformAction(
             name="robust", func=robust_scale,
             kwargs=dict(quantile_range=(low, high)), row=row, col=col)
 
@@ -49,36 +52,36 @@ def standard_scaler(data):
     return scaler.transform(data)
 
 
-def standard_scale():
-    row, col = select_axis()
-    apply = st.button("Apply")
+def standard_scale(key=None):
+    key = f"{key} standard_scale"
+    row, col = select_axis(key=key)
+    apply = st.button("Apply", key=key)
     if apply:
-        st.session_state['transform'] = TransformAction(
+        return TransformAction(
             name="standard_scale", func=standard_scaler, row=row, col=col)
 
 
-def norm():
-    row, col = select_axis()
-    apply = st.button("Apply")
+def norm(key=None):
+    key = f"{key} norm"
+    row, col = select_axis(key=key)
+    apply = st.button("Apply", key=key)
     if apply:
-        st.session_state['transform'] = TransformAction(
+        return TransformAction(
             name="norm", func=normalize, row=row, col=col)
 
 
-def transformation():
+class Transformation:
+    dispatcher = {
+        "Robust": robust,
+        "Standard Scale": standard_scale,
+        "Normalize": norm,
+    }
 
-    reset = st.button("Reset")
-    if reset:
-        st.session_state["data"] = st.session_state["raw_data"]
-        st.session_state["transform"] = None
+    def __init__(self, session_key, key=None):
+        method = st.selectbox("Select transformation", key=key,
+                              options=["Robust", "Standard Scale",
+                                       "Normalize"])
 
-    method = st.selectbox("Select transformation",
-                          options=["Robust", "Standard Scale",
-                                   "Normalize"])
-    match method:
-        case "Robust":
-            robust()
-        case "Standard Scale":
-            standard_scale()
-        case "Normalize":
-            norm()
+        action = self.dispatcher[method].__call__(key=key)
+        if action is not None:
+            st.session_state[session_key] = action

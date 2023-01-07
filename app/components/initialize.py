@@ -1,5 +1,6 @@
 import functools
 
+import streamlit as st
 from streamlit import cursor
 from streamlit.delta_generator import DeltaGenerator, Block_pb2
 from streamlit.delta_generator import _enqueue_message
@@ -67,5 +68,41 @@ def _nestable_block(
 
 
 @functools.cache
-def register():
+def enable_nested_columns():
     DeltaGenerator._block = _nestable_block
+
+
+def inject_css():
+    # Hack the style of elements in streamlit
+    st.markdown("""
+    <style>
+
+        # .main .block-container {
+        #     min-width: 800px;
+        #     max-width: 1200px;
+        # }
+
+        div[data-testid='stImage']>img {
+            max-height: 600px;
+            object-fit: contain;
+        }
+
+        .streamlit-expanderContent {
+            padding-right: 0rem;
+            padding-left: 0rem;
+        }
+
+        .streamlit-expanderHeader {
+            font-weight: bold;
+            padding-right: 0rem;
+            padding-left: 0rem;
+        }
+
+        .streamlit-expander {
+            border-left: none;
+            border-right: none;
+            border-radius: 0rem;
+        }
+
+    </style>
+    """, unsafe_allow_html=True)

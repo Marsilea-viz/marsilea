@@ -26,6 +26,26 @@ class InputBase:
         self.sep = sep_options[user_sep]
 
 
+@st.experimental_singleton
+def parse_file(file, export="ndarray", header=False):
+    header = None if not header else "infer"
+    suffix = file.name.split(".")[-1]
+    if suffix in ["csv", "txt", "tsv"]:
+        reader = pd.read_csv
+        sep = "," if suffix == "csv" else "\t"
+        kws = dict(sep=sep, header=header)
+    else:
+        reader = pd.read_excel
+        kws = {}
+    data = reader(file, **kws)
+    if export == "ndarray":
+        if len(data.columns) == 1:
+            return data.to_numpy().flatten()
+        return data.to_numpy()
+    else:
+        return data
+
+
 class FileUpload(InputBase):
 
     def __init__(self, key=None):
@@ -34,22 +54,16 @@ class FileUpload(InputBase):
                                            key=f"table_reader-{self.key}",
                                            accept_multiple_files=False,
                                            label_visibility="collapsed",
-                                           type=["txt", "csv", "xlsx", "xls"])
+                                           type=["txt", "csv"])
 
     def parse(self):
         if self.user_input is not None:
-            suffix = self.user_input.name.split(".")[-1]
-            if suffix in ["csv", "txt", "tsv"]:
-                reader = pd.read_csv
-                sep = "," if suffix == "csv" else "\t"
-                kws = dict(sep=sep, header=None)
-            else:
-                reader = pd.read_excel
-                kws = {}
-            data = reader(self.user_input, **kws)
-            if len(data.columns) == 1:
-                return data.to_numpy().flatten()
-            return data.to_numpy()
+            return parse_file(self.user_input)
+
+    def parse_dataframe(self, header=True):
+        if self.user_input is not None:
+            return parse_file(self.user_input, export="dataframe",
+                              header=True)
 
 
 class PasteText(InputBase):

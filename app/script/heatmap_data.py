@@ -23,4 +23,3 @@ pd.DataFrame(data=matrix).to_csv("test_data/example_data.txt", **kws)
 pd.DataFrame(data=label).to_csv("test_data/row_labels.txt", **kws)
 pd.DataFrame(data=stats_data).to_csv("test_data/Stats_plot.txt", **kws)
 pd.DataFrame(data=numbers).to_csv("test_data/number.txt", **kws)
-

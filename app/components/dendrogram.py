@@ -1,6 +1,7 @@
-import streamlit as st
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
+
+import streamlit as st
 
 
 @dataclass

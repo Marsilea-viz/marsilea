@@ -1,26 +1,23 @@
-import time
-
-import numpy as np
-import pandas as pd
-import streamlit as st
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+import streamlit as st
 
 import heatgraphy as hg
-from app.components.font import FontFamily
-
-from components.nested_columns import register
-from components.state import init_state
-from components.data_input import FileUpload, PasteText
-from components.transformation import transformation
-from components.side_plots import side_plots_adder, split_plot
-from components.saver import ChartSaver
-from components.cmap_picker import colormap_viewer
+from app.components.example_download import ExampleDownloader
+from app.components.initialize import enable_nested_columns, inject_css
+from app.components.layer_data import HeatmapData, GlobalConfig, \
+    SizedHeatmapData, MarkerData
+from app.components.saver import ChartSaver
+from app.components.side_plots import side_plots_adder, split_plot
+from app.components.state import init_state
+from heatgraphy.plotter import ColorMesh, SizedMesh, MarkerMesh
 
 # This make the nested columns available
 # import components.nested_columns
 
-register()
+# ===========SETUP THINGS=============
+
+enable_nested_columns()
 
 st.set_page_config(
     page_title="Heatmap",
@@ -29,39 +26,72 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
+inject_css()
+
 
 @st.experimental_memo
 def empty_figure():
     return plt.figure()
 
 
-init_state(transform=None,
+init_state(data_ready=False,
+           main_data=None,
            render_plan=dict(top={}, bottom={}, left={}, right={}),
            dendrogram_row=None,
            dendrogram_col=None,
-           data=None,
-           raw_data=None,
            figure=empty_figure(),
            split_row=None,
            split_col=None,
-           update=0,
-           # a counter, if changed, the figure will rerender
-           # use to improve performance
+
+           heatmap_data=None,
+           heatmap_raw_data=None,
+           heatmap_transform=None,
+           size_data=None,
+           size_raw_data=None,
+           size_transform=None,
+           color_data=None,
+           color_raw_data=None,
+           color_transform=None,
+           mark_data=None,
            )
 
 
 # @st.experimental_singleton
-def render_plot(**options):
-    fontsize = options['fontsize']
-    fontfamily = options['fontfamily']
-    cmap = options['cmap']
-    annot = options['annot']
-    linewidth = options['linewidth']
-    # try:
-    with mpl.rc_context({"font.size": fontsize, 'font.family': fontfamily}):
+def render_plot(global_options,
+                heatmap_options,
+                sizedheatmap_options,
+                mark_options, ):
+    fontsize = global_options['fontsize']
+    fontfamily = global_options['fontfamily']
+
+    with mpl.rc_context({"font.size": fontsize, "font.family": fontfamily}):
         fig = plt.figure()
-        h = hg.Heatmap(st.session_state['data'], cmap=cmap, annot=annot,
-                       linewidth=linewidth)
+        cluster_data_name = global_options["cluster_data_name"]
+        cluster_data = st.session_state[cluster_data_name]
+        h = hg.ClusterCanvas(cluster_data)
+
+        heatmap_data = st.session_state["heatmap_data"]
+        if heatmap_data is not None:
+            heatmap = ColorMesh(heatmap_data, **heatmap_options)
+            h.add_layer(heatmap, zorder=-100)
+
+        size_data = st.session_state["size_data"]
+        color_data = st.session_state["color_data"]
+        if color_data is not None:
+            sizedheatmap_options['color'] = color_data
+        if size_data is not None:
+            sized_heatmap = SizedMesh(
+                size_data, **sizedheatmap_options
+            )
+            h.add_layer(sized_heatmap, zorder=1)
+
+        mark_data = st.session_state["mark_data"]
+        if mark_data is not None:
+            marker = MarkerMesh(
+                mark_data, **mark_options,
+            )
+            h.add_layer(marker, zorder=100)
+
         srow = st.session_state["split_row"]
         scol = st.session_state["split_col"]
         if srow is not None:
@@ -73,131 +103,64 @@ def render_plot(**options):
         for side, actions in plans.items():
             actions = sorted(list(actions.values()), key=lambda x: x.key)
             for action in actions:
-                print(action)
                 action.apply(h)
 
         h.render(fig)
         st.session_state["figure"] = fig
-    # except Exception:
-    #     raise Exception
-    #     error.error("Failed to render the plot, please check your data input. "
-    #                 "Or you may report this issue. "
-    #                 "(Go to upper right menu -> Report a bug)", icon="🚨")
 
 
-def apply_transform(action, data):
-    try:
-        if action is not None:
-            st.session_state['data'] = action.apply(data)
-            st.session_state['update'] += 1
-    except Exception:
-        st.error("Transformation failed", icon="🚨")
+# ===========UI PART=============
 
-# Hack the style of elements in streamlit
-st.markdown("""
-<style>
-    .main .block-container{{
-        min-width: 800px;
-        max-width: 1200px;
-    }}
-    
-    div[data-testid="stImage"]>img {{
-        max-height: 600px;
-        object-fit: contain;
-    }}
-    
-    .streamlit-expanderContent {{
-        padding-right: 0rem;
-        padding-left: 0rem;
-    }}
-    
-    .streamlit-expanderHeader {{
-        font-weight: bold;
-        padding-right: 0rem;
-        padding-left: 0rem;
-    }}
-    
-    .streamlit-expander {{
-        border-left: none;
-        border-right: none;
-        border-radius: 0rem;
-    }}
-
-</style>
-""", unsafe_allow_html=True)
-
-st.markdown("Try other tools: - [Upsetplot](/upset) - [Corrgram](/upset)")
+st.markdown("Try other tools: - [Upsetplot](/upset)")
 
 st.header("Beautiful heatmap creator")
+ExampleDownloader()
 
-input_col, image_col = st.columns([1, 2])
+st.subheader("Data Input")
+st.info("Select one or more layer to draw. "
+        "Input data need to have same shape.", icon="🧐")
+heat, sheat, mar = st.tabs(["Heatmap", "Sized Heatmap", "Mark"])
 
-with image_col:
+with heat:
+    h_data = HeatmapData()
+
+with sheat:
+    sh_data = SizedHeatmapData()
+
+with mar:
+    m_data = MarkerData()
+
+if st.session_state["data_ready"]:
+
+    with st.expander("General Options"):
+        tabs = st.tabs(["Heatmap Partition", "Configuration", "Export"])
+        spliter, conf, saver = tabs
+
     fig = st.session_state["figure"]
     st.pyplot(fig)
 
-with input_col:
-    data_input, data_transformation, data_viewer = st.tabs(
-        ["Input Data", "Data Transformation", "Data Viewer"])
-
-    with data_input:
-        st.markdown("Input format: \n"
-                    "   - Tab-seperated file (.tsv/.txt)\n"
-                    "   - Comma-seperated file (.csv)\n"
-                    "   - Excel file (.xlsx/.xls)")
-        user_input = FileUpload(key="main-data")
-    data = user_input.parse()
-
-if data is not None:
-    # TODO: Load example
-    # load_example = st.button("Load example")
-    st.session_state['data'] = data
-    st.session_state['raw_data'] = data
-
-    with data_viewer:
-        data_anchor = st.empty()
-
-    with data_transformation:
-        transformation()
-
-    _, render_button, _ = st.columns([2, 1, 2])
+    _, render_button, _ = st.columns([2, 2, 2])
     with render_button:
         render_request = st.button("Apply changes & Render",
                                    type="primary",
                                    help="Apply changes to your heatmap.")
-
-    with st.expander("Heatmap Options"):
-        tabs = st.tabs(["Heatmap Partition", "Configuration", "Export"])
-        spliter, conf, saver = tabs
 
     with spliter:
         split_plot()
 
     with conf:
 
-        cmap = colormap_viewer()
-        disable_text = data.size > 200
-        annot = st.checkbox("Add Text", disabled=disable_text)
-        fontsize = st.number_input("Font size", min_value=1, step=1,
-                                   value=8)
-        font_list = FontFamily().font_list
-        fontfamily = st.selectbox("Font Family", options=font_list)
-        grid_linewidth = st.number_input("Grid line", min_value=0.)
+        gconf = GlobalConfig()
 
     st.subheader("Add Side Plots")
     st.markdown("The side plots will add from inner to outer")
     side_plots_adder()
 
-    apply_transform(st.session_state['transform'],
-                    st.session_state['data'])
-    data_anchor.dataframe(st.session_state['data'])
-
     if render_request:
-        render_plot(fontsize=fontsize, fontfamily=fontfamily,
-                    cmap=cmap, annot=annot, linewidth=grid_linewidth)
+        render_plot(gconf.get_conf(), h_data.get_styles(),
+                    sh_data.get_styles(), m_data.get_styles())
 
         st.experimental_rerun()
 
     with saver:
         ChartSaver()
-# chart.pyplot(fig)
