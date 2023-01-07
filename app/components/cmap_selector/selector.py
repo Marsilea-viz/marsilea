@@ -1,4 +1,5 @@
 from pathlib import Path
+from functools import cache
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -6,15 +7,15 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
-FIGURE_SIZE = (2.5, .5)
-DPI = 90
-
-gradient = np.linspace(0, 1, 256)
-gradient = np.vstack((gradient, gradient))
-
 
 @st.experimental_singleton
 def generate_cmap_images():
+    FIGURE_SIZE = (2.5, .5)
+    DPI = 90
+
+    gradient = np.linspace(0, 1, 256)
+    gradient = np.vstack((gradient, gradient))
+
     cmap_mapper = {}
     for i in mpl.colormaps:
         cmap_name = i
@@ -23,6 +24,9 @@ def generate_cmap_images():
         cmap_mapper[i] = cmap_name.capitalize()
 
     cmap_table = []
+    # create images dir if not exist
+    img_dir = Path(__file__).parent / "images"
+    img_dir.mkdir(exist_ok=True)
     for cmap, display_name in cmap_mapper.items():
         rel_path = f"images/{cmap}.png"
         img_name = Path(__file__).parent / rel_path
