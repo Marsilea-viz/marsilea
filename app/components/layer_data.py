@@ -1,9 +1,9 @@
 import streamlit as st
 
-from app.components.cmap_selector import ColormapSelector
-from app.components.data_input import FileUpload
-from app.components.font import FontFamily
-from app.components.transformation import Transformation
+from .cmap_selector import ColormapSelector
+from .data_input import FileUpload
+from .font import FontFamily
+from .transformation import Transformation
 
 INPUT_FORMAT = "Input format: \n" \
                "- Tab-seperated file (.tsv/.txt)\n" \
