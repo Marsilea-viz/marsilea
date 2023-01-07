@@ -52,7 +52,8 @@ plot_include_source = True
 plot_html_show_source_link = False
 plot_html_show_formats = False
 plot_formats = [('png', 180)]
-plot_pre_code = "import numpy as np; from matplotlib import pyplot as plt;" \
+plot_pre_code = "import numpy as np; import pandas as pd;" \
+                "from matplotlib import pyplot as plt;" \
                 "import matplotlib as mpl; np.random.seed(0);"\
                 "mpl.rcParams['savefig.bbox'] = 'tight';"
 

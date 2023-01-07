@@ -24,7 +24,7 @@ Layers Heatmap
     :nosignatures:
 
     Layers
-    Bg
+    LayersMesh
     Rect
     FrameRect
     FracRect

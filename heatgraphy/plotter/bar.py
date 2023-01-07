@@ -1,6 +1,7 @@
-from typing import Callable
+from typing import Callable, Mapping
 
 import numpy as np
+import pandas as pd
 from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
 from legendkit import ColorArt, CatLegend, ListLegend, SizeLegend
@@ -36,58 +37,6 @@ def _fmt_func(v):
         return v
     else:
         return ""
-
-
-def stacked_bar(data, ax: Axes = None,
-                labels=None, colors=None,
-                show_value=True,
-                orient="v", width=.5, value_size=6,
-                fmt='％g',
-                **kwargs,
-                ):
-    if ax is None:
-        ax = plt.gca()
-    bar = ax.bar if orient == "v" else ax.barh
-
-    if isinstance(colors, dict):
-        # colors is a dictionary
-        color_list = [colors[label] for label in labels]
-    elif isinstance(colors, list):
-        # colors is a list
-        color_list = colors
-    else:
-        # colors is not a dictionary or list
-        color_list = ECHARTS16
-
-    if isinstance(show_value, Callable):
-        fmt_func = show_value
-    else:
-        if show_value:
-            fmt_func = _fmt_func
-
-    data = data[::-1]
-
-    if data.ndim == 1:
-        ax.set_ylim(0, len(data))
-        locs = np.arange(0, len(data)) + 0.5
-        bottom = np.zeros(len(data))
-    elif data.ndim == 2:
-        ax.set_ylim(0, data.shape[1])
-        locs = np.arange(0, data.shape[1]) + 0.5
-        bottom = np.zeros(data.shape[1])
-    else:
-        # data has more than 2 dimensions
-        raise ValueError("Data has more than 2 dimensions.")
-
-    for ix, row in enumerate(data):
-        bars = bar(locs, row, width, bottom,
-                   fc=color_list[ix], label=labels[ix], **kwargs)
-        bottom += row
-
-        if show_value:
-            ax.bar_label(bars, fmt=fmt, label_type="center", fontsize=value_size)
-
-    return ax
 
 
 class Numbers(StatsBase):
@@ -156,75 +105,132 @@ class StackBar(StatsBase):
 
 
      Parameters
-     ----------------
+     ----------
      data : np.ndarray, pd.DataFrame
-        2D data
-     labels : str or list of str, optional
-        A list with the same length as data
-     colors : dict or list of color, optional
-        The colors of the bar faces.
+        2D data, index of dataframe is used as the name of items.
+     items : list of str
+        The name of items.
+     colors : list of colors, mapping of (item, color)
+        The colors of the bar for each item.
 
+
+
+    Examples
+    --------
 
     .. plot::
         :context: close-figs
 
-        >>> import heatgraphy as hg
-        >>> import numpy as np
-        >>> d1 = np.random.rand(10,12)
-        >>> d2 = np.random.randint(1,100,(12,10))
-        >>> labels = ['Title', 'Year','Runtime (Minutes)', 'Rating', 'Votes', 'Revenue (Millions)','Metascore','Protagonist','Director','Country','Genre','Online']
-        >>> h1 = hg.Heatmap(d1,name='h1')
-        >>> bar1 = hg.plotter.StackBar(d2,show_value=True, value_size = 6, labels =labels, fmt='%.1f%%')
-        >>> h1.add_right(bar1,size= 5,name = 'bar')
-        >>> h1.add_legends()
-        >>> h1.render()
+        >>> from heatgraphy.plotter import StackBar
+        >>> stack_data = pd.DataFrame(data=np.random.randint(0, 10, (5, 3)),
+        ...                           index=list("abcde"))
+        >>> _, ax = plt.subplots()
+        >>> StackBar(stack_data).render(ax)
 
 
+    You may find the text is too big for a bar to display on, to not display
+    certain value.
+
+    .. plot::
+        :context: close-figs
+
+        >>> cut_off = lambda v: v if v > 2 else ""
+        >>> _, ax = plt.subplots()
+        >>> StackBar(stack_data, show_value=cut_off).render(ax)
 
      """
 
     def __init__(self, data,
-                 labels=None, colors=None,
+                 items=None, colors=None,
                  show_value=True,
+                 value_loc="center",
                  width=.5,
                  value_size=6,
-                 fmt='％g',
+                 fmt=None,
+                 props=None,
+                 legend_kws=None,
                  **kwargs,
                  ):
+
+        if isinstance(data, pd.DataFrame):
+            item_names = data.index
+            data = data.to_numpy()
+        data = self.data_validator(data, target="2d")
+
+        if items is not None:
+            item_names = items
+
+        if colors is None:
+            bar_colors = ECHARTS16
+        else:
+            if isinstance(colors, Mapping):
+                if item_names is None:
+                    raise ValueError("Please provide the name of each item "
+                                     "before assigning color.")
+                bar_colors = [colors[name] for name in item_names]
+            else:
+                bar_colors = colors
+
+        fmt_func = None
+        if isinstance(show_value, Callable):
+            fmt_func = show_value
+            show_value = True
+        else:
+            if show_value:
+                fmt_func = _fmt_func
+
         self.data = data
-        self.labels = labels
-        self.colors = colors
+        self.labels = item_names
+        self.bar_colors = bar_colors
         self.show_value = show_value
+        self.fmt_func = fmt_func
         self.width = width
         self.value_size = value_size
-        self.fmt = fmt
+        self.fmt = "%g" if fmt is None else fmt
+        self.kwargs = kwargs
+
+        props = {} if props is None else props
+        value_props = dict(label_type=value_loc)
+        value_props.update(props)
+        self.props = value_props
+        self.legend_kws = {} if legend_kws is None else legend_kws
 
     ''''''
 
     def get_legends(self):
-        if self.labels is None:
-            self.labels = list(range(1, self.data.shape[0] + 1))
-        if self.colors is None:
-            self.colors = ECHARTS16
-
-        return CatLegend(colors=self.colors, labels=self.labels)
+        if self.labels is not None:
+            return CatLegend(colors=self.bar_colors, labels=self.labels,
+                             **self.legend_kws)
 
     def render_ax(self, ax, data):
         orient = "h" if self.is_flank else "v"
+        bar = ax.bar if orient == "v" else ax.barh
 
-        if self.is_flank:
-            data = data[::-1]
-
+        lim = data.shape[1]
         if self.is_body:
-            ax.set_xlim(0, len(data))
+            ax.set_xlim(0, lim)
         else:
-            ax.set_ylim(0, len(data))
+            ax.set_ylim(0, lim)
         if self.side == "left":
             ax.invert_xaxis()
 
-        stacked_bar(data, ax=ax, orient=orient,
-                    labels=self.labels,
-                    show_value=self.show_value,
-                    width=self.width, value_size=self.value_size,
-                    fmt=self.fmt
-                    )
+        locs = np.arange(0, lim) + 0.5
+        bottom = np.zeros(lim)
+
+        # reverse to make the order more visually intuitive
+        labels = self.labels[::-1]
+        colors = self.bar_colors[:len(data)][::-1]
+        for ix, row in enumerate(data[::-1]):
+            bars = bar(locs, row, self.width, bottom,
+                       fc=colors[ix],
+                       label=labels[ix], **self.kwargs)
+            bottom += row
+
+            display_value = row
+            if self.fmt_func is not None:
+                display_value = [self.fmt_func(i) for i in row]
+
+            if self.show_value:
+                ax.bar_label(bars, display_value, fmt=self.fmt,
+                             **self.props)
+

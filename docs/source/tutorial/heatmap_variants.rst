@@ -124,6 +124,6 @@ You can easily define a custom element to render, here we shows how to render a 
     ...         self.color = color
     ...         self.label = label
     ...
-    ...     def draw(self, x, y, w, h):
+    ...     def draw(self, x, y, w, h, ax):
     ...         return Circle((x + 0.5, y + 0.5), radius=min(w, h)/2, lw=1, facecolor=self.color)
     >>> preview(MyCircle())

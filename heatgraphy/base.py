@@ -10,10 +10,9 @@ from matplotlib import pyplot as plt
 from matplotlib.artist import Artist
 from matplotlib.colors import is_color_like
 from matplotlib.figure import Figure
-from matplotlib.patches import Rectangle
 
-from .dendrogram import Dendrogram
 from ._deform import Deformation
+from .dendrogram import Dendrogram
 from .exceptions import SplitTwice
 from .layout import CrossGrid
 from .plotter import RenderPlan, Title
@@ -231,10 +230,13 @@ class Base(LegendMaker):
         self._col_plan = []
         self._row_plan = []
         self._layer_plan = []
+        self._legend_switch = {}
         super().__init__()
 
-    def add_plot(self, side, plot: RenderPlan, name=None, size=None, pad=0.):
+    def add_plot(self, side, plot: RenderPlan, name=None,
+                 size=None, pad=0., legend=True):
         plot_name = get_plot_name(name, side, plot.__class__.__name__)
+        self._legend_switch[plot_name] = legend
 
         add_ax_size = size if size is not None else 1.
         self.grid.add_ax(side, name=plot_name, size=add_ax_size, pad=pad)
@@ -252,17 +254,21 @@ class Base(LegendMaker):
 
         plan.append(plot)
 
-    def add_left(self, plot: RenderPlan, name=None, size=None, pad=0.):
-        self.add_plot("left", plot, name, size, pad)
+    def add_left(self, plot: RenderPlan, name=None,
+                 size=None, pad=0., legend=True):
+        self.add_plot("left", plot, name, size, pad, legend)
 
-    def add_right(self, plot: RenderPlan, name=None, size=None, pad=0.):
-        self.add_plot("right", plot, name, size, pad)
+    def add_right(self, plot: RenderPlan, name=None,
+                  size=None, pad=0., legend=True):
+        self.add_plot("right", plot, name, size, pad, legend)
 
-    def add_top(self, plot: RenderPlan, name=None, size=None, pad=0.):
-        self.add_plot("top", plot, name, size, pad)
+    def add_top(self, plot: RenderPlan, name=None,
+                size=None, pad=0., legend=True):
+        self.add_plot("top", plot, name, size, pad, legend)
 
-    def add_bottom(self, plot: RenderPlan, name=None, size=None, pad=0.):
-        self.add_plot("bottom", plot, name, size, pad)
+    def add_bottom(self, plot: RenderPlan, name=None,
+                   size=None, pad=0., legend=True):
+        self.add_plot("bottom", plot, name, size, pad, legend)
 
     def _render_plan(self):
         for plan in self._col_plan:
@@ -278,11 +284,12 @@ class Base(LegendMaker):
         for plan in self._get_layers_zorder():
             plan.render(main_ax)
 
-    def add_layer(self, plot: RenderPlan, zorder=None, name=None):
+    def add_layer(self, plot: RenderPlan, zorder=None, name=None, legend=True):
         if name is None:
             name = plot.name
         plot_type = plot.__class__.__name__
         name = get_plot_name(name, side="main", chart=plot_type)
+        self._legend_switch[name] = legend
         if not plot.render_main:
             msg = f"{plot_type} " \
                   f"cannot be rendered as another layer."
@@ -335,11 +342,12 @@ class Base(LegendMaker):
         legends.update(self._extra_legends())
         for plan in self._layer_plan + self._col_plan + self._row_plan:
             # Not every render plan has legend
-            legs = plan.get_legends()
-            if legs is not None:
-                if isinstance(legs, Artist):
-                    legs = [legs]
-                legends[plan.name] = legs
+            if self._legend_switch[plan.name]:
+                legs = plan.get_legends()
+                if legs is not None:
+                    if isinstance(legs, Artist):
+                        legs = [legs]
+                    legends[plan.name] = legs
         return legends
 
 
