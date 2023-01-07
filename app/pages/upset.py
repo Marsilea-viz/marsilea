@@ -3,10 +3,10 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
-from app.components.data_input import FileUpload
-from app.components.initialize import inject_css
-from app.components.layer_data import get_font_list
-from app.components.state import init_state
+from components.data_input import FileUpload
+from components.initialize import inject_css
+from components.layer_data import get_font_list
+from components.state import init_state
 from heatgraphy import UpsetData, Upset
 
 st.set_page_config(

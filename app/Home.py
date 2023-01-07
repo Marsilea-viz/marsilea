@@ -3,13 +3,13 @@ import matplotlib.pyplot as plt
 import streamlit as st
 
 import heatgraphy as hg
-from app.components.example_download import ExampleDownloader
-from app.components.initialize import enable_nested_columns, inject_css
-from app.components.layer_data import HeatmapData, GlobalConfig, \
+from components.example_download import ExampleDownloader
+from components.initialize import enable_nested_columns, inject_css
+from components.layer_data import HeatmapData, GlobalConfig, \
     SizedHeatmapData, MarkerData
-from app.components.saver import ChartSaver
-from app.components.side_plots import side_plots_adder, split_plot
-from app.components.state import init_state
+from components.saver import ChartSaver
+from components.side_plots import side_plots_adder, split_plot
+from components.state import init_state
 from heatgraphy.plotter import ColorMesh, SizedMesh, MarkerMesh
 
 # This make the nested columns available
