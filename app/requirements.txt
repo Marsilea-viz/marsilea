@@ -7,3 +7,4 @@ scikit-learn
 mpl_fontkit
 matplotlib
 seaborn
+random_word
