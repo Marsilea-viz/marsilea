@@ -47,7 +47,7 @@ def _mask_data(data, mask=None):
     return data
 
 
-class _MeshBase(RenderPlan):
+class MeshBase(RenderPlan):
     norm = None
     cmap = None
     render_main = True
@@ -106,7 +106,7 @@ class _MeshBase(RenderPlan):
         self._legend_kws.update(kwargs)
 
 
-class ColorMesh(_MeshBase):
+class ColorMesh(MeshBase):
     """Continuous Heatmap
 
     Parameters
@@ -273,7 +273,7 @@ def _enough_colors(n_colors, n_cats):
                       f"with {n_cats} elements")
 
 
-class Colors(_MeshBase):
+class Colors(MeshBase):
     """Categorical colors/heatmap
 
     Parameters
@@ -373,7 +373,7 @@ class Colors(_MeshBase):
         ax.invert_yaxis()
 
 
-class SizedMesh(_MeshBase):
+class SizedMesh(MeshBase):
     """Mesh for sized elements
 
     .. note::
@@ -560,11 +560,11 @@ class SizedMesh(_MeshBase):
 
 
 # TODO: A patch mesh
-class PatchMesh(_MeshBase):
+class PatchMesh(MeshBase):
     pass
 
 
-class MarkerMesh(_MeshBase):
+class MarkerMesh(MeshBase):
     """The mesh that draw marker shape
 
     Parameters
@@ -576,6 +576,8 @@ class MarkerMesh(_MeshBase):
         The color of the marker
     marker : str
         See :mod:`matplotlib.markers`
+    size : int
+        The of marker in fontsize unit
     label : str
         The label of the plot, only show when added to the side plot
     label_loc : str
@@ -599,7 +601,7 @@ class MarkerMesh(_MeshBase):
     """
     render_main = True
 
-    def __init__(self, data, color="black", marker="*",
+    def __init__(self, data, color="black", marker="*", size=35,
                  label=None, label_loc=None, props=None, **kwargs):
         self.data = np.asarray(data)
         self.color = color
@@ -608,6 +610,7 @@ class MarkerMesh(_MeshBase):
         self.label_loc = label_loc
         self.props = props
         self.kwargs = kwargs
+        self.marker_size = size
 
     def get_legends(self):
         return CatLegend(colors=[self.color], labels=[self.label],
@@ -619,7 +622,7 @@ class MarkerMesh(_MeshBase):
         yticks = np.arange(Y) + 0.5
         yv, xv = np.where(data)
 
-        ax.scatter(xv + .5, yv + .5, s=50,
+        ax.scatter(xv + .5, yv + .5, s=self.marker_size,
                    c=self.color, marker=self.marker, **self.kwargs)
 
         close_ticks(ax)
@@ -629,182 +632,5 @@ class MarkerMesh(_MeshBase):
 
 
 # TODO: Maybe a text mesh
-class TextMesh(_MeshBase):
+class TextMesh(MeshBase):
     render_main = True
-
-
-class LayersMesh(_MeshBase):
-    """The mesh that draw customized elements in multi-layers
-
-    You can specify layers in two ways.
-
-        #. One layer of data with different elements
-        #. Multiple layers of data, each layer is a customized element.
-            This will overlay elements on each other.
-
-    If multiple layers are supplied, the drawing order will be
-    the order of supplied array. This can be overrided by controling
-    `zorder` attribute in your :class:`Pieces`.
-
-    Parameters
-    ----------
-
-    data : np.ndarray, optional
-        If you only have one layer, use this
-    layers : list of data
-        If you have multiple layer, use this. 
-        Each layer must be a bool matrix to indicate if the element
-        is render at specific cell.
-    pieces : dict or array
-        If you have one layer, use a dict to define how to render each element.
-        If you have multiple layer, use an array to define how to render each layer.
-    label : str
-        The label of the mesh, only show when added to the side plot
-    label_loc : str
-        The location of the label
-    props : dict
-        See :class:`matplotlib.text.Text`
-
-    Examples
-    --------
-
-    Draw one layer
-
-    .. plot::
-        :context: close-figs
-
-        >>> from heatgraphy.plotter import LayersMesh
-        >>> from heatgraphy.layers import Rect, FrameRect
-        >>> data = np.random.chice([1, 2, 3], (10, 10))
-        >>> pieces = {1: Rect(color="r", label="1"), 
-        ...           2: FrameRect(color="g", label="2"),
-        ...           3: Rect(color="b", label="3")}
-        >>> _, ax = plt.subplots()
-        >>> LayersMesh(data=data, pieces=pieces).render(ax)
-
-    Draw multiple layers
-
-    .. plot::
-        :context: close-figs
-
-        >>> d1 = np.random.chice([1, 2, 3], (10, 10))
-        >>> d2 = np.random.chice([1, 2, 3], (10, 10))
-        >>> d3 = np.random.chice([1, 2, 3], (10, 10))
-        >>> pieces = [Rect(color="r", label="1"), 
-        ...           FrameRect(color="g", label="2"),
-        ...           Rect(color="b", label="3")]
-        >>> _, ax = plt.subplots()
-        >>> LayersMesh(layers=[d1, d2, d3], pieces=pieces).render(ax)
-    
-    """
-    render_main = True
-
-    def __init__(self,
-                 data=None,
-                 layers=None,
-                 pieces=None,
-                 shrink=(1., 1.),
-                 label=None, label_loc=None, props=None,
-                 legend_kws=None,
-                 ):
-        # render one layer
-        # with different elements
-        if data is not None:
-            self.data = data
-            if not isinstance(pieces, Mapping):
-                msg = f"Expect pieces to be dict " \
-                      f"but found {type(pieces)} instead."
-                raise TypeError(msg)
-            self.pieces_mapper = pieces
-            self.mode = "cell"
-        # render multiple layers
-        # each layer is an elements
-        else:
-            if not isinstance(pieces, Iterable):
-                msg = f"Expect pieces to be list " \
-                      f"but found {type(pieces)} instead."
-                raise TypeError(msg)
-            self.pieces, self.data = self._sort_by_zorder(pieces, layers)
-            self.mode = "layer"
-        self.x_offset = (1 - shrink[0]) / 2
-        self.y_offset = (1 - shrink[1]) / 2
-        self.width = shrink[0]
-        self.height = shrink[1]
-        self.label = label
-        self.label_loc = label_loc
-        self.props = props
-        if legend_kws is None:
-            legend_kws = {}
-        self._legend_kws = legend_kws
-
-    @staticmethod
-    def _sort_by_zorder(pieces, layers):
-        ix_pieces = sorted(enumerate(pieces), key=lambda x: x[1].zorder)
-        sorted_pieces = []
-        sorted_layers = []
-        for (ix, piece) in ix_pieces:
-            sorted_pieces.append(piece)
-            sorted_layers.append(layers[ix])
-        return pieces, layers
-
-    def get_render_data(self):
-        data = self.data
-
-        if not self.is_deform:
-            return data
-
-        if self.mode == "cell":
-            return self.deform_func(data)
-        else:
-            trans_layers = [
-                self.deform_func(layer) for layer in self.data]
-            if self.is_split:
-                return [chunk for chunk in zip(*trans_layers)]
-            else:
-                return trans_layers
-
-    def get_legends(self):
-        if self.mode == "cell":
-            handles = list(self.pieces_mapper.values())
-        else:
-            handles = self.pieces
-        new_handles = []
-        labels = []
-        handler_map = {}
-        for h in handles:
-            if h.legend_entry:
-                new_handles.append(h)
-                labels.append(h.get_label())
-                handler_map[h] = h
-        return ListLegend(handles=new_handles, labels=labels,
-                          handler_map=handler_map, **self._legend_kws)
-
-    def render_ax(self, ax, data):
-        if self.mode == "layer":
-            if self.is_flank:
-                data = [d.T for d in data]
-            Y, X = data[0].shape
-        else:
-            if self.is_flank:
-                data = data.T
-            Y, X = data.shape
-        ax.set_axis_off()
-        ax.set_xlim(0, X)
-        ax.set_ylim(0, Y)
-        if self.mode == "layer":
-            for layer, piece in zip(data, self.pieces):
-                for iy, row in enumerate(layer):
-                    for ix, v in enumerate(row):
-                        if v:
-                            art = piece.draw(ix + self.x_offset,
-                                             iy + self.y_offset,
-                                             self.width, self.height)
-                            ax.add_artist(art)
-        else:
-            for iy, row in enumerate(data):
-                for ix, v in enumerate(row):
-                    piece = self.pieces_mapper[v]
-                    art = piece.draw(ix + self.x_offset, iy + self.y_offset,
-                                     self.width, self.height)
-                    ax.add_artist(art)
-        ax.invert_yaxis()

@@ -19,7 +19,6 @@ class _SeabornBase(StatsBase):
 
     def __init__(self, data, hue_order=None, palette=None,
                  label=None, legend_kws=None, **kwargs):
-        # TODO: Add support for hue and hue_order
 
         if isinstance(data, Mapping):
             self.datasets = []
@@ -41,8 +40,10 @@ class _SeabornBase(StatsBase):
             kwargs['palette'] = self.palette
         else:
             self.data = self.data_validator(data)
-            if kwargs.get("color") is None:
-                kwargs["color"] = "C0"
+            if (palette is None) and ('color' not in kwargs):
+                kwargs['palette'] = "dark:C0"
+            if palette is not None:
+                kwargs['palette'] = palette
         kwargs.pop("x", None)
         kwargs.pop("y", None)
         kwargs.pop("hue", None)

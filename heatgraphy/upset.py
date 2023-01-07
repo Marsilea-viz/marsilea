@@ -61,6 +61,17 @@ class UpsetData:
 
     def __init__(self, data, names=None, items=None,
                  sets_attrs=None, items_attrs=None):
+        if isinstance(data, pd.DataFrame):
+            if names is None:
+                names = data.columns.tolist()
+            if items is None:
+                items = data.index.tolist()
+            data = data.to_numpy()
+        if names is None:
+            raise ValueError("The name of sets must be provided")
+        if items is None:
+            raise ValueError("The name of items must be provided")
+
         assert len(names) == len(set(names)), "Duplicates in names"
         assert len(items) == len(set(items)), "Duplicates in items"
         self.names = list(names)  # columns
@@ -87,7 +98,7 @@ class UpsetData:
         ----------
         sets : array of sets, dict
             The sets data
-        names : optionsal
+        names : optional
             The name of sets, if name is not provided, it will
             be automatically named as "Set 1, Set 2, ..."
         sets_attrs : optional, pd.DataFrame
@@ -127,15 +138,29 @@ class UpsetData:
         return container
 
     @classmethod
-    def from_memberships(cls, sets_names, items_names=None,
+    def from_memberships(cls, items, items_names=None,
                          sets_attrs: pd.DataFrame = None,
                          items_attrs: pd.DataFrame = None):
         """Describe the sets an item are in"""
-        df = (pd.DataFrame([{name: True for name in names}
-                            for names in sets_names])
-              ).fillna(False).astype(int)
+
+        sets = []
+        new_items_names = []
+
+        if isinstance(items, Mapping):
+            for name, ss in items.items():
+                new_items_names.append(name)
+                sets.append({s: True for s in ss})
+        else:
+            for i, ss in enumerate(items):
+                new_items_names.append(f"Item {i + 1}")
+                sets.append({s: True for s in ss})
+
+        if items_names is not None:
+            new_items_names = items_names
+
+        df = pd.DataFrame(sets).fillna(False).astype(int)
         container = cls(df.to_numpy(), names=df.columns,
-                        items=items_names, sets_attrs=sets_attrs,
+                        items=new_items_names, sets_attrs=sets_attrs,
                         items_attrs=items_attrs)
         return container
 
