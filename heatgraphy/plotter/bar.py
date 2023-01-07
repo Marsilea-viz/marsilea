@@ -161,7 +161,7 @@ class StackBar(StatsBase):
         2D data
      labels : str or list of str, optional
         A list with the same length as data
-     colors : color or list of color, optional
+     colors : dict or list of color, optional
         The colors of the bar faces.
 
 
@@ -174,7 +174,7 @@ class StackBar(StatsBase):
         >>> d2 = np.random.randint(1,100,(12,10))
         >>> labels = ['Title', 'Year','Runtime (Minutes)', 'Rating', 'Votes', 'Revenue (Millions)','Metascore','Protagonist','Director','Country','Genre','Online']
         >>> h1 = hg.Heatmap(d1,name='h1')
-        >>> bar1 = hg.plotter.StackBar(d2,show_value=True, value_size = 6, labels =labels)
+        >>> bar1 = hg.plotter.StackBar(d2,show_value=True, value_size = 6, labels =labels, fmt='%.1f%%')
         >>> h1.add_right(bar1,size= 5,name = 'bar')
         >>> h1.add_legends()
         >>> h1.render()
