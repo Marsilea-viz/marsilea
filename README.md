@@ -1,11 +1,11 @@
 ![Logo](img/logo.png)
 
+❗Still under development, Bug Expected
+
 Create grid layout visualization!
 
 Quick start in the web without coding!
-[Open App]()
-
-❗Still under development, Bug Expected
+[Open App](https://heatgraphy.streamlit.app)
 
 ### Installation
 
