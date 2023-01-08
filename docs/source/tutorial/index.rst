@@ -59,3 +59,7 @@ Tutorial
             :maxdepth: 1
 
             concatenation.rst
+
+        .. raw:: html
+
+            <img style="max-width: 480px;" src="/heatgraphy/docs/build/html/_images/concatenation-7.png"/>
