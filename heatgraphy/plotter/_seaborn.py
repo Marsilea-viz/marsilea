@@ -40,10 +40,11 @@ class _SeabornBase(StatsBase):
             kwargs['palette'] = self.palette
         else:
             self.data = self.data_validator(data)
-            if (palette is None) and ('color' not in kwargs):
-                kwargs['palette'] = "dark:C0"
-            if palette is not None:
-                kwargs['palette'] = palette
+            kwargs.setdefault('color', 'C0')
+            # if (palette is None) and ('color' not in kwargs):
+            #     kwargs['palette'] = "dark:C0"
+            # if palette is not None:
+            #     kwargs['palette'] = palette
         kwargs.pop("x", None)
         kwargs.pop("y", None)
         kwargs.pop("hue", None)
