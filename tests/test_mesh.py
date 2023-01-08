@@ -2,14 +2,14 @@ import pytest
 import numpy as np
 from matplotlib import pyplot as plt
 
-from heatgraphy.plotter.mesh import ColorMesh, Colors, LayersMesh, \
+from heatgraphy.plotter.mesh import ColorMesh, Colors, \
     TextMesh, SizedMesh, MarkerMesh
-
 
 COLUMN = 20
 ROW = 20
 
 matrix = np.random.randint(0, 101, (ROW, COLUMN))
+cat_matrix = np.random.choice([1, 2, 3, 4], (ROW, COLUMN))
 
 label = np.random.choice(list("abcdefg"), ROW)
 
@@ -26,5 +26,5 @@ def test_colormesh():
 
 def test_colors():
     ax = plt.subplot(111)
-    Colors(matrix).render(ax)
+    Colors(cat_matrix).render(ax)
     plt.close()
