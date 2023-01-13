@@ -1,18 +1,14 @@
-from itertools import product
-import pytest
-import numpy as np
-import pandas as pd
 import matplotlib.pyplot as plt
+import numpy as np
 
 import heatgraphy as hg
-from heatgraphy.plotter import Numbers, Bar
-from heatgraphy.plotter.mesh import ColorMesh, Colors, LayersMesh, \
-    TextMesh, SizedMesh, MarkerMesh
+from heatgraphy.plotter.mesh import MarkerMesh
 
 COLUMN = 21
 ROW = 20
 
 main_data = np.random.randint(0, 101, (ROW, COLUMN))
+cat_data = np.random.choice([1, 2, 3, 4], (ROW, COLUMN))
 
 
 def test_colormesh():
@@ -22,7 +18,7 @@ def test_colormesh():
 
 
 def test_colors():
-    h = hg.CatHeatmap(main_data)
+    h = hg.CatHeatmap(cat_data)
     h.render()
     plt.close()
 

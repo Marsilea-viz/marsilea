@@ -76,3 +76,25 @@ intersphinx_mapping = {
 copybutton_prompt_text = r">>> |\.\.\. |\$ |In \[\d*\]: | {2,5}\.\.\.: | {5," \
                          r"8}: "
 copybutton_prompt_is_regexp = True
+
+
+def autodoc_skip_member(app, what, name, obj, skip, options):
+    methods = ['get_legends', 'get_canvas_size',
+               'render_ax', 'render_axes',
+               'get_render_data']
+    attrs = ['render_main', 'canvas_size_unknown', 'no_split',
+             'data', 'deform', 'deform_func']
+
+    if hasattr(obj, "__qualname__"):
+        cls = obj.__qualname__.split(".")[0]
+        if cls != "RenderPlan":
+            if name in methods:
+                return True
+    if what == "attribute":
+        if name in attrs:
+            return True
+    return
+
+
+def setup(app):
+    app.connect('autodoc-skip-member', autodoc_skip_member)

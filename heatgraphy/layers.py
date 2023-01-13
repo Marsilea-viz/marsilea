@@ -20,9 +20,9 @@ class LayersMesh(MeshBase):
 
     You can specify layers in two ways.
 
-        #. One layer of data with different elements
-        #. Multiple layers of data, each layer is a customized element.
-            This will overlay elements on each other.
+    #. One layer of data with different elements
+    #. Multiple layers of data, each layer is a customized element.
+        This will overlay elements on each other.
 
     If multiple layers are supplied, the drawing order will be
     the order of supplied array. This can be overrided by controling
