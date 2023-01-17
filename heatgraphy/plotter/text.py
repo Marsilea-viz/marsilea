@@ -473,19 +473,19 @@ class Labels(_LabelBase):
     .. plot::
         :context: close-figs
 
-    >>> row = [str(i) for i in range(15)]
-    >>> col = [str(i) for i in range(10)]
+        >>> row = [str(i) for i in range(15)]
+        >>> col = [str(i) for i in range(10)]
 
-    >>> import heatgraphy as hg
-    >>> from heatgraphy.plotter import Labels
-    >>> import numpy as np
-    >>> matrix = np.random.randn(15, 10)
-    >>> h = hg.Heatmap(matrix)
-    >>> label_row = Labels(row)
-    >>> label_col = Labels(col,rotation=True)
-    >>> h.add_right(label_row)
-    >>> h.add_bottom(label_col)
-    >>> h.render()
+        >>> import heatgraphy as hg
+        >>> from heatgraphy.plotter import Labels
+        >>> import numpy as np
+        >>> matrix = np.random.randn(15, 10)
+        >>> h = hg.Heatmap(matrix)
+        >>> label_row = Labels(row)
+        >>> label_col = Labels(col,rotation=True)
+        >>> h.add_right(label_row)
+        >>> h.add_bottom(label_col)
+        >>> h.render()
 
     """
 
@@ -576,13 +576,13 @@ class Title(_LabelBase):
     .. plot::
         :context: close-figs
 
-    >>> import heatgraphy as hg
-    >>> from heatgraphy.plotter import Title
-    >>> matrix = np.random.randn(15, 10)
-    >>> h = hg.Heatmap(matrix)
-    >>> title = Title('Heatmap',text_pad=0.4)
-    >>> h.add_top(title)
-    >>> h.render()
+        >>> import heatgraphy as hg
+        >>> from heatgraphy.plotter import Title
+        >>> matrix = np.random.randn(15, 10)
+        >>> h = hg.Heatmap(matrix)
+        >>> title = Title('Heatmap',text_pad=0.4)
+        >>> h.add_top(title)
+        >>> h.render()
 
 
     """
@@ -666,17 +666,17 @@ class Chunk(_LabelBase):
     .. plot::
         :context: close-figs
 
-    >>> import heatgraphy as hg
-    >>> from heatgraphy.plotter import Chunk
-    >>> matrix = np.random.randn(15, 10)
-    >>> h = hg.Heatmap(matrix)
-    >>> h.split_row(cut=[4,10])
-    >>> h.split_col(cut=[5])
-    >>> chunk_row = Chunk(['Top','Middle','Bottom'],rotation=True)
-    >>> chunk_col = Chunk(['Left','Right'],rotation=True)
-    >>> h.add_right(chunk_row)
-    >>> h.add_bottom(chunk_col)
-    >>> h.render()
+        >>> import heatgraphy as hg
+        >>> from heatgraphy.plotter import Chunk
+        >>> matrix = np.random.randn(15, 10)
+        >>> h = hg.Heatmap(matrix)
+        >>> h.split_row(cut=[4,10])
+        >>> h.split_col(cut=[5])
+        >>> chunk_row = Chunk(['Top','Middle','Bottom'],rotation=True)
+        >>> chunk_col = Chunk(['Left','Right'],rotation=True)
+        >>> h.add_right(chunk_row)
+        >>> h.add_bottom(chunk_col)
+        >>> h.render()
     
     """
 
