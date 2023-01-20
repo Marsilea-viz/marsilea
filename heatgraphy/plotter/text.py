@@ -595,7 +595,7 @@ class Title(_LabelBase):
         if fontsize is None:
             fontsize = 12
         self.fontsize = fontsize
-        self.expand = (1. + text_pad, 1. + text_pad)
+        self.pad = text_pad
         self.rotation = 0
 
         super().__init__(va=va, ha=ha, rotation=rotation, **options)
@@ -618,12 +618,17 @@ class Title(_LabelBase):
         return self.data
 
     def get_canvas_size(self):
-        self.silent_render(expand=self.expand)
-        return self.canvas_size
+        self.silent_render(expand=(1, 1))
+        return self.canvas_size * (1 + self.pad)
 
     def render_ax(self, ax: Axes, title):
         const = align_pos[self.align]
-        pos = stick_pos[self.side]
+        if self.align == "center":
+            pos = .5
+        elif self.align in ["right", "top"]:
+            pos = 1 - self.pad / 2
+        else:
+            pos = self.pad / 2
         x, y = (const, pos) if self.is_body else (pos, const)
         ax.text(x, y, title, fontsize=self.fontsize, va=self.va, ha=self.ha,
                 transform=ax.transAxes,
