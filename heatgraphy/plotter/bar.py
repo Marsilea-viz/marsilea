@@ -207,10 +207,10 @@ class StackBar(StatsBase):
         bar = ax.bar if orient == "v" else ax.barh
 
         lim = data.shape[1]
-        if self.is_body:
-            ax.set_xlim(0, lim)
-        else:
+        if self.is_flank:
             ax.set_ylim(0, lim)
+        else:
+            ax.set_xlim(0, lim)
         if self.side == "left":
             ax.invert_xaxis()
 

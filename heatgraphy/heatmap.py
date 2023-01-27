@@ -2,45 +2,16 @@ from __future__ import annotations
 
 import logging
 
-import matplotlib.pyplot as plt
 import numpy as np
 
-from .base import MatrixBase, Base, get_plot_name
+from .base import ClusterBoard
 from .plotter import ColorMesh, SizedMesh, Colors
+from .utils import get_canvas_size, get_plot_name
 
 log = logging.getLogger("heatgraphy")
 
 
-class WhiteBoard(Base):
-    """Create an empty canvas
-
-    """
-    def __init__(self, width=None, height=None, aspect=1):
-        super().__init__(w=width, h=height, main_aspect=aspect)
-
-    def render(self, figure=None, aspect=1, scale=1):
-        self._freeze_legend()
-        if figure is None:
-            self.figure = plt.figure()
-        else:
-            self.figure = figure
-
-        if not self.grid.is_freeze:
-            self.grid.freeze(figure=self.figure, aspect=aspect, scale=scale)
-
-        self._render_plan()
-        self._render_legend()
-
-
-class ClusterCanvas(MatrixBase):
-    """Create an empty canvas that can be split and reorder by dendrogram
-
-    """
-    def __init__(self, cluster_data, width=None, height=None, aspect=1):
-        super().__init__(cluster_data, w=width, h=height, main_aspect=aspect)
-
-
-class Heatmap(MatrixBase):
+class Heatmap(ClusterBoard):
     """Heatmap
 
     See :class:`ColorMesh <heatgraphy.plotter.ColorMesh>` for details
@@ -63,21 +34,14 @@ class Heatmap(MatrixBase):
                  cmap=None, norm=None, center=None,
                  mask=None, alpha=None, linewidth=0, linecolor="white",
                  annot=None, fmt=None, annot_kws=None, label=None,
-                 cbar_kws=None, square=False, name=None,
+                 cbar_kws=None, name=None,
                  width=None, height=None, cluster_data=None
                  ):
-        self.square = square
 
-        main_aspect = 1
-        if (width is not None) & (height is not None):
-            main_aspect = height / width
-        if square:
-            Y, X = data.shape
-            main_aspect = Y / X
         if cluster_data is None:
             cluster_data = data
-        super().__init__(cluster_data, w=width, h=height,
-                         main_aspect=main_aspect, name=name)
+        super().__init__(cluster_data, width=width, height=height,
+                         name=name)
         mesh = ColorMesh(data, vmin=vmin, vmax=vmax, cmap=cmap,
                          norm=norm, center=center,
                          mask=mask, alpha=alpha, linewidth=linewidth,
@@ -88,7 +52,7 @@ class Heatmap(MatrixBase):
         self.add_layer(mesh)
 
 
-class CatHeatmap(MatrixBase):
+class CatHeatmap(ClusterBoard):
     """Categorical Heatmap
 
     See :class:`Colors <heatgraphy.plotter.Colors>` for details
@@ -110,13 +74,13 @@ class CatHeatmap(MatrixBase):
         mesh = Colors(data, palette=palette, cmap=cmap, mask=mask)
         if cluster_data is None:
             cluster_data = mesh.cluster_data
-        super().__init__(cluster_data, w=width, h=height, name=name)
+        super().__init__(cluster_data, width=width, height=height, name=name)
         name = get_plot_name(name, "main", mesh.__class__.__name__)
         mesh.set(name=name)
         self.add_layer(mesh)
 
 
-class SizedHeatmap(MatrixBase):
+class SizedHeatmap(ClusterBoard):
     """Sized Heatmap
 
     See :class:`SizedMesh <heatgraphy.plotter.SizedMesh>` for details
@@ -138,8 +102,7 @@ class SizedHeatmap(MatrixBase):
                  **kwargs):
         if cluster_data is None:
             cluster_data = size
-        y, x = cluster_data.shape
-        super().__init__(cluster_data, main_aspect=y / x, name=name)
+        super().__init__(cluster_data, name=name)
 
         mesh = SizedMesh(size=size, color=color, **kwargs)
         self.add_layer(mesh)

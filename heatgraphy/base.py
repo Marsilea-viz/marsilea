@@ -14,47 +14,9 @@ from matplotlib.figure import Figure
 from ._deform import Deformation
 from .dendrogram import Dendrogram
 from .exceptions import SplitTwice
-from .layout import CrossGrid
+from .layout import CrossLayout, CompositeCrossLayout
 from .plotter import RenderPlan, Title
-from .utils import pairwise, batched
-
-
-def get_aspect(ratio, w=None, h=None):
-    canvas_size_min = np.array((2.0, 2.0))  # min length for width/height
-    canvas_size_max = np.array((20.0, 20.0))  # max length for width/height
-
-    set_w = w is not None
-    set_h = h is not None
-
-    canvas_height, canvas_width = None, None
-
-    if set_w & set_h:
-        canvas_height = float(h)
-    elif set_w:
-        canvas_width = float(w)
-    else:
-        if ratio >= 1:
-            canvas_height = 4
-        else:
-            canvas_height = 2
-
-    if canvas_height is not None:
-        newsize = np.array((canvas_height / ratio, canvas_height))
-    else:
-        newsize = np.array((canvas_width, canvas_width * ratio))
-
-    newsize /= min(1.0, *(newsize / canvas_size_min))
-    newsize /= max(1.0, *(newsize / canvas_size_max))
-    newsize = np.clip(newsize, canvas_size_min, canvas_size_max)
-    return newsize
-
-
-def get_plot_name(name=None, side=None, chart=None):
-    # self._side_count[side] += 1
-    if name is None:
-        return f"{chart}-{side}-{uuid4().hex}"
-    else:
-        return name
+from .utils import pairwise, batched, get_plot_name
 
 
 def reorder_index(arr, order=None):
@@ -82,16 +44,14 @@ def get_breakpoints(arr):
 
 
 class LegendMaker:
-    grid: CrossGrid
+    layout: CrossLayout | CompositeCrossLayout
     _legend_box: List[Artist] = None
     _legend_name: str = None
-
 
     def __init__(self) -> None:
         self._legend_grid_kws: Dict = {}
         self._legend_draw_kws: Dict = {}
         self._draw_legend: bool = False
-
 
     def get_legends(self) -> Dict:
         """To get legends in a dict
@@ -129,7 +89,6 @@ class LegendMaker:
 
         """
         self._draw_legend = True
-        name = get_plot_name(side=side, chart="Legend")
         if stack_by is None:
             stack_by = "col" if side in ["right", "left"] else "row"
         if align_stacks is None:
@@ -137,12 +96,15 @@ class LegendMaker:
         if align_legends is None:
             align_legends = "left" if stack_by == "col" else "bottom"
 
-        self._legend_name = name
-        self._legend_grid_kws = dict(name=name, side=side, pad=pad, size=0.01)
+        self._legend_grid_kws = dict(side=side, size=0.01, pad=pad)
         self._legend_draw_kws = dict(
             order=order, stack_by=stack_by, stack_size=stack_size,
             align_legends=align_legends, align_stacks=align_stacks,
             spacing=spacing)
+
+    def remove_legends(self):
+        self._draw_legend = False
+        self.layout.remove_legend_ax()
 
     def _legends_drawer(self, ax):
         legends = self.get_legends()
@@ -183,6 +145,7 @@ class LegendMaker:
                            spacing=10)
         ax.add_artist(legend_box)
         # uncomment this to visualize legend ax
+        # from matplotlib.patches import Rectangle
         # rect = Rectangle((0, 0), 1, 1,
         #                  fill=None,
         #                  edgecolor="r",
@@ -190,46 +153,52 @@ class LegendMaker:
         # ax.add_artist(rect)
         return legend_box
 
-    def _freeze_legend(self):
+    def _freeze_legend(self, figure):
         if self._draw_legend:
-            self.grid.add_ax(**self._legend_grid_kws)
-            fig = plt.figure()
-            renderer = fig.canvas.get_renderer()
-            legend_ax = fig.add_axes([0, 0, 1, 1])
+            self.layout.add_legend_ax(**self._legend_grid_kws)
+            renderer = figure.canvas.get_renderer()
+            legend_ax = figure.add_axes([0, 0, 1, 1])
             legends_box = self._legends_drawer(legend_ax)
             bbox = legends_box.get_window_extent(renderer)
             if self._legend_grid_kws['side'] in ["left", "right"]:
                 size = bbox.xmax - bbox.xmin
             else:
                 size = bbox.ymax - bbox.ymin
-            self.grid.set_render_size_inches(self._legend_name, size / 72)
-            plt.close(fig)
+            print("Legend size inches", size / 72)
+            self.layout.set_legend_size(size / 72)
+            legend_ax.remove()
 
     def _render_legend(self):
         if self._draw_legend:
-            legend_ax = self.grid.get_canvas_ax(self._legend_name)
+            legend_ax = self.layout.get_legend_ax()
             legend_ax.set_axis_off()
             legend_box = self._legends_drawer(legend_ax)
             self._legend_box = legend_box
 
 
-class Base(LegendMaker):
-    grid: CrossGrid
+class WhiteBoard(LegendMaker):
+    """The base class that handle all rendering process
+
+    """
+    layout: CrossLayout
     figure: Figure
     _row_plan: List[RenderPlan]
     _col_plan: List[RenderPlan]
     _layer_plan: List[RenderPlan]
 
-    def __init__(self, w=None, h=None, main_aspect=1, name=None):
-        w, h = get_aspect(main_aspect, w=w, h=h)
-        self.width = w
-        self.height = h
-        self.grid = CrossGrid(w=w, h=h, name=name)
-        self.main_name = self.grid.main_name
+    def __init__(self, width=None, height=None, name=None):
+        self.main_name = get_plot_name(name, "main", "board")
+        width = 5 if width is None else width
+        height = 5 if height is None else height
+        self.layout = CrossLayout(name=self.main_name,
+                                  width=width,
+                                  height=height)
+
         # self._side_count = {"right": 0, "left": 0, "top": 0, "bottom": 0}
         self._col_plan = []
         self._row_plan = []
         self._layer_plan = []
+        # use to mark if legend is enabled for a RenderPlan
         self._legend_switch = {}
         super().__init__()
 
@@ -238,8 +207,15 @@ class Base(LegendMaker):
         plot_name = get_plot_name(name, side, plot.__class__.__name__)
         self._legend_switch[plot_name] = legend
 
-        add_ax_size = size if size is not None else 1.
-        self.grid.add_ax(side, name=plot_name, size=add_ax_size, pad=pad)
+        if size is not None:
+            ax_size = size
+        else:
+            if plot.size is not None:
+                ax_size = plot.size
+            else:
+                ax_size = 1.
+
+        self.layout.add_ax(side, name=plot_name, size=ax_size, pad=pad)
 
         if side in ["top", "bottom"]:
             plan = self._col_plan
@@ -247,10 +223,6 @@ class Base(LegendMaker):
             plan = self._row_plan
         plot.set(name=plot_name, size=size)
         plot.set_side(side)
-
-        if plot.canvas_size_unknown & (plot.size is None):
-            s = plot.get_canvas_size()
-            self.grid.set_render_size_inches(plot_name, s)
 
         plan.append(plot)
 
@@ -272,12 +244,12 @@ class Base(LegendMaker):
 
     def _render_plan(self):
         for plan in self._col_plan:
-            axes = self.grid.get_canvas_ax(plan.name)
+            axes = self.layout.get_ax(plan.name)
             plan.render(axes)
 
         # render other plots
         for plan in self._row_plan:
-            axes = self.grid.get_canvas_ax(plan.name)
+            axes = self.layout.get_ax(plan.name)
             plan.render(axes)
 
         main_ax = self.get_main_ax()
@@ -304,10 +276,10 @@ class Base(LegendMaker):
         return sorted(self._layer_plan, key=lambda p: p.zorder)
 
     def add_pad(self, side, size):
-        self.grid.add_pad(side, size)
+        self.layout.add_pad(side, size)
 
     def add_canvas(self, side, name, size, pad=0.):
-        self.grid.add_ax(side, name, size, pad=pad)
+        self.layout.add_ax(side, name, size, pad=pad)
 
     def add_title(self, top=None, bottom=None, left=None, right=None,
                   pad=.1, **props):
@@ -323,18 +295,24 @@ class Base(LegendMaker):
     def get_ax(self, name):
         """Get a specific axes by name when available
 
+        If the axes is split, multiple axes will be returned
+
         .. note::
             This will not work before `render` is called
 
         """
-        return self.grid.get_canvas_ax(name)
+        return self.layout.get_ax(name)
 
     def get_main_ax(self):
-        """Return the main axes, like the heatmap axes"""
-        return self.get_ax(self.main_name)
+        """Return the main axes"""
+        return self.layout.get_main_ax()
 
     def _extra_legends(self):
-        """If there are legends that cannot get from renderplan"""
+        """If there are legends that cannot get from RenderPlan
+
+        Must be overridden in derived class
+
+        """
         return {}
 
     def get_legends(self):
@@ -350,8 +328,106 @@ class Base(LegendMaker):
                     legends[plan.name] = legs
         return legends
 
+    def __add__(self, other):
+        """Define behavior that horizontal appends two grid"""
+        pass
 
-class MatrixBase(Base):
+    def __truediv__(self, other):
+        """Define behavior that vertical appends two grid"""
+        pass
+
+    def append(self, side, other):
+        compose_board = CompositeBoard(self)
+        compose_board.append(side, other)
+        return compose_board
+
+    def _freeze_flex_plots(self, figure):
+        for plan in self._col_plan + self._row_plan:
+            if plan.is_flex:
+                self.layout.set_render_size(plan.name,
+                                            plan.get_canvas_size(figure))
+
+    def render(self, figure=None, scale=1, refreeze=True):
+        """
+
+        Parameters
+        ----------
+        figure
+        scale
+        refreeze : bool
+            If True, recompute the Layout on render
+
+        Returns
+        -------
+
+        """
+        if figure is None:
+            figure = plt.figure()
+        self.figure = figure
+        self._freeze_legend(figure)
+        self._freeze_flex_plots(figure)
+
+        # if refreeze:
+        #     self.figure = self.layout.freeze(figure=figure, scale=scale)
+        # else:
+        #     self.figure = self.layout.figure
+        self.layout.freeze(figure=figure, scale=scale)
+
+        # render other plots
+        self._render_plan()
+        self._render_legend()
+
+
+class CompositeBoard(LegendMaker):
+    layout: CompositeCrossLayout
+    figure: Figure
+
+    def __init__(self, main_board: WhiteBoard):
+        self.main_board = self.new_board(main_board)
+        self.main_board.remove_legends()
+        self.layout = CompositeCrossLayout(self.main_board.layout)
+        self._board_list = [self.main_board]
+        super().__init__()
+
+    @staticmethod
+    def new_board(board):
+        board = deepcopy(board)
+        board.remove_legends()
+        return board
+
+    def __add__(self, other):
+        """Define behavior that horizontal appends two grid"""
+        pass
+
+    def __truediv__(self, other):
+        """Define behavior that vertical appends two grid"""
+        pass
+
+    def append(self, side, other):
+        board = self.new_board(other)
+        self._board_list.append(board)
+        self.layout.append(side, board.layout)
+
+    def render(self, figure=None, scale=1):
+        if figure is None:
+            figure = plt.figure()
+        self._freeze_legend(figure)
+        self.layout.freeze(figure=figure, scale=scale)
+        self.figure = self.layout.figure
+
+        for board in self._board_list:
+            board.render(figure=self.figure)
+
+        self._render_legend()
+
+    def get_legends(self):
+        legends = {}
+        for m in self._board_list:
+            legends.update(m.get_legends())
+        return legends
+
+
+class ClusterBoard(WhiteBoard):
     _row_reindex: List[int] = None
     _col_reindex: List[int] = None
     # If cluster data need to be defined by user
@@ -361,8 +437,8 @@ class MatrixBase(Base):
     _mesh = None
     square = False
 
-    def __init__(self, cluster_data, w=None, h=None, main_aspect=1, name=None):
-        super().__init__(w=w, h=h, main_aspect=main_aspect, name=name)
+    def __init__(self, cluster_data, width=None, height=None, name=None):
+        super().__init__(width=width, height=height, name=name)
         self._row_den = []
         self._col_den = []
         self._cluster_data = cluster_data
@@ -460,7 +536,8 @@ class MatrixBase(Base):
 
         # if only colors is passed
         # the color should be applied to all
-        if (colors is not None) & (is_color_like(colors)) & (meta_color is None):
+        if (colors is not None) & (is_color_like(colors)) & (
+                meta_color is None):
             meta_color = colors
 
         # if nothing is added
@@ -469,7 +546,7 @@ class MatrixBase(Base):
             show = False
 
         if show:
-            self.grid.add_ax(side, name=plot_name, size=size, pad=pad)
+            self.layout.add_ax(side, name=plot_name, size=size, pad=pad)
 
         den_options = dict(name=plot_name, show=show, side=side,
                            add_meta=add_meta, add_base=add_base,
@@ -487,9 +564,9 @@ class MatrixBase(Base):
             self._col_den.append(den_options)
             deform.set_cluster(col=True, method=method, metric=metric)
 
-    def split_row(self, cut=None, labels=None, order=None, spacing=0.01):
+    def hsplit(self, cut=None, labels=None, order=None, spacing=0.01):
         if self._split_row:
-            raise SplitTwice(axis="row")
+            raise SplitTwice(axis="horizontally")
         self._split_row = True
 
         self._deform.hspace = spacing
@@ -504,9 +581,9 @@ class MatrixBase(Base):
             breakpoints = get_breakpoints(labels[reindex])
             self._deform.set_split_row(breakpoints=breakpoints)
 
-    def split_col(self, cut=None, labels=None, order=None, spacing=0.01):
+    def vsplit(self, cut=None, labels=None, order=None, spacing=0.01):
         if self._split_col:
-            raise SplitTwice(axis="col")
+            raise SplitTwice(axis="vertically")
         self._split_col = True
 
         self._deform.wspace = spacing
@@ -523,44 +600,35 @@ class MatrixBase(Base):
 
     def _setup_axes(self):
         deform = self.get_deform()
+        w_ratios = deform.col_ratios
+        h_ratios = deform.row_ratios
+        wspace = deform.wspace
+        hspace = deform.hspace
+
         # split the main axes
         if deform.is_split:
-            if not self.grid.is_split(self.main_name):
-                self.grid.split(
-                    self.main_name,
-                    w_ratios=deform.col_ratios,
-                    h_ratios=deform.row_ratios,
-                    wspace=deform.wspace,
-                    hspace=deform.hspace
-                )
+            if w_ratios is not None:
+                self.layout.vsplit(self.main_name, w_ratios, wspace)
+            if h_ratios is not None:
+                self.layout.hsplit(self.main_name, h_ratios, hspace)
 
         # split column axes
         if deform.is_col_split:
             for plan in self._col_plan:
                 if not plan.no_split:
-                    if not self.grid.is_split(plan.name):
-                        self.grid.split(
-                            plan.name,
-                            w_ratios=deform.col_ratios,
-                            wspace=deform.wspace
-                        )
+                    self.layout.vsplit(plan.name, w_ratios, wspace)
 
         # split row axes
         if deform.is_row_split:
             for plan in self._row_plan:
                 if not plan.no_split:
-                    if not self.grid.is_split(plan.name):
-                        self.grid.split(
-                            plan.name,
-                            h_ratios=deform.row_ratios,
-                            hspace=deform.hspace
-                        )
+                    self.layout.hsplit(plan.name, h_ratios, hspace)
 
     def _render_dendrogram(self):
         deform = self.get_deform()
         for den in (self._row_den + self._col_den):
             if den['show']:
-                ax = self.grid.get_ax(den['name'])
+                ax = self.layout.get_ax(den['name'])
                 ax.set_axis_off()
                 spacing = deform.hspace
                 den_obj = deform.get_row_dendrogram()
@@ -590,14 +658,14 @@ class MatrixBase(Base):
         for plan in self._col_plan:
             if not plan.no_split:
                 plan.set_deform(deform)
-            axes = self.grid.get_canvas_ax(plan.name)
+            axes = self.layout.get_ax(plan.name)
             plan.render(axes)
 
         # render other plots
         for plan in self._row_plan:
             if not plan.no_split:
                 plan.set_deform(deform)
-            axes = self.grid.get_canvas_ax(plan.name)
+            axes = self.layout.get_ax(plan.name)
             plan.render(axes)
 
         main_ax = self.get_main_ax()
@@ -616,119 +684,23 @@ class MatrixBase(Base):
     def col_cluster(self):
         return len(self._col_den) > 0
 
-    def __add__(self, other):
-        """Define behavior that horizontal appends two grid"""
-        # if add a number it will represent the size of the pad
-        if isinstance(other, (int, float)):
-            new_self = deepcopy(self)
-            new_self.add_pad("right", other)
-            return new_self
-        return self.append_horizontal(other)
-
-    def __truediv__(self, other):
-        """Define behavior that vertical appends two grid"""
-        if isinstance(other, (int, float)):
-            self.add_pad("bottom", other)
-            return self
-        return self.append_vertical(other)
-
-    def append_horizontal(self, other: MatrixBase) -> MatrixList:
-        new_grid = self.grid.append_horizontal(other.grid)
-        new_list = MatrixList(new_grid)
-        new_list.add_matrix(self)
-        new_list.add_matrix(other)
-        return new_list
-
-    def append_vertical(self, other: MatrixBase) -> MatrixList:
-        new_grid = self.grid.append_vertical(other.grid)
-        new_list = MatrixList(new_grid)
-        new_list.add_matrix(self)
-        new_list.add_matrix(other)
-        return new_list
-
-    def render(self, figure=None, aspect=1, scale=1):
-        self._freeze_legend()
+    def render(self, figure=None, scale=1, refreeze=True):
         if figure is None:
-            self.figure = plt.figure()
-        else:
-            self.figure = figure
+            figure = plt.figure()
+        self.figure = figure
+        self._freeze_legend(figure)
+        self._freeze_flex_plots(figure)
 
         # Make sure all axes is split
         self._setup_axes()
         # Place axes
-        aspect = 1 if self.square else aspect
-        if not self.grid.is_freeze:
-            self.grid.freeze(figure=self.figure, aspect=aspect, scale=scale)
-
+        # if refreeze:
+        #     self.figure = self.layout.freeze(figure=figure, scale=scale)
+        # else:
+        #     self.figure = self.layout.figure
+        self.layout.freeze(figure=figure, scale=scale)
         # render other plots
         self._render_plan()
         # add row and col dendrogram
         self._render_dendrogram()
         self._render_legend()
-
-
-class MatrixList(LegendMaker):
-    grid: CrossGrid
-    figure: Figure
-
-    def __init__(self, new_grid):
-        self.grid = new_grid
-        self._matrix_list = []
-        super().__init__()
-
-    def add_matrices(self, matrices):
-        for m in matrices:
-            new_m = deepcopy(m)
-            self._matrix_list.append(new_m)
-
-    def add_matrix(self, matrix):
-        # make deepcopy so we don't change the previous one
-        matrix = deepcopy(matrix)
-        self._matrix_list.append(matrix)
-
-    def __add__(self, other):
-        """Define behavior that horizontal appends two grid"""
-        if isinstance(other, (int, float)):
-            self.grid.add_pad("right", other)
-            return self
-        return self.append_horizontal(other)
-
-    def __truediv__(self, other):
-        """Define behavior that vertical appends two grid"""
-        if isinstance(other, (int, float)):
-            self.grid.add_pad("bottom", other)
-            return self
-        return self.append_vertical(other)
-
-    def append_horizontal(self, other: MatrixBase) -> MatrixList:
-        new_grid = self.grid.append_horizontal(other.grid)
-        new_list = MatrixList(new_grid)
-        new_list.add_matrices(self._matrix_list)
-        new_list.add_matrix(other)
-        return new_list
-
-    def append_vertical(self, other: MatrixBase) -> MatrixList:
-        new_grid = self.grid.append_vertical(other.grid)
-        new_list = MatrixList(new_grid)
-        new_list.add_matrices(self._matrix_list)
-        new_list.add_matrix(other)
-        return new_list
-
-    def render(self, figure=None, aspect=1, scale=1):
-        self._freeze_legend()
-        if figure is None:
-            self.figure = plt.figure()
-        else:
-            self.figure = figure
-
-        for m in self._matrix_list:
-            m.grid = self.grid
-            m.render(figure=self.figure, aspect=aspect, scale=scale)
-
-        self._render_legend()
-
-    def get_legends(self):
-        legends = {}
-        for m in self._matrix_list:
-            legends.update(m.get_legends())
-        return legends

@@ -15,7 +15,7 @@ from matplotlib import pyplot as plt
 from matplotlib.collections import PatchCollection
 from matplotlib.patches import Rectangle
 
-from .base import Base
+from .base import WhiteBoard
 from .plotter import Numbers, Labels, StackBar
 
 
@@ -201,7 +201,7 @@ class UpsetData:
         return self._items_attrs
 
 
-class Upset(Base):
+class Upset(WhiteBoard):
     """Upset Plot
 
     Parameters
@@ -560,8 +560,8 @@ class Upset(Base):
         else:
             self.figure = figure
 
-        if not self.grid.is_freeze:
-            self.grid.freeze(figure=self.figure, aspect=aspect, scale=scale)
+        if not self.layout.is_freeze:
+            self.layout.freeze(figure=self.figure, aspect=aspect, scale=scale)
         main_axes = self.get_main_ax()
         self._render_matrix(main_axes)
         self._render_plan()

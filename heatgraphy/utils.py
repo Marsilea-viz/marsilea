@@ -1,4 +1,5 @@
 from itertools import tee, islice, zip_longest
+from uuid import uuid4
 
 import numpy as np
 import matplotlib as mpl
@@ -64,5 +65,47 @@ def get_colormap(cmap):
         return mpl.colormap.get(cmap)
     except AttributeError:
         return mpl.cm.get_cmap(cmap)
+
+
+def get_canvas_size(width=None, height=None, aspect=1):
+    """
+    To adaptively determine the size a canvas
+
+    Parameters
+    ----------
+    width : float
+    height : float
+    aspect : float
+        The ratio of height to width
+
+    Returns
+    -------
+    (height, width)
+
+    """
+    set_w = width is not None
+    set_h = height is not None
+    # if user set both side, the aspect is ignored
+
+    if set_w & set_h:
+        box = height, width
+    # if only width is set
+    elif set_w:
+        box = width * aspect, width
+    # if only height is set
+    elif set_h:
+        box = height, height / aspect
+    # if none is set, we explicitly give it a value
+    else:
+        width = 5
+        box = width * aspect, width
+    return np.array(box, dtype=float)
+
+
+def get_plot_name(name=None, side=None, chart=None):
+    if name is None:
+        return f"{chart}-{side}-{uuid4().hex}"
+    else:
+        return name
 
 

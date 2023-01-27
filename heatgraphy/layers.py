@@ -10,7 +10,7 @@ from matplotlib.markers import MarkerStyle
 from matplotlib.patches import Rectangle, Polygon
 from matplotlib.transforms import IdentityTransform
 
-from .base import MatrixBase
+from .base import ClusterBoard
 from .layout import close_ticks
 from .plotter.mesh import MeshBase
 
@@ -192,7 +192,7 @@ class LayersMesh(MeshBase):
         ax.invert_yaxis()
 
 
-class Layers(MatrixBase):
+class Layers(ClusterBoard):
 
     def __init__(self,
                  data=None,
@@ -222,8 +222,7 @@ class Layers(MatrixBase):
         else:
             Y, X = cluster_data.shape
             main_aspect = Y * aspect / X
-        super().__init__(cluster_data, main_aspect=main_aspect,
-                         w=width, h=height, name=name)
+        super().__init__(cluster_data, width=width, height=height, name=name)
 
         self.add_layer(mesh)
 

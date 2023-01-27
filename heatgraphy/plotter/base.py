@@ -20,8 +20,10 @@ class DataLoader:
         self.data = self.from_any(data, target=target)
 
     def get_array(self):
+        if np.ma.isMaskedArray(self.data):
+            return self.data
         return np.asarray(self.data)
-    
+
     def from_any(self, data, target="2d"):
         if isinstance(data, pd.DataFrame):
             return self.from_dataframe(data, target=target)
@@ -30,8 +32,8 @@ class DataLoader:
         elif isinstance(data, Iterable):
             return self.from_iterable(data, target=target)
         else:
-            raise TypeError(f"Your input data with type {type(data)} is not supported.")
-
+            raise TypeError(
+                f"Your input data with type {type(data)} is not supported.")
 
     def from_dataframe(self, data: pd.DataFrame, target="2d"):
         ndata = data.to_numpy()
@@ -55,7 +57,7 @@ class DataLoader:
         except Exception:
             msg = f"Cannot handle your data with type {type(data)}"
             if self.plotter is not None:
-                 msg += f" for {self.plotter}."
+                msg += f" for {self.plotter}."
             raise DataError(msg)
         return self.from_ndarray(ndata, target=target)
 
@@ -87,9 +89,9 @@ class RenderPlan:
         Use to mark if the RenderPlan can be split
     render_main : bool, default: False
         Use to mark if the RenderPlan can be rendered on main canvas
-    canvas_size_unknown : bool, default: False
+    is_flex : bool, default: False
         Use to mark if the RenderPlan needs to be rendered to
-        get the canvas size; If mark as True, :meth:`get_canvas_size()` must
+        know the canvas size; If mark as True, :meth:`get_canvas_size()` must
         be implemented.
     zorder : int, default: 0
         This only works if the RenderPlan is rendered on main canvas
@@ -104,11 +106,10 @@ class RenderPlan:
     no_split: bool = False
     # label if a render plan need to calculate
     # canvas size before rendering
-    canvas_size_unknown: bool = False
+    is_flex: bool = False
     zorder: int = 0
 
     deform: Deformation = None
-    deform_func = None
     # If True, this RenderPlan can be rendered on main ax
     render_main = False
 
@@ -132,29 +133,21 @@ class RenderPlan:
 
     def set_side(self, side):
         self.side = side
-        self._update_deform_func()
 
     def set_size(self, size):
         self.size = size
 
-    def _update_deform_func(self):
-        if self.is_deform:
-            if self.is_flank:
-                trans = self.deform.transform_row
-            elif self.is_body:
-                trans = self.deform.transform_col
+    def get_deform_func(self):
+        if self.has_deform:
+            if self.side == "main":
+                return self.deform.transform
+            elif self.is_flank:
+                return self.deform.transform_row
             else:
-                trans = self.deform.transform
-            self.deform_func = trans
+                return self.deform.transform_col
 
     def set_deform(self, deform: Deformation):
         self.deform = deform
-        self._update_deform_func()
-
-    @property
-    def is_deform(self):
-        """If deform exist"""
-        return self.deform is not None
 
     def get_render_data(self):
         """Define how render data is organized
@@ -165,19 +158,26 @@ class RenderPlan:
         #. The canvas is split or not
 
         """
-        if self.is_deform:
-            return self.deform_func(self.data)
-        else:
+        deform_func = self.get_deform_func()
+        if deform_func is None:
             return self.data
-    
+        else:
+            return deform_func(self.data)
+
     def create_render_datasets(self, *datasets):
-        if not self.is_deform:
+        if not self.has_deform:
             return datasets
-        datasets = [self.deform_func(d) for d in datasets]
+        deform_func = self.get_deform_func()
+        datasets = [deform_func(d) for d in datasets]
         if self.is_split:
             return [d for d in zip(*datasets)]
         else:
             return datasets
+
+    @property
+    def has_deform(self):
+        """If the RenderPlan has Deformation"""
+        return self.deform is not None
 
     @property
     def is_body(self):
@@ -229,7 +229,7 @@ class RenderPlan:
         else:
             self.render_ax(axes, self.get_render_data())
 
-    def get_canvas_size(self) -> float:
+    def get_canvas_size(self, figure) -> float:
         """
         If :attr:`canvas_size_unknown` is True, This function must be
         implemented to determine how to calculate the canvas size in inches.
@@ -275,6 +275,7 @@ class RenderPlan:
 
 class StatsBase(RenderPlan):
     axis_label: str = ""
+    render_main = True
 
     def _setup_axis(self, ax):
         if self.is_body:
