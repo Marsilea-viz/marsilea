@@ -8,7 +8,7 @@ from typing import List, Iterable, Dict
 
 import matplotlib.pyplot as plt
 import numpy as np
-from icecream import ic
+# from icecream import ic
 from matplotlib.axes import Axes
 from matplotlib.colors import is_color_like
 from matplotlib.patches import Rectangle
@@ -601,7 +601,7 @@ class Labels(_LabelBase):
         return p
 
     def get_canvas_size(self, figure):
-        ic(self.get_expand())
+        # ic(self.get_expand())
         canvas_size = self.silent_render(figure, expand=self.get_expand())
         return canvas_size
 
@@ -619,7 +619,6 @@ class Labels(_LabelBase):
 
         for s, c in zip(data, coords):
             x, y = (const, c) if self.is_flank else (c, const)
-            ic(x, y)
             ax.text(x, y, s=s, transform=ax.transAxes,
                     **params.to_dict())
         ax.set_axis_off()

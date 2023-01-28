@@ -17,6 +17,7 @@ from matplotlib.patches import Rectangle
 
 from .base import WhiteBoard
 from .plotter import Numbers, Labels, StackBar
+from .utils import get_canvas_size
 
 
 @dataclass
@@ -327,7 +328,8 @@ class Upset(WhiteBoard):
             radius = h * w * -.05 + 50
             radius = np.clip(radius, 5, 50)
         self.radius = radius
-        super().__init__(w=width, h=height, main_aspect=h / w * ratio)
+        height, width = get_canvas_size(width=width, height=height, aspect=1)
+        super().__init__(width=width, height=height)
         if add_intersections:
             if isinstance(add_intersections, str):
                 side = add_intersections

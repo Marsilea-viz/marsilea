@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import warnings
 from copy import deepcopy
 from typing import List, Dict
 from uuid import uuid4
@@ -16,7 +17,7 @@ from .dendrogram import Dendrogram
 from .exceptions import SplitTwice
 from .layout import CrossLayout, CompositeCrossLayout
 from .plotter import RenderPlan, Title
-from .utils import pairwise, batched, get_plot_name
+from .utils import pairwise, batched, get_plot_name, _check_side
 
 
 def reorder_index(arr, order=None):
@@ -88,6 +89,7 @@ class LegendMaker:
         spacing :
 
         """
+        _check_side(side)
         self._draw_legend = True
         if stack_by is None:
             stack_by = "col" if side in ["right", "left"] else "row"
@@ -124,6 +126,7 @@ class LegendMaker:
         stack_size = self._legend_draw_kws['stack_size']
         align_legends = self._legend_draw_kws['align_legends']
         align_stacks = self._legend_draw_kws['align_stacks']
+        spacing = self._legend_draw_kws['spacing']
 
         inner, outer = vstack, hstack
         if stack_by == "row":
@@ -139,10 +142,10 @@ class LegendMaker:
 
         bboxes = []
         for legs in batched(all_legs, stack_size):
-            box = inner(legs, align=align_legends, spacing=10)
+            box = inner(legs, align=align_legends, spacing=spacing)
             bboxes.append(box)
         legend_box = outer(bboxes, align=align_stacks, loc="center left",
-                           spacing=10)
+                           spacing=spacing, padding=0)
         ax.add_artist(legend_box)
         # uncomment this to visualize legend ax
         # from matplotlib.patches import Rectangle
@@ -164,8 +167,7 @@ class LegendMaker:
                 size = bbox.xmax - bbox.xmin
             else:
                 size = bbox.ymax - bbox.ymin
-            print("Legend size inches", size / 72)
-            self.layout.set_legend_size(size / 72)
+            self.layout.set_legend_size(size / figure.get_dpi())
             legend_ax.remove()
 
     def _render_legend(self):
@@ -188,7 +190,7 @@ class WhiteBoard(LegendMaker):
 
     def __init__(self, width=None, height=None, name=None):
         self.main_name = get_plot_name(name, "main", "board")
-        width = 5 if width is None else width
+        width = 4 if width is None else width
         height = 5 if height is None else height
         self.layout = CrossLayout(name=self.main_name,
                                   width=width,
@@ -330,11 +332,11 @@ class WhiteBoard(LegendMaker):
 
     def __add__(self, other):
         """Define behavior that horizontal appends two grid"""
-        pass
+        return self.append("right", other)
 
     def __truediv__(self, other):
         """Define behavior that vertical appends two grid"""
-        pass
+        return self.append("bottom", other)
 
     def append(self, side, other):
         compose_board = CompositeBoard(self)
@@ -376,6 +378,15 @@ class WhiteBoard(LegendMaker):
         # render other plots
         self._render_plan()
         self._render_legend()
+
+    def save(self, fname, **kwargs):
+        if self.figure is not None:
+            save_options = dict(bbox_inches="tight")
+            save_options.update(kwargs)
+            self.figure.savefig(fname, **save_options)
+        else:
+            warnings.warn("Figure does not exist, "
+                          "please render it before saving as file.")
 
 
 class CompositeBoard(LegendMaker):
@@ -419,6 +430,15 @@ class CompositeBoard(LegendMaker):
             board.render(figure=self.figure)
 
         self._render_legend()
+
+    def save(self, fname, **kwargs):
+        if self.figure is not None:
+            save_options = dict(bbox_inches="tight")
+            save_options.update(kwargs)
+            self.figure.savefig(fname, **save_options)
+        else:
+            warnings.warn("Figure does not exist, "
+                          "please render it before saving as file.")
 
     def get_legends(self):
         legends = {}

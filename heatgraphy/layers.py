@@ -132,14 +132,14 @@ class LayersMesh(MeshBase):
     def get_render_data(self):
         data = self.data
 
-        if not self.is_deform:
+        if not self.has_deform:
             return data
 
         if self.mode == "cell":
-            return self.deform_func(data)
+            return self.get_deform_func()(data)
         else:
             trans_layers = [
-                self.deform_func(layer) for layer in self.data]
+                self.get_deform_func()(layer) for layer in self.data]
             if self.is_split:
                 return [chunk for chunk in zip(*trans_layers)]
             else:

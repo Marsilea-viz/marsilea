@@ -109,3 +109,8 @@ def get_plot_name(name=None, side=None, chart=None):
         return name
 
 
+def _check_side(side):
+    """Check user input the correct word"""
+    options = ["top", "bottom", "left", "right"]
+    if side not in options:
+        raise ValueError(f"`side` must be one of {options}.")

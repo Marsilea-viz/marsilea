@@ -6,11 +6,12 @@ from typing import List, Dict
 from uuid import uuid4
 
 import numpy as np
-from icecream import ic
+# from icecream import ic
 from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
 
-from heatgraphy.exceptions import AppendLayoutError
+from heatgraphy.exceptions import AppendLayoutError, DuplicateName
+from heatgraphy.utils import _check_side
 
 
 # If not specify, we have few default setting
@@ -53,6 +54,7 @@ def get_axes_rect(rect, figsize):
 class BaseCell:
     name: str
     side: str
+    projection: str = None
     ax = None
     anchor = None
 
@@ -142,6 +144,7 @@ class MainCell(BaseCell):
     height: float
     side: str = "main"
     is_canvas: bool = True
+    projection: str = None
 
     def get_cell_size(self):
         return self.width, self.height
@@ -154,6 +157,7 @@ class GridCell(BaseCell):
     size: float
     attach: MainCell
     is_canvas: bool = True
+    projection: str = None
 
     def get_cell_size(self):
         """Get width, height of a cell"""
@@ -173,17 +177,28 @@ class CrossLayout:
     figsize = None
     figure = None
 
-    def __init__(self, name, width, height, init_main=True) -> None:
+    def __init__(self, name, width, height, init_main=True, projection=None):
         self._legend_ax_name = None
-        self.main_cell = MainCell(name, width, height, is_canvas=init_main)
+        self.main_cell = MainCell(name, width, height, is_canvas=init_main,
+                                  projection=projection)
         self._side_cells = {'top': [], 'bottom': [], 'left': [], 'right': []}
         self.cells: Dict[str, BaseCell] = {name: self.main_cell}
         self._pads = {}
 
-    def add_ax(self, side, name, size, pad=0.):
-        # TODO: check the name
+    def _get_cell(self, name):
+        cell = self.cells.get(name)
+        if cell is None:
+            raise ValueError(f"Axes with name {name} not exist")
+        return cell
+
+    def add_ax(self, side, name, size, pad=0., projection=None):
+        _check_side(side)
+        if self.cells.get(name) is not None:
+            raise DuplicateName(name)
+
         new_cell = GridCell(name=name, side=side, size=size,
-                            attach=self.main_cell)
+                            attach=self.main_cell,
+                            projection=projection)
         # Add pad before add canvas
         if pad > 0.:
             self.add_pad(side, pad)
@@ -191,6 +206,7 @@ class CrossLayout:
         self.cells[name] = new_cell
 
     def add_pad(self, side, size):
+        _check_side(side)
         new_pad = GridCell(name=uuid4().hex, side=side, size=size,
                            is_canvas=False, attach=self.main_cell)
         self._side_cells[side].append(new_pad)
@@ -224,21 +240,22 @@ class CrossLayout:
         self.remove_ax(self._legend_ax_name)
 
     def set_legend_size(self, size):
-        self.cells[self._legend_ax_name].size = size
+        legend_cell = self._get_cell(self._legend_ax_name)
+        legend_cell.size = size
 
     def vsplit(self, name, chunk_ratios, spacing=.05):
-        cell = self.cells[name]
+        cell = self._get_cell(name)
         cell.is_split = True
         cell.vsplit(chunk_ratios, spacing=spacing)
 
     def hsplit(self, name, chunk_ratios, spacing=.05):
-        cell = self.cells[name]
+        cell = self._get_cell(name)
         cell.is_split = True
         cell.hsplit(chunk_ratios, spacing=spacing)
 
     def is_split(self, name):
         """Query if a cell is split"""
-        return self.cells[name].is_split
+        return self._get_cell(name).is_split
 
     def get_side_size(self, side):
         return np.sum([c.size for c in self._side_cells[side]])
@@ -330,12 +347,12 @@ class CrossLayout:
         self.figsize = figsize
 
     def set_render_size(self, name, size):
-        self.cells[name].size = size
+        self._get_cell(name).size = size
 
     def initiate_axes(self, figure, _debug=False):
         figsize = figure.get_size_inches()
         clear_axes = figure == self.figure
-        ic(clear_axes)
+        # ic(clear_axes)
         # add axes
         for c in list(self.cells.values()):
             # Previous axes will be removed
@@ -349,7 +366,7 @@ class CrossLayout:
                     ax_rects = [get_axes_rect(r, figsize) for r in ax_rects]
                     axes = []
                     for ix, rect in enumerate(ax_rects):
-                        ax = figure.add_axes(rect)
+                        ax = figure.add_axes(rect, projection=c.projection)
                         axes.append(ax)
                         if _debug:
                             _debug_ax(ax, side=c.side, text=ix + 1)
@@ -358,7 +375,7 @@ class CrossLayout:
                 else:
                     ax_rect = c.get_rect()
                     ax_rect = get_axes_rect(ax_rect, figsize)
-                    ax = figure.add_axes(ax_rect)
+                    ax = figure.add_axes(ax_rect, projection=c.projection)
                     c.set_ax(ax)
                     if _debug:
                         _debug_ax(ax, side=c.side, text=c.name)
@@ -479,6 +496,7 @@ class CompositeCrossLayout:
         return layout
 
     def append(self, side, other):
+        _check_side(side)
         if isinstance(other, CompositeCrossLayout):
             raise AppendLayoutError
 
@@ -586,13 +604,13 @@ class CompositeCrossLayout:
 
         # compute the anchor point for the main layout
         mx, my = self.get_main_anchor()
-        ic(mx, my)
+        # ic(mx, my)
         self.set_anchor((mx, my))
 
         self.main_layout.freeze(figure, _debug=_debug)
 
         # The left and right share the y
-        offset_x = mx
+        offset_x = mx - self.main_layout.get_side_size("left")
         for g in self._side_layouts['left']:
             offset_x -= (g.get_side_size('right') + g.get_main_width())
             g.set_anchor((offset_x, my))
@@ -610,7 +628,7 @@ class CompositeCrossLayout:
             offset_x += (g.get_main_width() + g.get_side_size('right'))
 
         # The top and bottom share the x
-        offset_y = my
+        offset_y = my - self.main_layout.get_side_size('bottom')
         for g in self._side_layouts['bottom']:
             offset_y -= (g.get_side_size('top') + g.get_main_height())
             g.set_anchor((mx, offset_y))
@@ -643,8 +661,8 @@ class CompositeCrossLayout:
             else:
                 bbox_h -= (size + pad)
 
-            ic(fig_w, fig_h)
-            ic(bbox_w, bbox_h)
+            # ic(fig_w, fig_h)
+            # ic(bbox_w, bbox_h)
 
             if side == 'right':
                 cx, cy = bbox_w + pad, ymin
