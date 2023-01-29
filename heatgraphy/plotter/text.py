@@ -771,8 +771,8 @@ class Chunk(_LabelBase):
         >>> from heatgraphy.plotter import Chunk
         >>> matrix = np.random.randn(15, 10)
         >>> h = hg.Heatmap(matrix)
-        >>> h.split_row(cut=[4,10])
-        >>> h.split_col(cut=[5])
+        >>> h.hsplit(cut=[4,10])
+        >>> h.vsplit(cut=[5])
         >>> chunk_row = Chunk(['Top','Middle','Bottom'],rotation=True)
         >>> chunk_col = Chunk(['Left','Right'],rotation=True)
         >>> h.add_right(chunk_row)

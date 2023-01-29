@@ -502,8 +502,8 @@ class CompositeCrossLayout:
 
         elif isinstance(other, Number):
             other = CrossLayout(name=uuid4().hex,
-                                width=self.main_cell_width,
-                                height=other,
+                                width=other if side in ["left", "right"] else self.main_cell_width,
+                                height=self.main_cell_height if side in ["left", "right"] else other,
                                 init_main=False)
             self._side_layouts[side].append(other)
         elif isinstance(other, CrossLayout):

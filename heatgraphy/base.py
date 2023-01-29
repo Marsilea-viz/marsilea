@@ -3,6 +3,7 @@ from __future__ import annotations
 import warnings
 from copy import deepcopy
 from typing import List, Dict
+from numbers import Number
 from uuid import uuid4
 
 import numpy as np
@@ -400,24 +401,31 @@ class CompositeBoard(LegendMaker):
         self._board_list = [self.main_board]
         super().__init__()
 
+
+
     @staticmethod
     def new_board(board):
         board = deepcopy(board)
-        board.remove_legends()
+        if isinstance(board, WhiteBoard):
+            board.remove_legends()
         return board
 
     def __add__(self, other):
         """Define behavior that horizontal appends two grid"""
-        pass
+        return self.append("right", other)
 
     def __truediv__(self, other):
         """Define behavior that vertical appends two grid"""
-        pass
+        return self.append("bottom", other)
 
     def append(self, side, other):
         board = self.new_board(other)
-        self._board_list.append(board)
-        self.layout.append(side, board.layout)
+        if isinstance(board, Number):
+            self.layout.append(side, board)
+        else:
+            self._board_list.append(board)
+            self.layout.append(side, board.layout)
+        return self
 
     def render(self, figure=None, scale=1):
         if figure is None:

@@ -247,6 +247,9 @@ class Upset(WhiteBoard):
     height : float
     ratio : float
 
+    Examples
+    --------
+
     .. plot::
         :context: close-figs
 
@@ -306,6 +309,8 @@ class Upset(WhiteBoard):
         self.linewidth = linewidth
         self.grid_background = grid_background
         self.fontsize = fontsize
+        self.height = height
+        self.width = width
         if sets_color is None:
             sets_color = [self.color for _ in range(len(sets_size))]
         self.sets_color = np.asarray(sets_color)

@@ -44,8 +44,8 @@ If the heatmap is split, there will be multiple axes. The return order starts fr
     :context: close-figs
 
     >>> h = hg.Heatmap(data, cmap="binary")
-    >>> h.split_row(cut=[5])
-    >>> h.split_col(cut=[5])
+    >>> h.hsplit(cut=[5])
+    >>> h.vsplit(cut=[5])
     >>> h.render()
     >>> # Get the ax after render()
     >>> hax = h.get_main_ax()
@@ -88,7 +88,7 @@ that it renders on.
     :include-source: False
 
     >>> h = hg.Heatmap(data)
-    >>> h.split_row(cut=[5])
+    >>> h.hsplit(cut=[5])
     >>> bar = hg.plotter.Numbers(np.arange(10))
     >>> h.add_right(bar, name="My Bar")
     >>> h.render()
