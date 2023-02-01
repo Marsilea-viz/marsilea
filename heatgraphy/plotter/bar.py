@@ -152,6 +152,7 @@ class StackBar(StatsBase):
                  **kwargs,
                  ):
 
+        item_names = None
         if isinstance(data, pd.DataFrame):
             item_names = data.index
             data = data.to_numpy()
@@ -233,4 +234,60 @@ class StackBar(StatsBase):
             if self.show_value:
                 ax.bar_label(bars, display_value, fmt=self.fmt,
                              **self.props)
+
+
+class Lollipop(StatsBase):
+
+    def __init__(self,
+                 data,
+                 line='-',
+                 marker='o',
+                 baseline=' ',
+                 label=None,
+                 value_loc="center",
+                 legend_kws=None,
+                 props=None,
+                 **kwargs,
+                 ):
+
+        self.data = data
+        self.line = line
+        self.marker = marker
+        self.baseline = baseline
+        self.label = label
+        self.kwargs = kwargs
+
+        props = {} if props is None else props
+        value_props = dict(label_type=value_loc)
+        value_props.update(props)
+        self.props = value_props
+        self.legend_kws = {} if legend_kws is None else legend_kws
+
+    """"
+    label这里不会写，一直报错
+    def get_legends(self):
+        if self.label is not None:
+            return CatLegend(label=self.label,
+                             **self.legend_kws)
+    """"
+
+    def render_ax(self, ax, data):
+        orient = "horizontal" if self.is_flank else "vertical"
+
+        lim = len(data)
+        if self.is_flank:
+            ax.set_ylim(0, lim)
+        else:
+            ax.set_xlim(0, lim)
+        if self.side == "left":
+            ax.invert_xaxis()
+        if self.side == "bottom":
+            ax.invert_yaxis()
+
+        locs = np.arange(0, lim) + 0.5
+
+        ax.stem(locs, data, linefmt=self.line,
+                markerfmt=self.marker, orientation=orient,
+                basefmt=self.baseline, **self.kwargs)
+
 
