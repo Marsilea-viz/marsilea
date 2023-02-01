@@ -2,9 +2,9 @@
 
 ❗Still under development, Bug Expected
 
-Create grid layout visualization!
+Create x-layout visualization!
 
-Quick start in the web without coding!
+Quick start in the browser without a line of code!
 [Open App](https://heatgraphy.streamlit.app)
 
 ### Installation
