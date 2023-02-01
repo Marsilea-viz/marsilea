@@ -145,7 +145,7 @@ def _seaborn_doc(obj: _SeabornBase):
         >>> data = np.random.randn(10, 10)
         >>> plot = {cls_name}(np.random.randint(0, 10, {shape}))
         >>> h = hg.Heatmap(data)
-        >>> h.split_row(cut=[3, 7])
+        >>> h.hsplit(cut=[3, 7])
         >>> h.add_right(plot)
         >>> h.render()
         

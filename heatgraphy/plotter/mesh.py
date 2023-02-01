@@ -163,8 +163,8 @@ class ColorMesh(MeshBase):
         >>> import heatgraphy as hg
         >>> from heatgraphy.plotter import ColorMesh
         >>> data = np.random.randn(10, 8)
-        >>> h = hg.Heatmap(data, square=True)
-        >>> h.split_row(cut=[5])
+        >>> h = hg.Heatmap(data)
+        >>> h.hsplit(cut=[5])
         >>> h.add_dendrogram("left")
         >>> cmap1, cmap2 = "Purples", "Greens"
         >>> colors1 = ColorMesh(np.arange(10)+1, cmap=cmap1, label=cmap1, annot=True)
