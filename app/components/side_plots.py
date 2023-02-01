@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Callable
 
+import matplotlib.pyplot as plt
 import numpy as np
 import streamlit as st
 
-from heatgraphy.base import MatrixBase
+from heatgraphy.base import ClusterBoard
 from heatgraphy.plotter import (Bar, Box, Boxen, Colors, Count, Strip, Violin,
                                 Point, Swarm, ColorMesh, AnnoLabels, Labels,
                                 Title)
@@ -32,7 +33,7 @@ class RenderAction:
         cmp_key = self.key == other.key
         return cmp_key & cmp_side
 
-    def apply(self, h: MatrixBase):
+    def apply(self, h: ClusterBoard):
         p = self.plotter(self.data, **self.kwargs)
         h.add_plot(self.side, p, size=self.size, pad=self.pad)
 
@@ -45,26 +46,6 @@ class DendrogramAction(RenderAction):
                          **self.kwargs, size=self.size, pad=self.pad, )
 
 
-plotter_mapper = dict(
-    bar=Bar,
-    box=Box,
-    boxen=Boxen,
-    colors=Colors,
-    colormesh=ColorMesh,
-    count=Count,
-    strip=Strip,
-    swarm=Swarm,
-    violin=Violin,
-    point=Point,
-    labels=Labels,
-    annolabels=AnnoLabels,
-    dendrogram=None,
-    title=Title,
-)
-
-raw_plotter = ['labels', 'colors']
-
-
 class PlotAdder:
     init_size = 1.0
     init_pad = .05
@@ -75,22 +56,27 @@ class PlotAdder:
     is_numeric: bool = True
 
     user_input: Any
+    plotter: RenderPlan = None
 
+    name: str = ""
     input_help: str = None
     plot_explain: str = None
+    example_image: str = None
 
     def __repr__(self):
         return f"Draw at {self.side} with size {self.size} and {self.pad}"
 
-    def __init__(self, key, side, plot_name):
+    def __init__(self, key, side):
         self.key = key
         self.side = side
         self.plot_key = f"Add side plotter-{key}-{side}"
-        self.plotter = plotter_mapper[plot_name]
         self.data = None
 
         if self.plot_explain is not None:
             st.markdown(self.plot_explain)
+
+        if self.example_image is not None:
+            st.image(self.example_image, width=150)
 
         with self.form():
             self.input_panel()
@@ -155,8 +141,22 @@ class PlotAdder:
             st.session_state[f"render_plan"][self.side][self.plot_key] = action
 
 
+class LabelAdder(PlotAdder):
+    name = "Labels"
+    plotter = Labels
+
+
+class ColorsAdder(PlotAdder):
+    name = "Color Strip"
+    plotter = Colors
+    example_image = "img/colors.png"
+
+
 class TitleAdder(PlotAdder):
+    name = "Title"
+    plotter = Title
     no_data = True
+
     color: str
     fontsize = 10
     fontweight = "regular"
@@ -191,6 +191,7 @@ class TitleAdder(PlotAdder):
 
 
 class DendrogramAdder(PlotAdder):
+    name = "Hierarchical clustering dendrogram"
     init_size = .5
     no_data = True
 
@@ -212,6 +213,7 @@ class DendrogramAdder(PlotAdder):
 
     plot_explain = "Perform hierarchy clustering and draw the dendrogram " \
                    "that represents the clustering result."
+    example_image = "img/dendrogram.svg"
 
     def input_panel(self):
         pass
@@ -252,6 +254,8 @@ STATS_INPUT_HELP = "Table data: Each column corresponds to the row or column " \
 
 
 class BarAdder(PlotAdder):
+    name = "Bar"
+    plotter = Bar
     color: str
     errcolor: str
     errwidth: float
@@ -263,6 +267,7 @@ class BarAdder(PlotAdder):
     plot_explain = "Bar plot use rectangles to show data, " \
                    "For multiple observations, estimates and errors " \
                    "will be shown as error bar."
+    example_image = "img/bar.png"
 
     def extra_options(self):
         c1, c2, c3, c4, c5 = st.columns(5)
@@ -288,12 +293,15 @@ class BarAdder(PlotAdder):
 
 
 class BoxAdder(PlotAdder):
+    name = "Box"
+    plotter = Box
     color: str
     linewidth: float
     box_width: float
 
     input_help = STATS_INPUT_HELP
     plot_explain = "Box plot shows the distribution of your data"
+    example_image = "img/box.png"
 
     def extra_options(self):
         c1, c2, c3 = st.columns(3)
@@ -314,6 +322,8 @@ class BoxAdder(PlotAdder):
 
 
 class BoxenAdder(PlotAdder):
+    name = "Boxen"
+    plotter = Boxen
     color: str
     linewidth: float
     box_width: float
@@ -321,6 +331,7 @@ class BoxenAdder(PlotAdder):
 
     input_help = STATS_INPUT_HELP
     plot_explain = "An enhanced variant of box plot"
+    example_image = "img/boxen.png"
 
     def extra_options(self):
         c1, c2, c3, c4 = st.columns(4)
@@ -345,6 +356,8 @@ class BoxenAdder(PlotAdder):
 
 
 class PointAdder(PlotAdder):
+    name = "Point"
+    plotter = Point
     color: str
     linestyle: str
     errwidth: float
@@ -358,6 +371,7 @@ class PointAdder(PlotAdder):
 
     input_help = STATS_INPUT_HELP
     plot_explain = "Similar to box plot, but use point."
+    example_image = "img/point.png"
 
     def extra_options(self):
         c1, c2, c3, c4 = st.columns(4)
@@ -383,6 +397,8 @@ class PointAdder(PlotAdder):
 
 
 class ViolinAdder(PlotAdder):
+    name = "Violin"
+    plotter = Violin
     scale: str | None
     color: str
     inner: str | None
@@ -391,6 +407,7 @@ class ViolinAdder(PlotAdder):
     input_help = STATS_INPUT_HELP
     plot_explain = "Violin plot is a combination of boxplot " \
                    "and kernel density estimate."
+    example_image = "img/violin.png"
 
     def extra_options(self):
         c1, c2, c3, c4 = st.columns(4)
@@ -424,11 +441,14 @@ class ViolinAdder(PlotAdder):
 
 # For Strip and Swarm
 class StripAdder(PlotAdder):
+    name = "Strip"
+    plotter = Strip
     color: str
     marker_size: float
 
     input_help = STATS_INPUT_HELP
     plot_explain = "Showing the underlying distribution of your data point"
+    example_image = "img/strip.png"
 
     def extra_options(self):
         c1, c2 = st.columns(2)
@@ -444,10 +464,19 @@ class StripAdder(PlotAdder):
                     )
 
 
+class SwarmAdder(StripAdder):
+    name = "Swarm"
+    plotter = Swarm
+    example_image = "img/swarm.png"
+
+
 class CountAdder(PlotAdder):
+    name = "Count"
+    plotter = Count
     color: str
 
     plot_explain = "Show the counts of observations in each categorical."
+    example_image = "img/count.svg"
 
     def extra_options(self):
         self.color = st.color_picker("Color", value="#00b796")
@@ -457,7 +486,10 @@ class CountAdder(PlotAdder):
 
 
 class AnnoLabelsAdder(PlotAdder):
+    name = "Annotated specific labels"
+    plotter = AnnoLabels
     plot_explain = "Annotate a few rows or columns."
+    example_image = "img/annolabels.png"
 
     def input_panel(self):
         super().input_panel()
@@ -470,34 +502,33 @@ class AnnoLabelsAdder(PlotAdder):
         return np.ma.masked_where(~np.in1d(texts, self.anno_texts), texts)
 
 
-plotter_adder = dict(bar=BarAdder,
-                     dendrogram=DendrogramAdder,
-                     title=TitleAdder,
-                     annolabels=AnnoLabelsAdder,
-                     box=BoxAdder,
-                     boxen=BoxenAdder,
-                     count=CountAdder,
-                     strip=StripAdder,
-                     swarm=StripAdder,
-                     violin=ViolinAdder,
-                     point=PointAdder,
-                     )
+PLOTTERS = [
+    DendrogramAdder,
+    ColorsAdder,
+    LabelAdder,
+    AnnoLabelsAdder,
+    BarAdder,
+    BoxAdder,
+    BoxenAdder,
+    ViolinAdder,
+    # CountAdder,
+    PointAdder,
+    StripAdder,
+    SwarmAdder,
+
+]
 
 
 def plot_panel(key, side):
     with st.expander(f"Side plot {key + 1}", expanded=True):
-        selector, _ = st.columns([1, 4])
-        plot_type = selector.selectbox(f"Plot type",
-                                       options=plotter_mapper.keys(),
-                                       format_func=lambda x: x.capitalize(),
-                                       label_visibility="collapsed",
-                                       key=f"{key}-{side}")
-        adder = plotter_adder.get(plot_type)
+        selector, _ = st.columns([1, 1])
+        adder = selector.selectbox(f"Plot type",
+                                   options=PLOTTERS,
+                                   format_func=lambda x: x.name,
+                                   label_visibility="collapsed",
+                                   key=f"{key}-{side}")
 
-        if adder is None:
-            PlotAdder(key, side, plot_type)
-        else:
-            adder(key, side, plot_type)
+        adder(key, side)
 
 
 def side_plots_adder():
@@ -520,8 +551,9 @@ class SplitAction:
     order: list = field(default=None)
 
 
-def spliter(orient):
-    st.subheader(f"Split {orient.capitalize()}")
+def spliter(orient="h"):
+    title = "Horizontally" if orient == "h" else "Vertically"
+    st.subheader(f"Split {title}")
     with st.form(f"Split {orient}"):
         cut = st.text_input("Where to split",
                             help="Use number seperated by comma to indicate "
@@ -547,6 +579,6 @@ def spliter(orient):
 def split_plot():
     col1, col2 = st.columns(2)
     with col1:
-        spliter("row")
+        spliter("h")
     with col2:
-        spliter("col")
+        spliter("v")
