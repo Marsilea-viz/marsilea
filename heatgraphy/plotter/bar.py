@@ -263,13 +263,13 @@ class Lollipop(StatsBase):
         self.props = value_props
         self.legend_kws = {} if legend_kws is None else legend_kws
 
-    """"
+    """
     label这里不会写，一直报错
     def get_legends(self):
         if self.label is not None:
             return CatLegend(label=self.label,
                              **self.legend_kws)
-    """"
+    """
 
     def render_ax(self, ax, data):
         orient = "horizontal" if self.is_flank else "vertical"
