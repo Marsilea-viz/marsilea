@@ -238,38 +238,11 @@ class StackBar(StatsBase):
 
 class Lollipop(StatsBase):
 
-    def __init__(self,
-                 data,
-                 line='-',
-                 marker='o',
-                 baseline=' ',
-                 label=None,
-                 value_loc="center",
-                 legend_kws=None,
-                 props=None,
-                 **kwargs,
-                 ):
-
+    def __init__(self, data):
         self.data = data
-        self.line = line
-        self.marker = marker
-        self.baseline = baseline
-        self.label = label
-        self.kwargs = kwargs
 
-        props = {} if props is None else props
-        value_props = dict(label_type=value_loc)
-        value_props.update(props)
-        self.props = value_props
-        self.legend_kws = {} if legend_kws is None else legend_kws
-
-    """"
-    label这里不会写，一直报错
     def get_legends(self):
-        if self.label is not None:
-            return CatLegend(label=self.label,
-                             **self.legend_kws)
-    """"
+        return CatLegend(label=['Lollipop'], handle="circle")
 
     def render_ax(self, ax, data):
         orient = "horizontal" if self.is_flank else "vertical"
@@ -281,13 +254,7 @@ class Lollipop(StatsBase):
             ax.set_xlim(0, lim)
         if self.side == "left":
             ax.invert_xaxis()
-        if self.side == "bottom":
-            ax.invert_yaxis()
 
+        # Plot on every .5 start from 0
         locs = np.arange(0, lim) + 0.5
-
-        ax.stem(locs, data, linefmt=self.line,
-                markerfmt=self.marker, orientation=orient,
-                basefmt=self.baseline, **self.kwargs)
-
-
+        ax.stem(locs, data, orientation=orient)
