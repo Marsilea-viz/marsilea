@@ -69,16 +69,16 @@ class HeatmapData:
 
     def styles(self):
         annot = st.checkbox("Add Text", disabled=not self.allow_text)
-        c1, c2, c3 = st.columns(3)
+
+        c1, c2 = st.columns(2)
+
         with c1:
-            cmap_selector = ColormapSelector(default="coolwarm")
-
+            fontsize = st.number_input("Font size", min_value=1,
+                                       step=1, value=6)
         with c2:
-            fontsize = st.number_input("Font size", min_value=1, step=1,
-                                       value=6)
-
-        with c3:
             grid_linewidth = st.number_input("Grid line", min_value=0.)
+
+        cmap_selector = ColormapSelector(default="coolwarm")
 
         self.cmap = cmap_selector.get_cmap()
         self.annot = annot
@@ -88,7 +88,8 @@ class HeatmapData:
     def get_styles(self):
         return dict(cmap=self.cmap, annot=self.annot,
                     linewidth=self.linewidth,
-                    annot_kws=dict(fontsize=self.fontsize))
+                    annot_kws=dict(fontsize=self.fontsize),
+                    )
 
 
 marker_options = {
@@ -254,17 +255,31 @@ class GlobalConfig:
     }
 
     def __init__(self):
-
+        self.add_legends = st.checkbox("Add Legends", value=True)
         self.cluster_data_name = st.selectbox(
             "Use which data for cluster",
             options=self.get_cluster_data_options(),
             format_func=self._format_cluster_name)
-        self.fontsize = st.number_input(
-            "Font size", min_value=1, step=1, value=10)
-        font_list = get_font_list()
-        DEFAULT_FONT = font_list.index("Source Sans Pro")
-        self.fontfamily = st.selectbox("Font Family", options=font_list,
-                                       index=DEFAULT_FONT)
+
+        st.markdown("Font Options")
+        c1, c2 = st.columns(2)
+        with c1:
+            self.fontsize = st.number_input(
+                "Font size", min_value=1, step=1, value=10)
+        with c2:
+            font_list = get_font_list()
+            DEFAULT_FONT = font_list.index("Source Sans Pro")
+            self.fontfamily = st.selectbox("Font Family", options=font_list,
+                                           index=DEFAULT_FONT)
+
+        st.markdown("Main Canvas Size")
+        c3, c4 = st.columns(2)
+        with c3:
+            self.width = st.number_input("Width", min_value=1, step=1,
+                                         max_value=10, value=5)
+        with c4:
+            self.height = st.number_input("Height", min_value=1, step=1,
+                                          max_value=10, value=4)
 
     def _format_cluster_name(self, v):
         return self.cluster_name[v]
@@ -285,5 +300,8 @@ class GlobalConfig:
         return dict(
             cluster_data_name=self.cluster_data_name,
             fontsize=self.fontsize,
-            fontfamily=self.fontfamily
+            fontfamily=self.fontfamily,
+            add_legends=self.add_legends,
+            width=self.width,
+            height=self.height
         )

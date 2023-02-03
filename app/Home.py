@@ -22,7 +22,7 @@ enable_nested_columns()
 st.set_page_config(
     page_title="Heatgraphy",
     layout="centered",
-    page_icon="🎨",
+    page_icon=plt.imread("img/favicon.png"),
     initial_sidebar_state="collapsed"
 )
 
@@ -40,8 +40,8 @@ init_state(data_ready=False,
            dendrogram_row=None,
            dendrogram_col=None,
            figure=empty_figure(),
-           split_row=None,
-           split_col=None,
+           split_h=None,
+           split_v=None,
 
            heatmap_data=None,
            heatmap_raw_data=None,
@@ -63,12 +63,15 @@ def render_plot(global_options,
                 mark_options, ):
     fontsize = global_options['fontsize']
     fontfamily = global_options['fontfamily']
+    add_legends = global_options['add_legends']
+    width = global_options['width']
+    height = global_options['height']
 
     with mpl.rc_context({"font.size": fontsize, "font.family": fontfamily}):
         fig = plt.figure()
         cluster_data_name = global_options["cluster_data_name"]
         cluster_data = st.session_state[cluster_data_name]
-        h = hg.ClusterCanvas(cluster_data)
+        h = hg.ClusterBoard(cluster_data, width=width, height=height)
 
         heatmap_data = st.session_state["heatmap_data"]
         if heatmap_data is not None:
@@ -92,18 +95,22 @@ def render_plot(global_options,
             )
             h.add_layer(marker, zorder=100)
 
-        srow = st.session_state["split_row"]
-        scol = st.session_state["split_col"]
+        srow = st.session_state["split_h"]
+        scol = st.session_state["split_v"]
         if srow is not None:
-            h.split_row(cut=srow.cut, labels=srow.labels, order=srow.order)
+            print(srow)
+            h.hsplit(cut=srow.cut, labels=srow.labels, order=srow.order)
         if scol is not None:
-            h.split_col(cut=scol.cut, labels=scol.labels, order=scol.order)
+            h.vsplit(cut=scol.cut, labels=scol.labels, order=scol.order)
 
         plans = st.session_state['render_plan']
         for side, actions in plans.items():
             actions = sorted(list(actions.values()), key=lambda x: x.key)
             for action in actions:
                 action.apply(h)
+
+        if add_legends:
+            h.add_legends()
 
         h.render(fig)
         st.session_state["figure"] = fig
@@ -136,14 +143,14 @@ if st.session_state["data_ready"]:
         tabs = st.tabs(["Heatmap Partition", "Configuration", "Export"])
         spliter, conf, saver = tabs
 
-    fig = st.session_state["figure"]
-    st.pyplot(fig)
-
     _, render_button, _ = st.columns([2, 2, 2])
     with render_button:
         render_request = st.button("Apply changes & Render",
                                    type="primary",
                                    help="Apply changes to your heatmap.")
+
+    fig = st.session_state["figure"]
+    st.pyplot(fig)
 
     with spliter:
         split_plot()
