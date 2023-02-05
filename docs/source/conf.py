@@ -13,6 +13,7 @@
 # import os
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
+from sphinx_gallery.sorting import FileNameSortKey
 import heatgraphy as hg
 
 # -- Project information -----------------------------------------------------
@@ -38,6 +39,7 @@ extensions = [
     'sphinx.ext.intersphinx',
     'sphinx_design',
     'sphinx_copybutton',
+    'sphinx_gallery.gen_gallery',
 ]
 autoclass_content = "class"
 autodoc_docstring_signature = True
@@ -51,11 +53,11 @@ numpydoc_show_class_members = False
 plot_include_source = True
 plot_html_show_source_link = False
 plot_html_show_formats = False
-plot_formats = [('png', 180)]
+plot_formats = [('png', 90)]
+plot_rcparams = {'savefig.bbox': 'tight'}
 plot_pre_code = "import numpy as np; import pandas as pd;" \
                 "from matplotlib import pyplot as plt;" \
-                "import matplotlib as mpl; np.random.seed(0);"\
-                "mpl.rcParams['savefig.bbox'] = 'tight';"
+                "np.random.seed(0);"
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -76,6 +78,12 @@ intersphinx_mapping = {
 copybutton_prompt_text = r">>> |\.\.\. |\$ |In \[\d*\]: | {2,5}\.\.\.: | {5," \
                          r"8}: "
 copybutton_prompt_is_regexp = True
+
+sphinx_gallery_conf = {
+     'examples_dirs': 'examples',   # path to example scripts
+     'gallery_dirs': 'auto_examples',  # path to generated output
+     'within_subsection_order': FileNameSortKey,  # Order by file name
+}
 
 
 def autodoc_skip_member(app, what, name, obj, skip, options):

@@ -20,7 +20,7 @@ To install heatgraphy
    :caption: Contents:
 
    Tutorial <tutorial/index>
-   Gallery
+   Gallery <auto_examples/index>
    API <api/index>
 
 

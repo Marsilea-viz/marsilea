@@ -1,14 +1,15 @@
 10 Minutes to Heatgraphy
 =========================
 
-Heatgraphy can help you create grid layout visualization.
+Heatgraphy can help you create x-layout visualization.
 It's designed in object-oriented style that makes adding blocks
 and customization easily.
 
 A minimum heatmap
 -----------------
 
-Let's try create a heatmap! Here we use the iris dataset.
+Let's try create a heatmap! Heatgraphy provides many high-level plotting function
+to be used.
 
 .. plot::
     :context: close-figs
@@ -22,7 +23,7 @@ Let's try create a heatmap! Here we use the iris dataset.
     >>> h.render()
 
 
-Now a minimum heatmap is created, remember to call :meth:`render() <heatgraphy.base.Base.render>` to actually render your
+Now a minimum heatmap is created, remember to call :meth:`render() <heatgraphy.WhiteBoard.render>` to actually render your
 plot. Otherwise, no plot will be generated.
 
 Add side plots
@@ -52,7 +53,7 @@ Usually, we want to add components like labels, dendrogram and other plots when 
 
 
 To add a dendrogram on the dataset, simply call
-:meth:`add_dendrogram() <heatgraphy.base.MatrixBase.add_dendrogram>`, and it
+:meth:`add_dendrogram() <heatgraphy.ClusterBoard.add_dendrogram>`, and it
 will add the dendrogram for you. Here we add the dendrogram on the right side.
 You can also add it to the top or bottom to perform column-wise cluster.
 
@@ -60,8 +61,8 @@ Split heatmap
 -------------
 
 We also use colors to label the names of iris. What if I want the same color to be together? You can
-split the heatmap by labeling them. Use the :meth:`split_row() <heatgraphy.base.MatrixBase.split_row>`
-or :meth:`split_col() <heatgraphy.base.MatrixBase.split_col>` to split the heatmap.
+split the heatmap by labeling them. Use the :meth:`hsplit() <heatgraphy.ClusterBoard.hsplit>`
+or :meth:`vsplit() <heatgraphy.ClusterBoard.vsplit>` to split the heatmap.
 
 .. code-block:: python
     :emphasize-lines: 4
@@ -69,7 +70,7 @@ or :meth:`split_col() <heatgraphy.base.MatrixBase.split_col>` to split the heatm
     >>> h = hg.Heatmap(iris.data)
     >>> h.add_dendrogram("right")
     >>> h.add_left(Colors(iris.target), size=.2, pad=.1)
-    >>> h.split_row(labels=iris.target)
+    >>> h.hsplit(labels=iris.target)
     >>> h.render()
 
 .. plot::
@@ -79,7 +80,7 @@ or :meth:`split_col() <heatgraphy.base.MatrixBase.split_col>` to split the heatm
     >>> h = hg.Heatmap(iris.data)
     >>> h.add_dendrogram("right")
     >>> h.add_left(Colors(iris.target), size=.2, pad=.1)
-    >>> h.split_row(labels=iris.target)
+    >>> h.hsplit(labels=iris.target)
     >>> h.render()
 
 .. note::
@@ -100,7 +101,7 @@ You can also add labels and title to the heatmap.
     >>> h = hg.Heatmap(iris.data)
     >>> h.add_dendrogram("right")
     >>> h.add_left(Colors(iris.target), size=.2, pad=.1)
-    >>> h.split_row(labels=iris.target)
+    >>> h.hsplit(labels=iris.target)
     >>> h.add_bottom(Labels(iris.feature_names, rotation=0, fontsize=6), pad=.1)
     >>> h.add_title("Iris Dataset")
     >>> h.render()
@@ -113,7 +114,7 @@ You can also add labels and title to the heatmap.
     >>> h = hg.Heatmap(iris.data)
     >>> h.add_dendrogram("right")
     >>> h.add_left(Colors(iris.target), size=.2, pad=.1)
-    >>> h.split_row(labels=iris.target)
+    >>> h.hsplit(labels=iris.target)
     >>> h.add_bottom(Labels(iris.feature_names, rotation=0, fontsize=6), pad=.1)
     >>> h.add_title("Iris Dataset")
     >>> h.render()
@@ -132,7 +133,7 @@ If we are happy with the results, you may add legends to the heatmap.
     >>> h.add_dendrogram("right")
     >>> h.add_left(Colors(names, label="Names"), size=.2, pad=.1)
     >>> h.add_bottom(Labels(iris.feature_names, rotation=0, fontsize=6), pad=.1)
-    >>> h.split_row(labels=iris.target)
+    >>> h.hsplit(labels=iris.target)
     >>> h.add_title("Iris Dataset")
     >>> h.add_legends()
     >>> h.render()
@@ -145,7 +146,7 @@ If we are happy with the results, you may add legends to the heatmap.
     >>> h = hg.Heatmap(iris.data)
     >>> h.add_dendrogram("right")
     >>> h.add_left(Colors(names, label="Names"), size=.2, pad=.1)
-    >>> h.split_row(labels=iris.target)
+    >>> h.hsplit(labels=iris.target)
     >>> h.add_bottom(Labels(iris.feature_names, rotation=0, fontsize=6), pad=.1)
     >>> h.add_title("Iris Dataset")
     >>> h.add_legends()
@@ -165,7 +166,7 @@ Here we can try to label the data that are larger than 4.
     >>> h = hg.Heatmap(iris.data[ix])
     >>> h.add_dendrogram("right")
     >>> h.add_left(Colors(np.array(names)[ix], label="Names"), size=.2, pad=.1)
-    >>> h.split_row(labels=iris.target[ix])
+    >>> h.hsplit(labels=iris.target[ix])
     >>> h.add_bottom(Labels(iris.feature_names, rotation=0, fontsize=6), pad=.1)
     >>> h.add_title("Iris Dataset")
     >>> h.add_layer(hg.plotter.MarkerMesh(iris.data[ix] > 4, label="Larger than 4"))
@@ -180,7 +181,7 @@ Here we can try to label the data that are larger than 4.
     >>> h = hg.Heatmap(iris.data[ix])
     >>> h.add_dendrogram("right")
     >>> h.add_left(Colors(np.array(names)[ix], label="Names"), size=.2, pad=.1)
-    >>> h.split_row(labels=iris.target[ix])
+    >>> h.hsplit(labels=iris.target[ix])
     >>> h.add_bottom(Labels(iris.feature_names, rotation=0, fontsize=6), pad=.1)
     >>> h.add_title("Iris Dataset")
     >>> h.add_layer(hg.plotter.MarkerMesh(iris.data[ix] > 4, label="Larger than 4"))
@@ -256,7 +257,7 @@ You can also adjust the spacing when split heatmap, the unit is the ratio of the
 
     >>> h = hg.Heatmap(iris.data)
     >>> h.add_dendrogram("right")
-    >>> h.split_row(labels=iris.target)
+    >>> h.hsplit(labels=iris.target)
     >>> h.render()
 
 
@@ -265,7 +266,7 @@ You can also adjust the spacing when split heatmap, the unit is the ratio of the
 
     >>> h = hg.Heatmap(iris.data)
     >>> h.add_dendrogram("right")
-    >>> h.split_row(labels=iris.target, spacing=.01)
+    >>> h.hsplit(labels=iris.target, spacing=.01)
     >>> h.render()
 
 
@@ -277,5 +278,5 @@ You may change the spacing by supplying an array.
 
     >>> h = hg.Heatmap(iris.data)
     >>> h.add_dendrogram("right")
-    >>> h.split_row(labels=iris.target, spacing=[.02, .04])
+    >>> h.hsplit(labels=iris.target, spacing=[.02, .04])
     >>> h.render()

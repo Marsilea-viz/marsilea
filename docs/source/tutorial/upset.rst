@@ -21,23 +21,25 @@ Here we use the Top 1000 movies in IMDB database for illustration.
 .. plot::
     :context: close-figs
 
+    >>> from heatgraphy import load_data
     >>> from heatgraphy.upset import UpsetData
-    >>> src = "https://raw.githubusercontent.com/peetck/IMDB-Top1000-Movies/master/IMDB-Movie-Data.csv"
-    >>> imdb = pd.read_csv(src).drop_duplicates('Title')
+    >>> imdb = load_data('imdb')
+    >>> imdb = imdb.drop_duplicates('Title')
     >>> upset_data = UpsetData.from_memberships(imdb.Genre.str.split(','))
 
 .. plot::
     :context: close-figs
     :include-source: False
 
-    >>> mpl.rcParams['font.size'] = 8
+    >>> from matplotlib import rcParams
+    >>> rcParams['font.size'] = 8
 
 
 Create an UpSet plot
 --------------------
 
 The :class:`Upset <heatgraphy.upset.Upset>` is here to help you create your first upset plot.
-Like other visualization in heatgraphy, remember to call :meth:`render() <heatgraphy.base.Base.render>`
+Like other visualization in heatgraphy, remember to call :meth:`render()`
 to actually render your plot.
 
 .. plot::
@@ -45,7 +47,7 @@ to actually render your plot.
 
     >>> from heatgraphy.upset import Upset
     >>> us = Upset(upset_data, min_size=15)
-    >>> us.render(scale=1.3)
+    >>> us.render()
 
 You can also change the position of different components
 
@@ -53,7 +55,7 @@ You can also change the position of different components
     :context: close-figs
 
     >>> us = Upset(upset_data, min_size=15, add_labels="left", add_sets_size="right")
-    >>> us.render(scale=1.3)
+    >>> us.render()
 
 Alternatively, to have better control
 
@@ -63,7 +65,7 @@ Alternatively, to have better control
     >>> us = Upset(upset_data, min_size=15, add_labels=False, add_sets_size=False)
     >>> us.add_sets_label(side="left", pad=0, align="center", text_pad=.1)
     >>> us.add_sets_size(side="left", pad=0)
-    >>> us.render(scale=1.3)
+    >>> us.render()
 
 
 Highlight Sets
@@ -78,7 +80,7 @@ To highlight specific sets, try :meth:`highlight_subsets() <heatgraphy.upset.Ups
     >>> us.highlight_subsets(facecolor='red', min_size=25, max_size=40, label="25~40")
     >>> us.highlight_subsets(edgecolor='green', min_size=20, max_size=30,label="20~30")
     >>> us.add_legends()
-    >>> us.render(scale=1.3)
+    >>> us.render()
 
 
 Sets attributes and items attributes
@@ -94,9 +96,9 @@ UpSet plot can not only visualize the intersections, but also the distribution o
     >>> imdb_data = UpsetData.from_memberships(imdb.Genre.str.split(','),
     >>>                                        items_names=imdb['Title'], items_attrs=items_attrs)
     >>> us = Upset(imdb_data, min_size=15)
-    >>> us.add_items_attrs("top", "Rating", Box, pad=.2, color="orange", linewidth=1, fliersize=1)
+    >>> us.add_items_attrs("top", "Rating", Box, pad=.2, plot_kws=dict(color="orange", linewidth=1, fliersize=1))
     >>> us.add_title(top="Rating")
-    >>> us.add_items_attrs("bottom", "Revenue (Millions)", Strip, pad=.2, size=1, color="#24936E")
+    >>> us.add_items_attrs("bottom", "Revenue (Millions)", Strip, pad=.2, plot_kws=dict(size=1, color="#24936E"))
     >>> us.add_title(bottom="Revenue (Millions)")
-    >>> us.render(scale=1.3)
+    >>> us.render()
 

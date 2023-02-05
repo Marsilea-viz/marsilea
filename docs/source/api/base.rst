@@ -8,8 +8,8 @@ Base Class
     :template: autosummary.rst
     :nosignatures:
 
-    Base
-    MatrixBase
+    WhiteBoard
+    ClusterBoard
     LegendMaker
 
 Layout Engine
@@ -21,7 +21,8 @@ Layout Engine
     :template: autosummary.rst
     :nosignatures:
 
-    CrossGrid
+    CrossLayout
+    CompositeCrossLayout
 
 
 Data Manipulation

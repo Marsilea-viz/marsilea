@@ -53,15 +53,3 @@ Customized elements
 
     Layers
     Piece
-
-Empty Canvas
-------------
-
-.. currentmodule:: heatgraphy
-.. autosummary::
-    :toctree: APIs/
-    :template: autosummary.rst
-    :nosignatures:
-
-    WhiteBoard
-    ClusterCanvas

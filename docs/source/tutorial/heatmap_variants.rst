@@ -51,7 +51,7 @@ Since we have multiple layers here, you can explicitly ask the cluster to perfor
     >>> from heatgraphy.plotter import Violin
     >>> sh = hg.SizedHeatmap(size=size, color=color, marker="s", cluster_data=size,
     ...                      palette={True: "#E87A90", False: "#BEC23F"})
-    >>> sh.split_row(cut=[5])
+    >>> sh.hsplit(cut=[5])
     >>> sh.add_dendrogram("left")
     >>> sh.add_top(Violin(np.random.randint(10, 100, (10, 10)), color="pink", inner="stick"), pad=.1)
     >>> sh.add_legends()
@@ -107,7 +107,7 @@ custom elements.
     ...           FrameRect(color="green", label="green rect"),
     ...           FracRect(color="blue", label="blue rect")]
     >>> la = hg.layers.Layers(layers=layers, pieces=pieces, cluster_data=d0)
-    >>> la.split_row(cut=[2], spacing=0.05)
+    >>> la.hsplit(cut=[2], spacing=0.05)
     >>> la.add_dendrogram("left")
     >>> la.add_legends()
     >>> la.render()

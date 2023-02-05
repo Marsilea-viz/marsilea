@@ -1,6 +1,7 @@
 matplotlib
 sphinx_design
 sphinx_copybutton
+sphinx-gallery
 scikit-learn
 pydata-sphinx-theme
 numpydoc
