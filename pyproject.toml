@@ -22,6 +22,8 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
+    "icecream",
+    "python-hmr",
     "pytest",
     "scikit-learn",
     "sphinx",
