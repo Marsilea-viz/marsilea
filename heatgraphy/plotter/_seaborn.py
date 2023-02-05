@@ -1,17 +1,15 @@
 from typing import Mapping
 
-import numpy as np
 import pandas as pd
 import seaborn
-from seaborn import color_palette
 from legendkit import CatLegend
+from seaborn import color_palette
 
 from .base import StatsBase
 from ..utils import ECHARTS16
 
 
 class _SeabornBase(StatsBase):
-
     _seaborn_plot = None
     datasets = None
     hue = None
@@ -60,9 +58,6 @@ class _SeabornBase(StatsBase):
         else:
             return self.create_render_datasets(*self.datasets)
 
-    def set_side(self, side):
-        self.side = side
-
     def get_legends(self):
         if self.hue is not None:
             labels = []
@@ -76,7 +71,7 @@ class _SeabornBase(StatsBase):
 
     def render_ax(self, ax, data):
         if self.hue is not None:
-            
+
             x, y = "var", "value"
             dfs = []
             for d, hue in zip(data, self.hue):
@@ -84,7 +79,7 @@ class _SeabornBase(StatsBase):
                 df = df.melt(var_name="var", value_name="value")
                 df['hue'] = hue
                 dfs.append(df)
-            
+
             pdata = pd.concat(dfs)
             self.kws['hue'] = 'hue'
             self.kws['hue_order'] = self.hue
@@ -100,7 +95,7 @@ class _SeabornBase(StatsBase):
             ax.invert_xaxis()
         # barplot(data=data, orient=orient, ax=ax, **self.kws)
         plotter = getattr(seaborn, self._seaborn_plot)
-        
+
         plotter(data=pdata, orient=orient, ax=ax, **self.kws)
         ax.set(xlabel=None, ylabel=None)
         leg = ax.get_legend()
@@ -192,5 +187,3 @@ class Strip(_SeabornBase):
 @_seaborn_doc
 class Swarm(_SeabornBase):
     _seaborn_plot = "swarmplot"
-
-

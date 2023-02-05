@@ -2,9 +2,8 @@ from __future__ import annotations
 
 import warnings
 from copy import deepcopy
-from typing import List, Dict
 from numbers import Number
-from uuid import uuid4
+from typing import List, Dict
 
 import numpy as np
 from legendkit.layout import vstack, hstack
@@ -69,13 +68,17 @@ class LegendMaker:
                     stack_by=None, stack_size=3,
                     align_legends=None,
                     align_stacks=None,
-                    spacing=10,
+                    legend_spacing=10,
+                    stack_spacing=10,
+                    box_padding=2,
                     ):
         """Draw legend based on the order of annotation
 
         .. note::
             If you want to concatenate plots, please add legend after
             concatenation, this will merge legends from every plots
+
+        Stack is a pack of legends
 
         Parameters
         ----------
@@ -85,9 +88,16 @@ class LegendMaker:
         order : array of plot name
         stack_by :
         stack_size :
-        align_legends :
-        align_stacks :
-        spacing :
+        align_legends : str
+            The side to align legends in a stack
+        align_stacks : str
+            The side to align stacks
+        legend_spacing : float
+            The space between legends
+        stack_spacing : float
+            The space between stacks
+        box_padding : float
+            Add pad around the whole legend box
 
         """
         _check_side(side)
@@ -103,7 +113,8 @@ class LegendMaker:
         self._legend_draw_kws = dict(
             order=order, stack_by=stack_by, stack_size=stack_size,
             align_legends=align_legends, align_stacks=align_stacks,
-            spacing=spacing)
+            legend_spacing=legend_spacing, stack_spacing=stack_spacing,
+            box_padding=box_padding)
 
     def remove_legends(self):
         self._draw_legend = False
@@ -127,7 +138,9 @@ class LegendMaker:
         stack_size = self._legend_draw_kws['stack_size']
         align_legends = self._legend_draw_kws['align_legends']
         align_stacks = self._legend_draw_kws['align_stacks']
-        spacing = self._legend_draw_kws['spacing']
+        legend_spacing = self._legend_draw_kws['legend_spacing']
+        stack_spacing = self._legend_draw_kws['stack_spacing']
+        box_padding = self._legend_draw_kws['box_padding']
 
         inner, outer = vstack, hstack
         if stack_by == "row":
@@ -143,10 +156,10 @@ class LegendMaker:
 
         bboxes = []
         for legs in batched(all_legs, stack_size):
-            box = inner(legs, align=align_legends, spacing=spacing)
+            box = inner(legs, align=align_legends, spacing=legend_spacing)
             bboxes.append(box)
         legend_box = outer(bboxes, align=align_stacks, loc="center left",
-                           spacing=spacing, padding=0)
+                           spacing=stack_spacing, padding=box_padding)
         ax.add_artist(legend_box)
         # uncomment this to visualize legend ax
         # from matplotlib.patches import Rectangle
@@ -192,7 +205,7 @@ class WhiteBoard(LegendMaker):
     def __init__(self, width=None, height=None, name=None):
         self.main_name = get_plot_name(name, "main", "board")
         width = 4 if width is None else width
-        height = 5 if height is None else height
+        height = 4 if height is None else height
         self.layout = CrossLayout(name=self.main_name,
                                   width=width,
                                   height=height)
@@ -346,19 +359,17 @@ class WhiteBoard(LegendMaker):
 
     def _freeze_flex_plots(self, figure):
         for plan in self._col_plan + self._row_plan:
-            if plan.is_flex:
-                self.layout.set_render_size(plan.name,
-                                            plan.get_canvas_size(figure))
+            render_size = plan.get_canvas_size(figure)
+            if render_size is not None:
+                self.layout.set_render_size(plan.name, render_size)
 
-    def render(self, figure=None, scale=1, refreeze=True):
+    def render(self, figure=None, scale=1):
         """
 
         Parameters
         ----------
         figure
         scale
-        refreeze : bool
-            If True, recompute the Layout on render
 
         Returns
         -------
@@ -396,17 +407,15 @@ class CompositeBoard(LegendMaker):
 
     def __init__(self, main_board: WhiteBoard):
         self.main_board = self.new_board(main_board)
-        self.main_board.remove_legends()
+        # self.main_board.remove_legends()
         self.layout = CompositeCrossLayout(self.main_board.layout)
         self._board_list = [self.main_board]
         super().__init__()
 
-
-
     @staticmethod
     def new_board(board):
         board = deepcopy(board)
-        if isinstance(board, WhiteBoard):
+        if isinstance(board, LegendMaker):
             board.remove_legends()
         return board
 
@@ -453,6 +462,9 @@ class CompositeBoard(LegendMaker):
         for m in self._board_list:
             legends.update(m.get_legends())
         return legends
+
+    def get_ax(self, board_name, ax_name):
+        return self.layout.get_ax(board_name, ax_name)
 
 
 class ClusterBoard(WhiteBoard):
@@ -541,7 +553,7 @@ class ClusterBoard(WhiteBoard):
             :context: close-figs
 
             >>> h = hg.Heatmap(data)
-            >>> h.split_row(cut=[4, 8])
+            >>> h.hsplit(cut=[4, 8])
             >>> h.add_dendrogram("left", add_base=False)
             >>> h.render()
 
@@ -551,7 +563,7 @@ class ClusterBoard(WhiteBoard):
             :context: close-figs
 
             >>> h = hg.Heatmap(data)
-            >>> h.split_row(cut=[4, 8])
+            >>> h.hsplit(cut=[4, 8])
             >>> h.add_dendrogram("left", colors=["#5470c6", "#91cc75", "#fac858"])
             >>> h.render()
 
@@ -712,7 +724,7 @@ class ClusterBoard(WhiteBoard):
     def col_cluster(self):
         return len(self._col_den) > 0
 
-    def render(self, figure=None, scale=1, refreeze=True):
+    def render(self, figure=None, scale=1):
         if figure is None:
             figure = plt.figure()
         self.figure = figure

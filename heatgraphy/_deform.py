@@ -1,5 +1,3 @@
-from itertools import tee
-
 import numpy as np
 
 from .dendrogram import Dendrogram, GroupDendrogram

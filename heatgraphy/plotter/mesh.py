@@ -3,11 +3,11 @@ __all__ = ["ColorMesh", "Colors", "SizedMesh", "LayersMesh", "MarkerMesh",
 
 import warnings
 from itertools import cycle
-from typing import Mapping, Iterable
+from typing import Mapping
 
 import numpy as np
 import pandas as pd
-from legendkit import ColorArt, CatLegend, ListLegend, SizeLegend
+from legendkit import ColorArt, CatLegend, SizeLegend
 from matplotlib.cm import ScalarMappable
 from matplotlib.colors import ListedColormap, TwoSlopeNorm, Normalize, \
     is_color_like
@@ -16,7 +16,6 @@ from matplotlib.offsetbox import AnchoredText
 from .base import RenderPlan
 from ..layout import close_ticks
 from ..utils import relative_luminance, get_colormap, ECHARTS16
-
 
 default_label_props = {
     "left": dict(loc="center right", bbox_to_anchor=(0, 0.5)),
@@ -82,9 +81,9 @@ class MeshBase(RenderPlan):
                 prop.update(self.props)
 
             title = AnchoredText(self.label, loc=loc,
-                                bbox_to_anchor=bbox_to_anchor,
-                                prop=prop, pad=0.3, borderpad=0,
-                                bbox_transform=ax.transAxes, frameon=False)
+                                 bbox_to_anchor=bbox_to_anchor,
+                                 prop=prop, pad=0.3, borderpad=0,
+                                 bbox_transform=ax.transAxes, frameon=False)
             ax.add_artist(title)
 
     def render(self, axes):
@@ -524,7 +523,8 @@ class SizedMesh(MeshBase):
                                          )
             else:
                 mappable = ScalarMappable(norm=self.norm, cmap=self.cmap)
-                color_legend = ColorArt(self._collections, **self.color_legend_kws)
+                color_legend = ColorArt(self._collections,
+                                        **self.color_legend_kws)
             return [size_legend, color_legend]
         else:
             return size_legend

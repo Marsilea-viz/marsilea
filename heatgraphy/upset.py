@@ -11,13 +11,12 @@ from typing import List, Set, Mapping
 import numpy as np
 import pandas as pd
 from legendkit import ListLegend
-from matplotlib import pyplot as plt
 from matplotlib.collections import PatchCollection
 from matplotlib.patches import Rectangle
 
 from .base import WhiteBoard
 from .plotter import Numbers, Labels, StackBar
-from .utils import get_canvas_size
+from .utils import get_canvas_size_by_data
 
 
 @dataclass
@@ -119,7 +118,7 @@ class UpsetData:
             if names is None:
                 names = [f"Set {i + 1}" for i in range(len(sets))]
             it = zip(names, sets)
-        
+
         for name, s in it:
             s = set(s)
             new_sets.append(s)
@@ -272,7 +271,7 @@ class Upset(WhiteBoard):
                  max_size=None,
                  color=".1",
                  shading=.3,
-                 radius=None,
+                 radius=50,
                  linewidth=1.5,
                  grid_background=0.1,
                  fontsize=None,
@@ -281,7 +280,6 @@ class Upset(WhiteBoard):
                  add_labels=True,
                  width=None,
                  height=None,
-                 ratio=1
                  ):
 
         sets_table = pd.DataFrame(data.cardinality(), columns=["size"])
@@ -289,7 +287,9 @@ class Upset(WhiteBoard):
         sets_size = data.sets_size()
 
         if sets_order is not None:
-            sets_table = sets_table.reorder_levels(sets_order)
+            sets_matrix = sets_table.index.to_frame().loc[:, sets_order]
+            sets_table.index = pd.MultiIndex.from_frame(sets_matrix)
+            sets_size = sets_size[sets_order]
         if sort_subset is not None:
             sets_table = sets_table.sort_values(sort_subset,
                                                 ascending=ascending)
@@ -324,16 +324,15 @@ class Upset(WhiteBoard):
         self._intersection_bar = None
         self._sets_size_bar = None
 
-        h, w = self.sets_table.index.to_frame().shape
-
+        main_shape = self.sets_table.index.to_frame().shape
         if orient == "h":
-            h, w = w, h
-        if radius is None:
-            # TODO: Need a better equation to handle this
-            radius = h * w * -.05 + 50
-            radius = np.clip(radius, 5, 50)
+            main_shape = main_shape[::-1]
+
         self.radius = radius
-        height, width = get_canvas_size(width=width, height=height, aspect=1)
+
+        width, height = get_canvas_size_by_data(
+            main_shape, scale=.3, width=width, height=height, aspect=1)
+
         super().__init__(width=width, height=height)
         if add_intersections:
             if isinstance(add_intersections, str):
@@ -422,30 +421,28 @@ class Upset(WhiteBoard):
                   f"try {' ,'.join(options)}"
             raise ValueError(msg)
 
-    def add_intersections(self, side, pad=.1):
+    def add_intersections(self, side, pad=.1, size=1.):
         # TODO: add method to get specific axes
         self._check_side(side, 'Intersections',
                          dict(h=["top", "bottom"], v=["left", "right"]))
         data = self.sets_table["size"]
         self._intersection_bar = Numbers(data, color=self.color)
-        size = min(self.height, self.width) * .4
         self.add_plot(side, self._intersection_bar, size=size, pad=pad)
 
-    def add_sets_size(self, side, pad=.1, **props):
+    def add_sets_size(self, side, pad=.1, size=1., **props):
         self._check_side(side, 'Sets size',
                          dict(h=["left", "right"], v=["top", "bottom"]))
         data = self.sets_size
         options = dict(color=self.color)
         options.update(props)
         self._sets_size_bar = Numbers(data, **options)
-        size = min(self.height, self.width) * .4
         self.add_plot(side, self._sets_size_bar, size=size, pad=pad)
 
-    def add_sets_label(self, side, pad=.1, **props):
+    def add_sets_label(self, side, pad=.1, size=None, **props):
         self._check_side(side, 'Sets label',
                          dict(h=["left", "right"], v=["top", "bottom"]))
         data = self.sets_table.index.names
-        self.add_plot(side, Labels(data, **props), pad=pad)
+        self.add_plot(side, Labels(data, **props), pad=pad, size=size)
 
     def add_sets_attrs(self, side, attr_names, plot=None, **props):
         # TODO: Auto detect side
@@ -454,7 +451,7 @@ class Upset(WhiteBoard):
         self.add_plot(side, plot(attr, **props), pad=.1)
 
     def add_items_attrs(self, side, attr_names, plot=None, name=None, pad=0,
-                        **kwargs):
+                        size=None, plot_kws=None):
         items_attrs = self.data.items_attrs
         sets_names = np.array(self.sets_table.index.names)
 
@@ -474,7 +471,9 @@ class Upset(WhiteBoard):
             construct = (construct.loc[~pd.isnull(construct.index)]
             ).fillna(0).astype(int).to_numpy()
 
-        self.add_plot(side, plot(construct, **kwargs), name=name, pad=pad)
+        plot_kws = {} if plot_kws is None else plot_kws
+        self.add_plot(side, plot(construct, **plot_kws), name=name,
+                      pad=pad, size=size)
 
     def _render_matrix(self, ax):
         ax.set_axis_off()
@@ -558,24 +557,28 @@ class Upset(WhiteBoard):
         highlight_legend.figure = None
         return {'highlight_subsets': [highlight_legend]}
 
-    def render(self, figure=None, aspect=1, scale=1):
-
-        self._freeze_legend()
-
-        if figure is None:
-            self.figure = plt.figure()
-        else:
-            self.figure = figure
-
-        if not self.layout.is_freeze:
-            self.layout.freeze(figure=self.figure, aspect=aspect, scale=scale)
-        main_axes = self.get_main_ax()
-        self._render_matrix(main_axes)
-        self._render_plan()
+    def render(self, figure=None, scale=1):
+        super().render(figure=figure, scale=scale)
+        main_ax = self.get_main_ax()
+        self._render_matrix(main_ax)
         # apply highlight style to bar
         if self._add_intersections:
             for ix, rect in enumerate(self._intersection_bar.bars):
                 bar_style = self._subset_styles.get(ix)
                 if bar_style is not None:
                     rect.set(**bar_style)
-        self._render_legend()
+
+        # self._freeze_legend()
+        #
+        # if figure is None:
+        #     self.figure = plt.figure()
+        # else:
+        #     self.figure = figure
+        #
+        # if not self.layout.is_freeze:
+        #     self.layout.freeze(figure=self.figure, aspect=aspect, scale=scale)
+        # main_axes = self.get_main_ax()
+        # self._render_matrix(main_axes)
+        # self._render_plan()
+
+        # self._render_legend()

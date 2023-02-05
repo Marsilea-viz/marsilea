@@ -2,10 +2,11 @@
 
 __version__ = "0.2.0"
 
-from .heatmap import Heatmap, SizedHeatmap, CatHeatmap
-from .base import WhiteBoard, ClusterBoard
-from .layout import CrossLayout, CompositeCrossLayout
-from .dendrogram import Dendrogram, GroupDendrogram
 from ._deform import Deformation
+from .base import WhiteBoard, ClusterBoard
+from .dataset import load_data
+from .dendrogram import Dendrogram, GroupDendrogram
+from .heatmap import Heatmap, SizedHeatmap, CatHeatmap
 from .layers import Piece, Layers
+from .layout import CrossLayout, CompositeCrossLayout
 from .upset import UpsetData, Upset

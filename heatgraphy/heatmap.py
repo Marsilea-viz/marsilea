@@ -6,7 +6,7 @@ import numpy as np
 
 from .base import ClusterBoard
 from .plotter import ColorMesh, SizedMesh, Colors
-from .utils import get_canvas_size, get_plot_name
+from .utils import get_plot_name
 
 log = logging.getLogger("heatgraphy")
 
@@ -18,8 +18,6 @@ class Heatmap(ClusterBoard):
 
     Other Parameters
     ----------------
-    square : bool
-        If True, the cell will render in equal
     cluster_data : matrix data
         You can override the data used to perform cluster
         By default will use the plotting data.
@@ -37,7 +35,6 @@ class Heatmap(ClusterBoard):
                  cbar_kws=None, name=None,
                  width=None, height=None, cluster_data=None
                  ):
-
         if cluster_data is None:
             cluster_data = data
         super().__init__(cluster_data, width=width, height=height,
@@ -98,11 +95,11 @@ class SizedHeatmap(ClusterBoard):
     """
 
     def __init__(self, size, color=None, cluster_data=None,
-                 name=None,
+                 name=None, width=None, height=None,
                  **kwargs):
         if cluster_data is None:
             cluster_data = size
-        super().__init__(cluster_data, name=name)
+        super().__init__(cluster_data, width=width, height=height, name=name)
 
         mesh = SizedMesh(size=size, color=color, **kwargs)
         self.add_layer(mesh)

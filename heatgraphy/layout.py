@@ -471,7 +471,7 @@ class _LegendAxes:
 class CompositeCrossLayout:
     """A class to layout multiple Cross Layouts
 
-    .. warn::
+    .. warning::
         This class are not supposed to be used directly by user
 
     Parameters
@@ -489,6 +489,7 @@ class CompositeCrossLayout:
         self._side_layouts: Dict[str, List[CrossLayout]] = \
             {"top": [], "bottom": [], "right": [], "left": []}
         self._legend_axes = None
+        self.layouts = {self.main_layout.main_cell.name: self.main_layout}
 
     @staticmethod
     def _reset_layout(layout):
@@ -501,9 +502,13 @@ class CompositeCrossLayout:
             raise AppendLayoutError
 
         elif isinstance(other, Number):
+            if side in ["left", "right"]:
+                width, height = other, self.main_cell_height
+            else:
+                width, height = self.main_cell_height, other
             other = CrossLayout(name=uuid4().hex,
-                                width=other if side in ["left", "right"] else self.main_cell_width,
-                                height=self.main_cell_height if side in ["left", "right"] else other,
+                                width=width,
+                                height=height,
                                 init_main=False)
             self._side_layouts[side].append(other)
         elif isinstance(other, CrossLayout):
@@ -512,6 +517,7 @@ class CompositeCrossLayout:
             adjust_size = getattr(self, f"main_cell_{adjust}")
             getattr(other, f"set_main_{adjust}").__call__(adjust_size)
             self._side_layouts[side].append(other)
+            self.layouts[other.main_cell.name] = other
         else:
             raise TypeError(f"Cannot append object type of {type(other)}")
 
@@ -717,3 +723,6 @@ class CompositeCrossLayout:
 
     def plot(self, scale=1):
         self.freeze(scale=scale, _debug=True)
+
+    def get_ax(self, layout_name, ax_name):
+        return self.layouts[layout_name].get_ax(ax_name)

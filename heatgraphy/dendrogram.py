@@ -204,6 +204,7 @@ class GroupDendrogram(_DendrogramBase):
     metric : str
     
     """
+
     def __init__(self,
                  dens: List[Dendrogram],
                  method=None,
@@ -333,11 +334,11 @@ class GroupDendrogram(_DendrogramBase):
         ).reshape(self.x_coords.shape)
         if add_base:
             if add_meta:
-                self._render_y_coords = self.y_coords + self.divider
+                self._render_y_coords = self.y_coords / 5 + self.divider
             else:
-                self._render_y_coords = self.den_ylim
+                self._render_y_coords = self.den_ylim / 5
         else:
-            self._render_y_coords = self.y_coords
+            self._render_y_coords = self.y_coords / 5
 
         if add_meta:
             # Add meta dendrogram

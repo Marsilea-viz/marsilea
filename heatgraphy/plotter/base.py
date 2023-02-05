@@ -8,8 +8,8 @@ from matplotlib.artist import Artist
 from matplotlib.axes import Axes
 from seaborn import despine
 
-from ..exceptions import DataError
 from .._deform import Deformation
+from ..exceptions import DataError
 
 
 class DataLoader:
@@ -84,29 +84,22 @@ class RenderPlan:
         The raw data input by user
     side : str, default: 'top'
         Which side to render this plot
-    size : float, default: 1
+    size : float
     no_split : bool, default: False
         Use to mark if the RenderPlan can be split
     render_main : bool, default: False
         Use to mark if the RenderPlan can be rendered on main canvas
-    is_flex : bool, default: False
-        Use to mark if the RenderPlan needs to be rendered to
-        know the canvas size; If mark as True, :meth:`get_canvas_size()` must
-        be implemented.
     zorder : int, default: 0
         This only works if the RenderPlan is rendered on main canvas
 
     """
     name: str = None
     data: Any
-    size: float = 1.
+    size: float = None
     side: str = "top"
     # label if a render plan
     # can be used on split axes
     no_split: bool = False
-    # label if a render plan need to calculate
-    # canvas size before rendering
-    is_flex: bool = False
     zorder: int = 0
 
     deform: Deformation = None
@@ -231,10 +224,10 @@ class RenderPlan:
 
     def get_canvas_size(self, figure) -> float:
         """
-        If :attr:`canvas_size_unknown` is True, This function must be
-        implemented to determine how to calculate the canvas size in inches.
+        If the size is unknown before rendering, this function must be
+        implemented to return the canvas size in inches.
         """
-        raise NotImplementedError("Must be implemented in derived RenderPlan")
+        return self.size
 
     @property
     def is_split(self):

@@ -2,10 +2,11 @@ from typing import Callable, Mapping
 
 import numpy as np
 import pandas as pd
+from legendkit import CatLegend
 from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
-from legendkit import ColorArt, CatLegend, ListLegend, SizeLegend
-from .base import StatsBase, RenderPlan
+
+from .base import StatsBase
 from ..utils import ECHARTS16
 
 
@@ -142,7 +143,7 @@ class StackBar(StatsBase):
 
     def __init__(self, data,
                  items=None, colors=None,
-                 show_value=True,
+                 show_value=False,
                  value_loc="center",
                  width=.5,
                  value_size=6,
@@ -151,7 +152,7 @@ class StackBar(StatsBase):
                  legend_kws=None,
                  **kwargs,
                  ):
-
+        # TODO: Support bare bone numpy array as input
         item_names = None
         if isinstance(data, pd.DataFrame):
             item_names = data.index
@@ -234,5 +235,3 @@ class StackBar(StatsBase):
             if self.show_value:
                 ax.bar_label(bars, display_value, fmt=self.fmt,
                              **self.props)
-
-

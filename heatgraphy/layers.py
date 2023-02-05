@@ -114,7 +114,8 @@ class LayersMesh(MeshBase):
         self.label = label
         self.label_loc = label_loc
         self.props = props
-        default_legend_kws = dict(frameon=False, handlelength=1, handleheight=1)
+        default_legend_kws = dict(frameon=False, handlelength=1,
+                                  handleheight=1)
         if legend_kws is not None:
             default_legend_kws.update(legend_kws)
         self._legend_kws = default_legend_kws

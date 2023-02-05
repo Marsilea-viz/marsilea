@@ -1,10 +1,8 @@
 from __future__ import annotations
 
 import warnings
-from copy import deepcopy
 from dataclasses import dataclass
-from itertools import cycle
-from typing import List, Iterable, Dict
+from typing import List, Iterable
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -356,15 +354,6 @@ class AnnoTextConfig:
                f"armB={armB}," \
                f"rad=0"
 
-    def export(self, armA=None, armB=None):
-        return dict(
-            va=self.va,
-            ha=self.ha,
-            rotation=self.rotation,
-            relpos=self.relpos,
-            connectionstyle=self.get_connectionstyle(armA=armA, armB=armB)
-        )
-
 
 anno_default_params = {
     "top": AnnoTextConfig(va="bottom", ha="center", rotation=90,
@@ -454,15 +443,21 @@ class AnnoLabels(_LabelBase):
         self.text_pad = text_pad
         self.armA = armA
         self.armB = armB
+        self.relpos = relpos
+        self.connectionstyle = connectionstyle
 
         super().__init__()
-        self._sort_params(connectionstyle=connectionstyle,
-                          relpos=relpos, **options)
+        self._sort_params(**options)
 
     def get_text_params(self):
-        default_params = anno_default_params[self.side].export(armA=self.armA,
-                                                               armB=self.armB)
-        p = TextParams(**default_params)
+        default_params = anno_default_params[self.side]
+        self.relpos = default_params.relpos
+        self.connectionstyle = (default_params
+                                .get_connectionstyle(armA=self.armA,
+                                                     armB=self.armB))
+        params = dict(va=default_params.va, ha=default_params.ha,
+                      rotation=default_params.rotation)
+        p = TextParams(**params)
         p.update_params(self._user_params)
         return p
 
@@ -483,6 +478,8 @@ class AnnoLabels(_LabelBase):
         text_options = dict(ax=ax, renderer=renderer,
                             expand=self.get_expand(),
                             linewidth=self.linewidth,
+                            relpos=self.relpos,
+                            connectionstyle=self.connectionstyle,
                             **params.to_dict())
         texts = []
         segments = []
@@ -555,7 +552,6 @@ class Labels(_LabelBase):
 
         >>> import heatgraphy as hg
         >>> from heatgraphy.plotter import Labels
-        >>> import numpy as np
         >>> matrix = np.random.randn(15, 10)
         >>> h = hg.Heatmap(matrix)
         >>> label_row = Labels(row)
@@ -595,7 +591,7 @@ class Labels(_LabelBase):
         if self.is_flank:
             va, ha = ha, va
 
-        p = TextParams(va=va, ha=ha)
+        p = TextParams(va=va, ha=ha, rotation=default_params['rotation'])
         p.update_params(self._user_params)
 
         return p
@@ -662,7 +658,7 @@ class Title(_LabelBase):
         >>> from heatgraphy.plotter import Title
         >>> matrix = np.random.randn(15, 10)
         >>> h = hg.Heatmap(matrix)
-        >>> title = Title('Heatmap',text_pad=0.4)
+        >>> title = Title('Heatmap', text_pad=0.4)
         >>> h.add_top(title)
         >>> h.render()
 
@@ -816,11 +812,15 @@ class Chunk(_LabelBase):
         p = TextParams(va="center", ha="center",
                        rotation=self.default_rotation[self.side])
         p.update_params(self._user_params)
+        p.update_params(self.props)
         return p
 
     def render(self, axes):
 
         params = self.get_text_params()
+
+        if isinstance(axes, Axes):
+            axes = [axes]
 
         for i, ax in enumerate(axes):
             ax.set_axis_off()
