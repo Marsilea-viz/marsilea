@@ -101,10 +101,39 @@ and then sets the :code:`x` or :code:`y` limits of the plot based on the length 
 
 Then we inverts the x-axis if the side of plot is "left", and sets all of the plot spines to be invisible.
 
+.. code-block:: python
+    :emphasize-lines: 21, 22, 23, 24, 25
+
+    >>> class Lollipop(RenderPlan):
+    >>>     def __init__(self, data):
+    >>>         self.data = data
+    >>>
+    >>>     def get_legends(self):
+    >>>         return CatLegend(label=['Lollipop'], handle="circle")
+    >>>
+    >>>     def render_ax(self, ax, data):
+    >>>         orient = "horizontal" if self.is_flank else "vertical"
+    >>>         lim = len(data)
+    >>>         if self.is_flank:
+    >>>             ax.set_ylim(0, lim)
+    >>>             ax.set_xlim(0, None)
+    >>>         else:
+    >>>             ax.set_xlim(0, lim)
+    >>>             ax.set_ylim(0, None)
+    >>>         if self.side == "left":
+    >>>             ax.invert_xaxis()
+    >>>         for spine in ax.spines.values():
+    >>>             spine.set_visible(False)
+    >>>          # Plot on every .5 start from 0
+    >>>         locs = np.arange(0, lim) + 0.5
+    >>>         ax.set_yticks([])
+    >>>         ax.set_xticks([])
+    >>>         ax.stem(locs, data, orientation=orient, basefmt=" ")
 
 
 .. plot::
     :context: close-figs
+    :include-source: false
 
     >>> class Lollipop(RenderPlan):
     >>>     def __init__(self, data):
