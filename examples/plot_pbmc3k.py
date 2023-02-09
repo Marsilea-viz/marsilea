@@ -5,6 +5,7 @@ Visualizing Single-cell RNA-seq Data
 """
 
 import matplotlib as mpl
+from matplotlib import pyplot as plt
 from matplotlib.colors import Normalize
 
 import heatgraphy as hg
@@ -52,3 +53,4 @@ h.add_dendrogram("left", colors=["#33A6B8", "#B481BB"])
 h.add_dendrogram("bottom")
 h.add_legends(pad=.1)
 h.render()
+plt.show()

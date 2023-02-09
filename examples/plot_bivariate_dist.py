@@ -6,6 +6,7 @@ Bivariate Distribution
 
 import numpy as np
 import seaborn as sns
+from matplotlib import pyplot as plt
 from scipy.stats import gaussian_kde
 
 import heatgraphy as hg
@@ -38,7 +39,8 @@ wb.add_canvas("bottom", size=.4, pad=.1, name="x2")
 wb.add_canvas("left", size=.4, pad=.1, name="y1")
 wb.add_canvas("right", size=.4, pad=.1, name="y2")
 wb.add_title(left="Y-axis distribution", top="X-axis distribution")
-
+wb.add_pad("left", size=.3)
+wb.add_pad("right", size=.3)
 wb.render()
 
 main_ax = wb.get_ax("main")
@@ -70,3 +72,4 @@ y2_ax.tick_params(right=False, labelright=False)
 for tick in y2_ax.get_xticklabels():
     tick.set_rotation(90)
 y2_ax.invert_xaxis()
+plt.show()
