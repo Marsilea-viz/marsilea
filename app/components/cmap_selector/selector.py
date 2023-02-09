@@ -29,7 +29,6 @@ def get_colormap_images(cmap):
 
 
 class ColormapSelector:
-    # TODO: Add a option to reverse colormap
 
     def __init__(self, default="coolwarm"):
         cmap_data = get_colormap_names()

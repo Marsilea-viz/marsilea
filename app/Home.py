@@ -1,6 +1,8 @@
 import matplotlib as mpl
 import matplotlib.pyplot as plt
+from matplotlib.image import imread
 import streamlit as st
+from PIL.Image import Image
 
 import heatgraphy as hg
 from components.example_download import ExampleDownloader
@@ -22,7 +24,7 @@ enable_nested_columns()
 st.set_page_config(
     page_title="Heatgraphy",
     layout="centered",
-    page_icon=plt.imread("img/favicon.png"),
+    page_icon=imread("img/favicon.png"),
     initial_sidebar_state="collapsed"
 )
 
@@ -140,8 +142,8 @@ with mar:
 if st.session_state["data_ready"]:
 
     with st.expander("General Options"):
-        tabs = st.tabs(["Heatmap Partition", "Configuration", "Export"])
-        spliter, conf, saver = tabs
+        tabs = st.tabs(["Configuration", "Heatmap Partition", "Export"])
+        conf, spliter, saver = tabs
 
     _, render_button, _ = st.columns([2, 2, 2])
     with render_button:

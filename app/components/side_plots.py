@@ -555,14 +555,12 @@ def spliter(orient="h"):
     title = "Horizontally" if orient == "h" else "Vertically"
     st.subheader(f"Split {title}")
     with st.form(f"Split {orient}"):
-        cut = st.text_input("Where to split",
+        st.markdown("Split by number")
+        cut = st.text_input("split by number", label_visibility="collapsed",
                             help="Use number seperated by comma to indicate "
                                  "where to split the heatmap eg. 10,15"
                             )
-        # labels = st.text_input("Labels",
-        #                        help="Labels should be seperated by comma,"
-        #                             "eg. a,a,b,b"
-        #                        )
+        st.markdown("Split by label")
         labels = FileUpload(key=f"split-{orient}")
         order = st.text_input("Order", help="eg. a,b")
         submit = st.form_submit_button("Confirm")
@@ -570,6 +568,8 @@ def spliter(orient="h"):
             cut = [int(c) for c in cut.split(",")]
             # labels = [str(label) for label in labels.split(",")]
             labels = labels.parse()
+            if np.unique(labels) > len(labels) * .7:
+                st.error("There are more than 70% of labels are unique.")
             order = [str(o) for o in order]
             st.session_state[f"split_{orient}"] = (
                 SplitAction(orient=orient, cut=cut,

@@ -54,7 +54,7 @@ class FileUpload(InputBase):
                                            key=f"table_reader-{self.key}",
                                            accept_multiple_files=False,
                                            label_visibility="collapsed",
-                                           type=["txt", "csv"])
+                                           type=["txt", "csv", "xlsx"])
 
     def parse(self):
         if self.user_input is not None:

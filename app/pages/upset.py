@@ -1,3 +1,4 @@
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -7,12 +8,14 @@ from components.data_input import FileUpload
 from components.initialize import inject_css
 from components.layer_data import get_font_list
 from components.state import init_state
+from matplotlib.image import imread
+
 from heatgraphy import UpsetData, Upset
 
 st.set_page_config(
     page_title="Upset Plot",
     initial_sidebar_state="collapsed",
-    page_icon="⚗️"
+    page_icon=imread("img/favicon.png"),
 )
 
 inject_css()
@@ -150,13 +153,16 @@ if data is not None:
         with highlight:
             pass
 
-        fig = plt.figure()
-        up = Upset(upset_data, min_size=size_range[0],
-                   max_size=size_range[1],
-                   min_degree=degree_range[0], max_degree=degree_range[1],
-                   color=color, linewidth=linewidth, shading=shading,
-                   grid_background=grid_background
-                   )
-        up.render(fig, scale=1.5)
-        fig_container.pyplot(fig)
-        st.session_state["figure"] = fig
+        with mpl.rc_context({'text.color': fontcolor,
+                             'font.size': fontsize,
+                             'font.family': fontfamily}):
+            fig = plt.figure()
+            up = Upset(upset_data, min_size=size_range[0],
+                       max_size=size_range[1],
+                       min_degree=degree_range[0], max_degree=degree_range[1],
+                       color=color, linewidth=linewidth, shading=shading,
+                       grid_background=grid_background
+                       )
+            up.render(fig, scale=1.5)
+            fig_container.pyplot(fig)
+            st.session_state["figure"] = fig
