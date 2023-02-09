@@ -1,164 +1,240 @@
-Create custom visualization for heatgraphy
-==========================================
+Let's make new visualization for heatgraphy
+============================================
 
-Unleash the power of your heatmaps by adding custom visualizations.
-Whether you want to make your data more dynamic or add context, this document will show you how.
-By the end, you'll be able to create eye-catching heatmaps with personalized visualizations.
-From adding simple annotations to combining multiple visualizations, the possibilities are endless.
+Previously, this is how you add plots in Heatgraphy
 
-For instance, let's add a Lollipop plot to our heatmap.
+.. code-block:: python
 
-Import modules
---------------
+    import numpy as np
+    import heatgraphy as hg
+
+    h = hg.Heatmap(np.random.rand(10, 10))
+    h.add_left(hg.plotter.Colors(list("1122233344")))
+    h.render()
+
+However, the preset included in Heatgraphy may not fit your need.
+What if I want a Lollipop plot? It's not in Heatgraphy.
+
+We will show you how to make a new visualization to express your data more dynamically.
+You need to be familiar with Python's Class inheritance to understand how it works.
+
+Understand :class:`RenderPlan <heatgraphy.plotter.base.RenderPlan>`
+-------------------------------------------------------------------
+
+Everything render on the canvas in Heatgraphy is a :class:`RenderPlan <heatgraphy.plotter.base.RenderPlan>`,
+or inherited from it. To create a new visualization, we also need to inherit from this base class.
+
+Let's create a `RenderPlan` that can draw Lollipop plot:
+
+.. code-block:: python
+
+    from heatgraphy import RenderPlan
+
+    class Lollipop(RenderPlan):
+        pass
+
+
+The current `Lollipop` does nothing,
+it does not know how to draw a lollipop,
+we need to implement the `render` method.
+
+
+.. code-block:: python
+
+    class Lollipop(RenderPlan):
+
+        def __init__(self, data):
+            self.data = data
+
+        def render(self, ax):
+            lim = len(self.data)
+            locs = np.arange(lim) + 0.5
+            ax.stem(locs, self.data, basefmt="none")
+            ax.set_axis_off()
+
+Now lets create a heatmap and add it to the top
+
+.. plot::
+    :context: close-figs
+    :include-source: false
+
+    >>> from heatgraphy.base import RenderPlan
+
+    >>> class Lollipop(RenderPlan):
+    ...
+    ...     def __init__(self, data):
+    ...         self.data = data
+    ...
+    ...     def render(self, ax):
+    ...         lim = len(self.data)
+    ...         locs = np.arange(lim) + 0.5
+    ...         ax.stem(locs, self.data, basefmt="none")
+    ...         ax.set_axis_off()
+    ...
+
 
 .. plot::
     :context: close-figs
 
     >>> import heatgraphy as hg
-    >>> import numpy as np
-    >>> from heatgraphy.base import RenderPlan
-
-| Here, we import the necessary modules for our visualization.
-| The :class:`RenderPlan <heatgraphy.plotter.base.RenderPlan>` class from heatgraphy.base will serve as the base class for our custom visualization class
-
-Define class
-------------
-
-Next, let's look at the definition of the Lollipop class:
-
-.. code-block:: python
-
-    >>> class Lollipop(RenderPlan):
-    >>>     def __init__(self, data):
-    >>>         self.data = data
-
-This section defines the class :class:`Lollipop` that inherits from RenderPlan, and sets up an :meth:`__init__()` method that initializes the data parameter.
+    >>> data = np.random.rand(10, 10)
+    >>> lol_data = np.arange(10) + 2
+    >>> h = hg.Heatmap(data)
+    >>> h.add_top(Lollipop(lol_data))
+    >>> h.render()
 
 
+Congratulation! you just creat your `RenderPlan`.
 
-.. code-block:: python
-    :emphasize-lines: 5, 6
 
-    >>> class Lollipop(RenderPlan):
-    >>>     def __init__(self, data):
-    >>>         self.data = data
-    >>>
-    >>>     def get_legends(self):
-    >>>         return CatLegend(label=['Lollipop'], handle="circle")
+But what if I want to add it to other side.
 
-To arrange the layout of legends, :meth:`get_legends()` method is defined, which returns a CatLegend object with a label of :code:`Lollipop` and a handle of :code:`circle`.
+.. plot::
+    :context: close-figs
 
+    >>> h = hg.Heatmap(data)
+    >>> h.add_left(Lollipop(lol_data))
+    >>> h.render()
+
+Oh no, it's broken! Let's try fix it by adopt it to more situation
 
 .. code-block:: python
-    :emphasize-lines: 8, 9, 10, 11, 12, 13, 14, 15, 16
+
+    class Lollipop(RenderPlan):
+
+        def __init__(self, data):
+            self.data = data
+
+        def render(self, ax):
+            lim = len(self.data)
+            locs = np.arange(lim) + 0.5
+            orientation = "vertical" if self.is_body else "horizontal"
+            ax.stem(locs, self.data, basefmt="none")
+            ax.set_axis_off()
+            if self.side == "left":
+                ax.invert_xaxis()
+
+
+.. plot::
+    :context: close-figs
+    :include-source: false
 
     >>> class Lollipop(RenderPlan):
-    >>>     def __init__(self, data):
-    >>>         self.data = data
-    >>>
-    >>>     def get_legends(self):
-    >>>         return CatLegend(label=['Lollipop'], handle="circle")
-    >>>
-    >>>     def render_ax(self, ax, data):
-    >>>     orient = "horizontal" if self.is_flank else "vertical"
-    >>>     lim = len(data)
-    >>>     if self.is_flank:
-    >>>         ax.set_ylim(0, lim)
-    >>>         ax.set_xlim(0, None)
-    >>>     else:
-    >>>         ax.set_xlim(0, lim)
-    >>>         ax.set_ylim(0, None)
+    ...
+    ...    def __init__(self, data):
+    ...        self.data = data
+    ...
+    ...    def render(self, ax):
+    ...        lim = len(self.data)
+    ...        locs = np.arange(lim) + 0.5
+    ...        orientation = "vertical" if self.is_body else "horizontal"
+    ...        ax.stem(locs, self.data, basefmt="none")
+    ...        ax.set_axis_off()
+    ...        if self.side == "left":
+    ...           ax.invert_xaxis()
+    ...
 
-This section defines the :meth:`render_ax()` method, which takes in two parameters, ax and data.
-The method starts by determining the orientation of the plot (horizontal or vertical) based on the value of :code:`self.is_flank`,
-and then sets the :code:`x` or :code:`y` limits of the plot based on the length of the data.
+We make the orientation changed when the `Lollipop` is rendered on different
+side of heatmap.
+
+Now we try add it to the left again.
+
+.. plot::
+    :context: close-figs
+
+    >>> h = hg.Heatmap(data)
+    >>> h.add_left(Lollipop(lol_data))
+    >>> h.render()
 
 
+Make a legend
+-------------
 
-.. code-block:: python
-    :emphasize-lines: 17, 18, 19, 20
+If your `RenderPlan` need to have legends, you need to implement the
+:meth:`get_legends <heatgraphy.plotter.base.RenderPlan.get_legends>`.
 
-    >>> class Lollipop(RenderPlan):
-    >>>     def __init__(self, data):
-    >>>         self.data = data
-    >>>
-    >>>     def get_legends(self):
-    >>>         return CatLegend(label=['Lollipop'], handle="circle")
-    >>>
-    >>>     def render_ax(self, ax, data):
-    >>>         orient = "horizontal" if self.is_flank else "vertical"
-    >>>         lim = len(data)
-    >>>         if self.is_flank:
-    >>>         ax.set_ylim(0, lim)
-    >>>         ax.set_xlim(0, None)
-    >>>         else:
-    >>>             ax.set_xlim(0, lim)
-    >>>             ax.set_ylim(0, None)
-    >>>         if self.side == "left":
-    >>>             ax.invert_xaxis()
-    >>>         for spine in ax.spines.values():
-    >>>             spine.set_visible(False)
+.. note::
 
-Then we inverts the x-axis if the side of plot is "left", and sets all of the plot spines to be invisible.
-
+    We also develop another package called :mod:`legendkit` to help
+    you handle legend easily. Consider using it.
 
 
 .. plot::
     :context: close-figs
 
+    >>> from legendkit import CatLegend
+
     >>> class Lollipop(RenderPlan):
-    >>>     def __init__(self, data):
-    >>>         self.data = data
-    >>>
-    >>>     def get_legends(self):
-    >>>         return CatLegend(label=['Lollipop'], handle="circle")
-    >>>
-    >>>     def render_ax(self, ax, data):
-    >>>         orient = "horizontal" if self.is_flank else "vertical"
-    >>>         lim = len(data)
-    >>>         if self.is_flank:
-    >>>             ax.set_ylim(0, lim)
-    >>>             ax.set_xlim(0, None)
-    >>>         else:
-    >>>             ax.set_xlim(0, lim)
-    >>>             ax.set_ylim(0, None)
-    >>>         if self.side == "left":
-    >>>             ax.invert_xaxis()
-    >>>         for spine in ax.spines.values():
-    >>>             spine.set_visible(False)
-    >>>          # Plot on every .5 start from 0
-    >>>         locs = np.arange(0, lim) + 0.5
-    >>>         ax.set_yticks([])
-    >>>         ax.set_xticks([])
-    >>>         ax.stem(locs, data, orientation=orient, basefmt=" ")
+    ...
+    ...    def __init__(self, data):
+    ...        self.data = data
+    ...
+    ...    def render(self, ax):
+    ...        lim = len(self.data)
+    ...        locs = np.arange(lim) + 0.5
+    ...        orientation = "vertical" if self.is_body else "horizontal"
+    ...        ax.stem(locs, self.data, basefmt="none")
+    ...        ax.set_axis_off()
+    ...        if self.side == "left":
+    ...            ax.invert_xaxis()
+    ...
+    ...    def get_legends(self):
+    ...        return CatLegend(colors=["b"], labels=["Lollipop"], handle="circle")
+    ...
 
-This section sets the y-ticks and x-ticks to be empty,
-and plots the data as stems with an orientation determined by the value of orient and with no formatting for the base.
-The stems are spaced at intervals of 0.5 starting from 0.
+    >>> h = hg.Heatmap(data)
+    >>> h.add_left(Lollipop(lol_data))
+    >>> h.add_legends()
+    >>> h.render()
 
+Create Splittable `RenderPlan`
+------------------------------
 
+Here we are going to dive into more advance topic,
+if you try to split heatmap, it didn't work.
 
-Add custom visualization to heatmap
------------------------------------
+When the render plan gets render, the `ax` parameter is not
+guarantee to be single `Axes`, there will be multiple `Axes` when
+it gets split.
+
+The simply way to refactor our `Lollipop` is to implement a special
+method `render_ax`.
 
 .. plot::
     :context: close-figs
 
-    >>> d1 = np.random.rand(10, 12)
-    >>> value = np.random.uniform(size=10)
-    >>> bar1 = Lollipop(value)
-    >>> h1 = hg.Heatmap(d1)
-    >>> h1.add_right(bar1, name = 'bar')
-    >>> h1.render()
+    >>> class Lollipop(RenderPlan):
+    ...
+    ...    def __init__(self, data):
+    ...        self.data = data
+    ...
+    ...    def render_ax(self, ax, data):
+    ...        lim = len(data)
+    ...        locs = np.arange(lim) + 0.5
+    ...        orientation = "vertical" if self.is_body else "horizontal"
+    ...        ax.stem(locs, data, basefmt="none")
+    ...        ax.set_axis_off()
+    ...        if self.side == "left":
+    ...            ax.invert_xaxis()
+    ...
+    ...        ax.set_xlim(0, locs[-1]+.5)
+    ...        ax.set_ylim(0, 12)
 
-In conclusion, customizing your heatmap visualizations has never been easier.
-With the ability to create a custom class that extends the :class:`RenderPlan <heatgraphy.plotter.base.RenderPlan>` base class,
-you can bring your data to life with any visualization style you desire.
 
+.. plot::
+    :context: close-figs
 
-The key to unlocking this power lies in writing the :meth:`render_ax()` method, where you can specify how your data should be plotted and represented.
-Whether you want to add a Lollipop plot like in our example or create something completely new, the possibilities are endless.
+    >>> h = hg.Heatmap(data)
+    >>> h.vsplit(cut=[5])
+    >>> h.add_top(Lollipop(np.arange(10) + 2))
+    >>> h.render()
 
+Here, the `render_ax` define the behavior on how to render on each `Axes` with each chunk of `data`.
+Heatgraphy will automatically handle the split and data for you. If you want to handle the splitting
+process, you can overwrite the `get_render_data` method.
+
+Noticed that the lim of the axis also gets adjusted, it's not applicable to all situation but
+you get the idea.
 
 
 

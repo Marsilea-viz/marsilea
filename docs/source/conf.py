@@ -14,17 +14,17 @@
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
 from sphinx_gallery.sorting import FileNameSortKey
+from sphinx_gallery.scrapers import matplotlib_scraper
 import heatgraphy as hg
 
 # -- Project information -----------------------------------------------------
 
 project = 'heatgraphy'
-copyright = '2022, Mr-Milk'
+copyright = '2023, Mr-Milk'
 author = 'Mr-Milk'
 
 # The full version, including alpha/beta/rc tags
 release = hg.__version__
-
 
 # -- General configuration ---------------------------------------------------
 
@@ -55,9 +55,12 @@ plot_html_show_source_link = False
 plot_html_show_formats = False
 plot_formats = [('png', 90)]
 plot_rcparams = {'savefig.bbox': 'tight'}
-plot_pre_code = "import numpy as np; import pandas as pd;" \
+plot_pre_code = "import numpy as np; " \
+                "import pandas as pd;" \
+                "import matplotlib as mpl;" \
                 "from matplotlib import pyplot as plt;" \
-                "np.random.seed(0);"
+                "np.random.seed(0); " \
+                "mpl.rcParams['legend.frameon'] = False;"
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -67,6 +70,12 @@ html_theme = 'pydata_sphinx_theme'
 html_static_path = ['_static']
 html_css_files = ['css/custom.css']
 html_logo = "../../img/logo.png"
+
+
+def matplotlib_tight_scraper(*args, **kwargs):
+    return matplotlib_scraper(*args, format="png", dpi=300,
+                              bbox_inches="tight", **kwargs)
+
 
 intersphinx_mapping = {
     'scipy': ('https://docs.scipy.org/doc/scipy/', None),
@@ -80,16 +89,18 @@ copybutton_prompt_text = r">>> |\.\.\. |\$ |In \[\d*\]: | {2,5}\.\.\.: | {5," \
 copybutton_prompt_is_regexp = True
 
 sphinx_gallery_conf = {
-     'examples_dirs': 'examples',   # path to example scripts
-     'gallery_dirs': 'auto_examples',  # path to generated output
-     'within_subsection_order': FileNameSortKey,  # Order by file name
+    'examples_dirs': '../../examples',  # path to example scripts
+    'gallery_dirs': 'auto_examples',  # path to generated output
+    'within_subsection_order': FileNameSortKey,  # Order by file name
+    'image_srcset': ["2x"],
+    'image_scrapers': (matplotlib_tight_scraper,),
 }
 
 
 def autodoc_skip_member(app, what, name, obj, skip, options):
     methods = ['get_legends', 'get_canvas_size',
-               'render_ax', 'render_axes',
-               'get_render_data']
+               'render_ax', 'render_axes', 'render',
+               'get_render_data', 'get_text_params']
     attrs = ['render_main', 'canvas_size_unknown', 'no_split',
              'data', 'deform', 'deform_func']
 

@@ -1,5 +1,5 @@
-How to customize your heatmap
-==============================
+How to customize your visualization?
+====================================
 
 Retrieve main axes
 ------------------

@@ -1,4 +1,4 @@
-Concatenate multiple heatmaps
+Concatenate multiple x-layout
 =============================
 
 You may want to visualize two or more heatmaps side by side. Although, this can be done simply

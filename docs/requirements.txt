@@ -5,3 +5,4 @@ sphinx-gallery
 scikit-learn
 pydata-sphinx-theme
 numpydoc
+scikit-learn
