@@ -1,4 +1,4 @@
-"""Create grid layout visualization"""
+"""Create x-layout visualization"""
 
 __version__ = "0.2.0"
 

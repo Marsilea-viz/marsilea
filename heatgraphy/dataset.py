@@ -4,7 +4,7 @@ import pandas as pd
 from platformdirs import user_cache_path
 
 NAME = "Heatgraphy"
-BASE_URL = "https://raw.githubusercontent.com/Mr-Milk/heatgraphy-data/main"
+BASE_URL = "https://raw.githubusercontent.com/heatgraphy/heatgraphy-data/main"
 
 
 def load_data(name, cache=True):
@@ -41,18 +41,20 @@ def _cache_remote(files, cache=True):
     data_dir = user_cache_path(appname=NAME)
     data_dir.mkdir(exist_ok=True, parents=True)
 
-    for fname in files:
+    download_files = [f.replace("/", "_") for f in files]
+
+    for fname, dfname in zip(files, download_files):
         url = f"{BASE_URL}/{fname}"
         # Will not download if cache and file exist
-        dest = data_dir / fname
-
+        dest = data_dir / dfname
         # Not download when cache and exist
         if not (cache and dest.exists()):
             urlretrieve(url, dest)
+
     if len(files) == 1:
-        return data_dir / files[0]
+        return data_dir / download_files[0]
     else:
-        return [data_dir / f for f in files]
+        return [data_dir / f for f in download_files]
 
 
 def _load_imdb(cache=True):
@@ -61,11 +63,14 @@ def _load_imdb(cache=True):
 
 
 def _load_pbmc3k(cache=True):
-    exp, pct_cells = _cache_remote(['pbmc3k/exp.csv', 'pbmc3k/pct_cells.csv'],
-                                   cache=cache)
+    exp, pct_cells, count = _cache_remote(['pbmc3k/exp.csv',
+                                           'pbmc3k/pct_cells.csv',
+                                           'pbmc3k/count.csv'],
+                                          cache=cache)
     return {
         'exp': pd.read_csv(exp, index_col=0),
-        'pct_cells': pd.read_csv(pct_cells, index_col=0)
+        'pct_cells': pd.read_csv(pct_cells, index_col=0),
+        'count': pd.read_csv(count, index_col=0)
     }
 
 
@@ -76,7 +81,7 @@ def _load_oncoprint(cache=True):
         cache=cache
     )
     return {
-        'cna': pd.read_csv(cna),
+        'cna': pd.read_csv(cna, index_col=0),
         'mrna_exp': pd.read_csv(mrna, index_col=0),
         'methyl_exp': pd.read_csv(methyl, index_col=0),
         'clinical': pd.read_csv(clinical, index_col=0)

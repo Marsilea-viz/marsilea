@@ -253,7 +253,9 @@ class Upset(WhiteBoard):
         :context: close-figs
 
         >>> from heatgraphy.upset import UpsetData, Upset
-        >>> data = UpsetData.from_sets([[1,2,3,4], [3,4,5,6]])
+        >>> data = UpsetData.from_sets([[1, 2, 3, 4],
+        >>>                             [3, 4, 5, 6],
+        >>>                             [1, 6, 10, 11]])
         >>> Upset(data).render()
     
 
@@ -568,17 +570,3 @@ class Upset(WhiteBoard):
                 if bar_style is not None:
                     rect.set(**bar_style)
 
-        # self._freeze_legend()
-        #
-        # if figure is None:
-        #     self.figure = plt.figure()
-        # else:
-        #     self.figure = figure
-        #
-        # if not self.layout.is_freeze:
-        #     self.layout.freeze(figure=self.figure, aspect=aspect, scale=scale)
-        # main_axes = self.get_main_ax()
-        # self._render_matrix(main_axes)
-        # self._render_plan()
-
-        # self._render_legend()

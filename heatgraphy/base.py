@@ -298,7 +298,7 @@ class WhiteBoard(LegendMaker):
         self.layout.add_ax(side, name, size, pad=pad)
 
     def add_title(self, top=None, bottom=None, left=None, right=None,
-                  pad=.1, **props):
+                  pad=0, **props):
         if left is not None:
             self.add_plot("left", Title(left, **props), pad=pad)
         if right is not None:
@@ -428,10 +428,10 @@ class CompositeBoard(LegendMaker):
         return self.append("bottom", other)
 
     def append(self, side, other):
-        board = self.new_board(other)
-        if isinstance(board, Number):
-            self.layout.append(side, board)
+        if isinstance(other, Number):
+            self.layout.append(side, other)
         else:
+            board = self.new_board(other)
             self._board_list.append(board)
             self.layout.append(side, board.layout)
         return self
@@ -440,9 +440,10 @@ class CompositeBoard(LegendMaker):
         if figure is None:
             figure = plt.figure()
         self._freeze_legend(figure)
+        for board in self._board_list:
+            board._freeze_flex_plots(figure)
         self.layout.freeze(figure=figure, scale=scale)
-        self.figure = self.layout.figure
-
+        self.figure = figure
         for board in self._board_list:
             board.render(figure=self.figure)
 

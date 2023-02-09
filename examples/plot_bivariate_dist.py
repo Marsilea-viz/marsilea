@@ -10,6 +10,8 @@ from scipy.stats import gaussian_kde
 
 import heatgraphy as hg
 
+
+np.random.seed(0)
 rs = np.random.RandomState(50)
 x, y = rs.normal(size=(2, 50))
 xmin, ymin, xmax, ymax = x.min(), y.min(), x.max(), y.max()

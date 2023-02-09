@@ -441,6 +441,7 @@ class SizedMesh(MeshBase):
         if size_norm is None:
             size_norm = Normalize()
             size_norm.autoscale(size)
+        self.size_norm = size_norm
         self.orig_size = size
         self.size_matrix = size_norm(size) * (sizes[1] - sizes[0]) + sizes[0]
         self.color = None

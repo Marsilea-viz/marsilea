@@ -168,22 +168,43 @@ class GridCell(BaseCell):
 
 
 class CrossLayout:
-    """
-    The size is always in the unit of inches
-    """
+    """The X-layout engine
 
-    # The left bottom anchor point of the layout
-    anchor = None
-    figsize = None
-    figure = None
+    This class implements the x-layout. The axes are added
+    incrementally to the main axes.
+
+    - The size is always in the unit of inches
+
+
+    Parameters
+    ----------
+    name : str
+        The name of the main canvas
+    width : float
+        The width of the main canvas
+    height : float
+        The height of the main canvas
+    init_main : bool
+        Add the main canvas as axes
+    projection : str
+        The projection of the main canvas
+
+    """
 
     def __init__(self, name, width, height, init_main=True, projection=None):
+
         self._legend_ax_name = None
         self.main_cell = MainCell(name, width, height, is_canvas=init_main,
                                   projection=projection)
         self._side_cells = {'top': [], 'bottom': [], 'left': [], 'right': []}
         self.cells: Dict[str, BaseCell] = {name: self.main_cell}
         self._pads = {}
+
+        self.is_composed = False
+        self.figure = None
+        self.figsize = None
+        # The left bottom anchor point of the layout
+        self.anchor = None
 
     def _get_cell(self, name):
         cell = self.cells.get(name)
@@ -192,6 +213,20 @@ class CrossLayout:
         return cell
 
     def add_ax(self, side, name, size, pad=0., projection=None):
+        """Add an axes to the layout
+
+        Parameters
+        ----------
+        side
+        name
+        size
+        pad
+        projection
+
+        Returns
+        -------
+
+        """
         _check_side(side)
         if self.cells.get(name) is not None:
             raise DuplicateName(name)
@@ -206,6 +241,17 @@ class CrossLayout:
         self.cells[name] = new_cell
 
     def add_pad(self, side, size):
+        """Add padding between axes
+
+        Parameters
+        ----------
+        side
+        size
+
+        Returns
+        -------
+
+        """
         _check_side(side)
         new_pad = GridCell(name=uuid4().hex, side=side, size=size,
                            is_canvas=False, attach=self.main_cell)
@@ -229,6 +275,19 @@ class CrossLayout:
         return self.main_cell.ax
 
     def add_legend_ax(self, side, size, pad=0.):
+        """Add a legend axes
+
+        Parameters
+        ----------
+        side
+        size
+        pad
+
+        Returns
+        -------
+
+        """
+        # TODO: Ensure the legend axes always add at last
         self._legend_ax_name = "-".join(
             [self.main_cell.name, "legend", uuid4().hex])
         self.add_ax(side, self._legend_ax_name, size, pad=pad)
@@ -350,9 +409,8 @@ class CrossLayout:
         self._get_cell(name).size = size
 
     def initiate_axes(self, figure, _debug=False):
-        figsize = figure.get_size_inches()
+        figsize = self.figsize
         clear_axes = figure == self.figure
-        # ic(clear_axes)
         # add axes
         for c in list(self.cells.values()):
             # Previous axes will be removed
@@ -378,9 +436,10 @@ class CrossLayout:
                     ax = figure.add_axes(ax_rect, projection=c.projection)
                     c.set_ax(ax)
                     if _debug:
-                        _debug_ax(ax, side=c.side, text=c.name)
+                        _debug_ax(ax, side=c.side,
+                                  text=f"{c.name}{c.get_cell_size()}")
 
-    def freeze(self, figure=None, scale=1, _debug=False):
+    def freeze(self, figure=None, scale=1, _debug=False, ):
         """Freeze the current layout and draw on figure
 
         Freeze is safe to be called multiple times, it will update
@@ -388,18 +447,27 @@ class CrossLayout:
 
         Parameters
         ----------
-        figure
-        scale
-        _debug
+        figure : :class:`matplotlib.figure.Figure`
+            A matplotlib figure instance
+        scale : float
+            To scale the size of figure
+        _debug : bool
+            Not a public parameter, for internal debug use,
+            the information display on the canvas
+            is not guarantee to be consistent.
 
         Returns
         -------
 
         """
+        # If not composed, update the figsize
+        if not self.is_composed:
+            self.figsize = np.array(self.get_figure_size()) * scale
         if figure is None:
-            if self.figsize is None:
-                self.figsize = np.array(self.get_figure_size()) * scale
             figure = plt.figure(figsize=self.figsize)
+        else:
+            if not self.is_composed:
+                figure.set_size_inches(*self.figsize)
 
         main_anchor = self.get_main_anchor()
         self.set_layout(main_anchor)
@@ -483,7 +551,7 @@ class CompositeCrossLayout:
     figure = None
 
     def __init__(self, main_layout) -> None:
-        self.main_layout = main_layout
+        self.main_layout = self._reset_layout(main_layout)
         self.main_cell_height = self.main_layout.get_main_height()
         self.main_cell_width = self.main_layout.get_main_width()
         self._side_layouts: Dict[str, List[CrossLayout]] = \
@@ -494,6 +562,7 @@ class CompositeCrossLayout:
     @staticmethod
     def _reset_layout(layout):
         layout.set_anchor((0, 0))
+        layout.is_composed = True
         return layout
 
     def append(self, side, other):
@@ -510,6 +579,7 @@ class CompositeCrossLayout:
                                 width=width,
                                 height=height,
                                 init_main=False)
+            other.is_composed = True
             self._side_layouts[side].append(other)
         elif isinstance(other, CrossLayout):
             adjust = "height" if side in ["left", "right"] else "width"
@@ -599,6 +669,7 @@ class CompositeCrossLayout:
 
     def freeze(self, figure=None, scale=1, _debug=False):
         figsize = np.asarray(self.get_figure_size()) * scale
+
         if figure is None:
             figure = plt.figure(figsize=figsize)
         else:
@@ -610,8 +681,8 @@ class CompositeCrossLayout:
 
         # compute the anchor point for the main layout
         mx, my = self.get_main_anchor()
-        # ic(mx, my)
-        self.set_anchor((mx, my))
+        self.main_layout.set_anchor((mx, my))
+        self.main_layout.set_figsize(figsize)
 
         self.main_layout.freeze(figure, _debug=_debug)
 
@@ -657,27 +728,18 @@ class CompositeCrossLayout:
             xmin, ymin, xmax, ymax = self._edge_main_point()
             legend_w, legend_h = xmax - xmin, ymax - ymin
             fig_w, fig_h = figsize
-            bbox_w, bbox_h = fig_w, fig_h
 
             side = self._legend_axes.side
             size = self._legend_axes.size
-            pad = self._legend_axes.pad
-            if side in ["left", "right"]:
-                bbox_w -= (size + pad)
-            else:
-                bbox_h -= (size + pad)
-
-            # ic(fig_w, fig_h)
-            # ic(bbox_w, bbox_h)
 
             if side == 'right':
-                cx, cy = bbox_w + pad, ymin
+                cx, cy = fig_w - size, ymin
                 cw, ch = size, legend_h
             elif side == 'left':
                 cx, cy = 0, ymin
                 cw, ch = size, legend_h
             elif side == "top":
-                cx, cy = xmin, bbox_h + pad
+                cx, cy = xmin, fig_h - size
                 cw, ch = legend_w, size
             elif side == "bottom":
                 cx, cy = xmin, 0
