@@ -451,6 +451,7 @@ class SizedMesh(MeshBase):
         self.legend = legend
         self.color_legend_kws = {} if color_legend_kws is None else color_legend_kws
         self.size_legend_kws = {} if size_legend_kws is None else size_legend_kws
+        self._has_colormesh = False
         # process color
         # By default, the circles colors are uniform
         if color is None:
@@ -474,6 +475,7 @@ class SizedMesh(MeshBase):
                     self._process_cmap(color, vmin, vmax, cmap,
                                        norm, center)
                     self.color2d = color
+                self._has_colormesh = True
         self.alpha = alpha
         self.frameon = frameon
         self.edgecolor = edgecolor
@@ -506,7 +508,7 @@ class SizedMesh(MeshBase):
                                  **options
                                  )
 
-        if (self.color2d is not None) & (self.color != "none"):
+        if (self._has_colormesh) & (self.color != "none"):
             if self.palette is not None:
                 labels, colors = [], []
                 for label, c in self.palette.items():
