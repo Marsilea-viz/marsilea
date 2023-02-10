@@ -1,10 +1,7 @@
+import heatgraphy as hg
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-from matplotlib.image import imread
 import streamlit as st
-from PIL.Image import Image
-
-import heatgraphy as hg
 from components.example_download import ExampleDownloader
 from components.initialize import enable_nested_columns, inject_css
 from components.layer_data import HeatmapData, GlobalConfig, \
@@ -13,6 +10,7 @@ from components.saver import ChartSaver
 from components.side_plots import side_plots_adder, split_plot
 from components.state import init_state
 from heatgraphy.plotter import ColorMesh, SizedMesh, MarkerMesh
+from matplotlib.image import imread
 
 # This make the nested columns available
 # import components.nested_columns
@@ -100,7 +98,6 @@ def render_plot(global_options,
         srow = st.session_state["split_h"]
         scol = st.session_state["split_v"]
         if srow is not None:
-            print(srow)
             h.hsplit(cut=srow.cut, labels=srow.labels, order=srow.order)
         if scol is not None:
             h.vsplit(cut=scol.cut, labels=scol.labels, order=scol.order)
@@ -122,21 +119,42 @@ def render_plot(global_options,
 
 st.markdown("Try other tools: - [Upsetplot](/upset)")
 
-st.header("Powerful heatmap creator")
+st.header("x-layout visualization creator")
+
+st.warning("Beta stage: Only heatmap variants are available",
+           icon="⚠️")
 ExampleDownloader()
 
 st.subheader("Data Input")
-st.info("Select one or more layer to draw. "
-        "Input data need to have same shape.", icon="🧐")
+st.info("Select one or more layer to draw.", icon="😉")
+st.markdown("Data Requirements: \n" \
+            "- Format: .txt/.csv/.xlsx\n" \
+            "- Data must be number, " \
+            "if label is presented, add it with side plot.\n"\
+            " - Data must have same shape."
+            )
 heat, sheat, mar = st.tabs(["Heatmap", "Sized Heatmap", "Mark"])
 
 with heat:
+    st.markdown("Heatmap reveal variation through color strength.")
+    st.image("img/heatmap.png", width=100)
     h_data = HeatmapData()
 
 with sheat:
+    st.markdown("Sized Heatmap encodes size as extra information in heatmap")
+    c1, c2 = st.columns(2)
+    with c1:
+        st.markdown("Size Only")
+        st.image("img/sized_onlymap.png", width=100)
+    with c2:
+        st.markdown("Color + Size")
+        st.image("img/sized_heatmap.png", width=100)
+
     sh_data = SizedHeatmapData()
 
 with mar:
+    st.markdown("Use a mark to mark the cell on heatmap")
+    st.image("img/mark_map.png", width=100)
     m_data = MarkerData()
 
 if st.session_state["data_ready"]:
@@ -145,9 +163,13 @@ if st.session_state["data_ready"]:
         tabs = st.tabs(["Configuration", "Heatmap Partition", "Export"])
         conf, spliter, saver = tabs
 
+    button_name = "Apply changes & Render"
+    st.info(f"Remember to click **{button_name}** after any changes.",
+            icon="😝")
     _, render_button, _ = st.columns([2, 2, 2])
     with render_button:
-        render_request = st.button("Apply changes & Render",
+
+        render_request = st.button(button_name,
                                    type="primary",
                                    help="Apply changes to your heatmap.")
 
