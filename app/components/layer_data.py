@@ -253,7 +253,7 @@ class MarkerData:
         )
 
 
-@st.experimental_memo
+@st.cache_data
 def get_font_list():
     return FontFamily().font_list
 

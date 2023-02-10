@@ -6,7 +6,7 @@ from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.cm import get_cmap
 
 
-@st.experimental_memo
+@st.cache_data
 def get_colormap_names():
     cmap_mapper = {}
     for i in mpl.colormaps:
@@ -49,7 +49,7 @@ class ColormapSelector:
                                   horizontal=True,
                                   key=f'{key}-input-cmap'
                                   )
-            self.reverse = st.checkbox("Reverse colormap", 
+            self.reverse = st.checkbox("Reverse colormap",
                                        key=f'{key}-rev-cmap')
 
         if input_cmap == "Preset":

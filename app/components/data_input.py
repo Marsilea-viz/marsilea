@@ -26,7 +26,7 @@ class InputBase:
         self.sep = sep_options[user_sep]
 
 
-@st.experimental_singleton
+@st.cache_resource
 def parse_file(file, export="ndarray", header=False):
     header = None if not header else "infer"
     suffix = file.name.split(".")[-1]

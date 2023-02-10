@@ -3,17 +3,6 @@ from matplotlib.image import imread
 
 from components.example_download import ExampleDownloader
 
-st.set_page_config(
-    page_title="Usage",
-    layout="centered",
-    page_icon=imread("img/favicon.png"),
-    initial_sidebar_state="collapsed",
-    menu_items={
-        'Report a bug': 'https://github.com/heatgraphy/heatgraphy/issues/new/choose',
-        'About': 'A web interface for Heatgraphy'
-    }
-)
-
 st.header("Manual")
 
 st.markdown("## What's x-layout?")

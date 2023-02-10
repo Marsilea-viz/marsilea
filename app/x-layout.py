@@ -33,7 +33,7 @@ st.set_page_config(
 inject_css()
 
 
-@st.experimental_memo
+@st.cache_data
 def empty_figure():
     return plt.figure()
 

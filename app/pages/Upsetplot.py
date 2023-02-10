@@ -12,21 +12,11 @@ from matplotlib.image import imread
 
 from heatgraphy import UpsetData, Upset
 
-st.set_page_config(
-    page_title="Upset Plot",
-    initial_sidebar_state="collapsed",
-    page_icon=imread("img/favicon.png"),
-    layout="centered",
-    menu_items={
-        'Report a bug': 'https://github.com/heatgraphy/heatgraphy/issues/new/choose',
-        'About': 'A web interface for Heatgraphy'
-    }
-)
 
 inject_css()
 
 
-@st.experimental_memo
+@st.cache_data
 def empty_figure():
     return plt.figure(figsize=(1, 1))
 
@@ -75,7 +65,7 @@ user_input = FileUpload()
 data = user_input.parse_dataframe()
 
 
-@st.experimental_memo(show_spinner=False)
+@st.cache_data(show_spinner=False)
 def process_upset_data(format, data):
     if format == "Sets":
         sets = {}
