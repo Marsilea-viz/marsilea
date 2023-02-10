@@ -50,20 +50,23 @@ class FileUpload(InputBase):
 
     def __init__(self, key=None):
         super().__init__(key=key)
+
         self.user_input = st.file_uploader("Choose a table file",
                                            key=f"table_reader-{self.key}",
                                            accept_multiple_files=False,
                                            label_visibility="collapsed",
                                            type=["txt", "csv", "xlsx"])
+        self.header = st.checkbox("Does your file has header?",
+                                  key=f"select-header-{key}")
 
     def parse(self):
         if self.user_input is not None:
-            return parse_file(self.user_input)
+            return parse_file(self.user_input, header=self.header)
 
     def parse_dataframe(self, header=True):
         if self.user_input is not None:
             return parse_file(self.user_input, export="dataframe",
-                              header=True)
+                              header=header)
 
 
 class PasteText(InputBase):

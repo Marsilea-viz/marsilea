@@ -78,7 +78,7 @@ def inject_css():
     <style>
 
         # .main .block-container {
-        #     min-width: 800px;
+        #     min-width: 1000px;
         #     max-width: 1200px;
         # }
 

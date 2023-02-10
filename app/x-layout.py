@@ -23,7 +23,11 @@ st.set_page_config(
     page_title="Heatgraphy",
     layout="centered",
     page_icon=imread("img/favicon.png"),
-    initial_sidebar_state="collapsed"
+    initial_sidebar_state="collapsed",
+    menu_items={
+        'Report a bug': 'https://github.com/heatgraphy/heatgraphy/issues/new/choose',
+        'About': 'A web interface for Heatgraphy'
+    }
 )
 
 inject_css()
@@ -124,6 +128,8 @@ st.header("x-layout visualization creator")
 st.warning("Beta stage: Only heatmap variants are available",
            icon="⚠️")
 ExampleDownloader()
+
+st.markdown("Before you start you may want to read [Manual](/Manual).")
 
 st.subheader("Data Input")
 st.info("Select one or more layer to draw.", icon="😉")

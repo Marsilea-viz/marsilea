@@ -30,7 +30,7 @@ def get_colormap_images(cmap):
 
 class ColormapSelector:
 
-    def __init__(self, default="coolwarm"):
+    def __init__(self, key, default="coolwarm"):
         cmap_data = get_colormap_names()
         cmap_options = sorted(cmap_data.keys())
         default_index = cmap_options.index(default)
@@ -47,12 +47,15 @@ class ColormapSelector:
                                   label_visibility="hidden",
                                   options=["Preset", "Customize"],
                                   horizontal=True,
+                                  key=f'{key}-input-cmap'
                                   )
-            self.reverse = st.checkbox("Reverse colormap")
+            self.reverse = st.checkbox("Reverse colormap", 
+                                       key=f'{key}-rev-cmap')
 
         if input_cmap == "Preset":
             with select_box:
                 cmap = st.selectbox("Select Preset Colormap",
+                                    key=f'{key}-preset-cmap',
                                     options=cmap_options,
                                     index=default_index,
                                     format_func=lambda v: cmap_data[v],
@@ -69,26 +72,31 @@ class ColormapSelector:
         else:
             with select_box:
                 ncolors = st.selectbox(
-                    label="Colormap Type",
+                    label="Colormap Type", key=f'{key}-select-gradient',
                     options=["One Gradient", "Two Gradient"])
 
             with color_box:
                 if ncolors == "One Gradient":
                     c1, c2 = st.columns(2)
                     with c1:
-                        lower = st.color_picker(label="Lower")
+                        lower = st.color_picker(label="Lower",
+                                                key=f'{key}-lower-cmap-2',)
                     with c2:
-                        upper = st.color_picker(label="Upper")
+                        upper = st.color_picker(label="Upper",
+                                                key=f'{key}-upper-cmap-2',)
                     self.cmap = (LinearSegmentedColormap
                                  .from_list("user_cmap", [lower, upper]))
                 else:
                     c1, c2, c3 = st.columns(3)
                     with c1:
-                        lower = st.color_picker(label="Lower")
+                        lower = st.color_picker(label="Lower",
+                                                key=f'{key}-lower-cmap-3',)
                     with c2:
-                        center = st.color_picker(label="Center")
+                        center = st.color_picker(label="Center",
+                                                 key=f'{key}-center-cmap-3',)
                     with c3:
-                        upper = st.color_picker(label="Upper")
+                        upper = st.color_picker(label="Upper",
+                                                key=f'{key}-upper-cmap-3',)
                     self.cmap = (LinearSegmentedColormap
                                  .from_list("user_cmap",
                                             [lower, center, upper]))

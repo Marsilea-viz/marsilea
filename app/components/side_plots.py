@@ -515,20 +515,18 @@ PLOTTERS = [
     PointAdder,
     StripAdder,
     SwarmAdder,
-
 ]
-
+plot_options = dict(zip([p.name for p in PLOTTERS], PLOTTERS))
 
 def plot_panel(key, side):
     with st.expander(f"Side plot {key + 1}", expanded=True):
         selector, _ = st.columns([1, 1])
         adder = selector.selectbox(f"Plot type",
-                                   options=PLOTTERS,
-                                   format_func=lambda x: x.name,
+                                   options=list(plot_options.keys()),
                                    label_visibility="collapsed",
                                    key=f"{key}-{side}")
-
-        adder(key, side)
+        adder_func = plot_options[adder]
+        adder_func(key, side)
 
 
 def side_plots_adder():
@@ -565,18 +563,20 @@ def spliter(orient="h"):
         order = st.text_input("Order", help="eg. a,b")
         submit = st.form_submit_button("Confirm")
         if submit:
-            cut = [int(c) for c in cut.split(",")]
+            cut = [int(c.strip()) for c in cut.split(",")]
             # labels = [str(label) for label in labels.split(",")]
             labels = labels.parse()
-            if np.unique(labels) > len(labels) * .7:
-                st.error("There are more than 70% of labels are unique.")
-            order = [str(o) for o in order]
+            if labels is not None:
+                if np.unique(labels) > len(labels) * .7:
+                    st.error("There are more than 70% of labels are unique.")
+            order = [str(o.strip()) for o in order.split(",")]
             st.session_state[f"split_{orient}"] = (
                 SplitAction(orient=orient, cut=cut,
                             labels=labels, order=order))
 
 
 def split_plot():
+    st.markdown("Split the heatmap by groups")
     col1, col2 = st.columns(2)
     with col1:
         spliter("h")

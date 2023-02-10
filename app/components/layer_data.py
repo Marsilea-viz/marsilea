@@ -5,11 +5,6 @@ from .data_input import FileUpload
 from .font import FontFamily
 from .transformation import Transformation
 
-INPUT_FORMAT = "Input format: \n" \
-               "- Tab-seperated file (.tsv/.txt)\n" \
-               "- Comma-seperated file (.csv)\n" \
-               "- Excel file (.xlsx/.xls)"
-
 
 def data_ready_action(data, data_key, raw_data_key, transform_key,
                       transform_tab, viewer_tab):
@@ -51,7 +46,8 @@ class HeatmapData:
             ["Input Data", "Transform", "View", "Styles"])
 
         with data_input:
-            st.markdown(INPUT_FORMAT)
+            label = st.text_input("Label", key=f"heatmap-data-name")
+            self.label = label if label != "" else None
             user_input = FileUpload(key="main-data")
         data = user_input.parse()
 
@@ -78,7 +74,7 @@ class HeatmapData:
         with c2:
             grid_linewidth = st.number_input("Grid line", min_value=0.)
 
-        cmap_selector = ColormapSelector(default="coolwarm")
+        cmap_selector = ColormapSelector(key="heatmap", default="coolwarm")
 
         self.cmap = cmap_selector.get_cmap()
         self.annot = annot
@@ -89,6 +85,7 @@ class HeatmapData:
         return dict(cmap=self.cmap, annot=self.annot,
                     linewidth=self.linewidth,
                     annot_kws=dict(fontsize=self.fontsize),
+                    label=self.label,
                     )
 
 
@@ -142,11 +139,18 @@ class SizedHeatmapData:
             "View (Color)",
             "Styles"])
         with data_input:
-            st.markdown(INPUT_FORMAT)
-            st.markdown("**Size Data**")
-            size_input = FileUpload(key="size-data")
-            st.markdown("**Color Data** (optional)")
-            color_input = FileUpload(key="color-data")
+            c1, c2 = st.columns(2)
+            with c1:
+                st.markdown("**Size Data**")
+                size_label = st.text_input("Size Label", key=f"sizemap-size-name")
+                self.size_label = size_label if size_label != "" else None
+                size_input = FileUpload(key="size-data")
+
+            with c2:
+                st.markdown("**Color Data** (optional)")
+                color_label = st.text_input("Color Label", key=f"sizemap-color-name")
+                self.color_label = color_label if color_label != "" else None
+                color_input = FileUpload(key="color-data")
 
         size_data = size_input.parse()
         color_data = color_input.parse()
@@ -166,28 +170,33 @@ class SizedHeatmapData:
     def styles(self):
         c1, c2, c3, c4 = st.columns(4)
         with c1:
-            if st.session_state["color_data"] is not None:
-                cmap_selector = ColormapSelector(default="Greens")
-                self.cmap = cmap_selector.get_cmap()
-            else:
-                self.color = st.color_picker(label="Fill Color",
-                                             value="#BF6766")
-
-        with c2:
-            self.edgecolor = st.color_picker(label="Stroke Color",
-                                             value="#C1C1C1")
-        with c3:
             self.linewidth = st.number_input(label="Stroke size",
                                              min_value=0., value=.5)
 
-        with c4:
+        with c2:
             marker = st.selectbox(label="Shape", options=MARKERS,
                                   index=CIRCLE_INDEX)
+
+        with c3:
+            self.edgecolor = st.color_picker(label="Stroke Color",
+                                             value="#C1C1C1")
+
+        with c4:
+            self.color = st.color_picker(label="Fill Color",
+                                             value="#BF6766")
+
+        if st.session_state["color_data"] is not None:
+            cmap_selector = ColormapSelector(key="sizedheatmap", default="Greens")
+            self.cmap = cmap_selector.get_cmap()
+
 
         self.marker = marker_options[marker]
 
     def get_styles(self):
+
         return dict(
+            size_legend_kws=dict(title=self.size_label),
+            color_legend_kws=dict(title=self.color_label),
             cmap=self.cmap, color=self.color,
             edgecolor=self.edgecolor,
             marker=self.marker,
@@ -205,11 +214,13 @@ class MarkerData:
             ["Input Data", "Transform", "View", "Styles"])
 
         with data_input:
-            st.markdown(INPUT_FORMAT)
             st.markdown("The data must only contains 1 and 0 "
                         "to indicate whether to mark a cell.")
             user_input = FileUpload(key="marker-data")
         data = user_input.parse()
+
+        name = st.text_input("Name", key=f"markmap-data-name")
+        self.name = name if name != "" else None
 
         if data is not None:
             st.session_state["mark_data"] = data
@@ -236,6 +247,7 @@ class MarkerData:
 
     def get_styles(self):
         return dict(
+            label=self.name,
             color=self.color, marker=self.marker,
             size=self.marker_size,
         )
@@ -255,6 +267,8 @@ class GlobalConfig:
     }
 
     def __init__(self):
+        st.markdown("Adjust the global options here; To adjust plot specifc "
+                    "options like heatmap colors, go to its own style tab.")
         self.add_legends = st.checkbox("Add Legends", value=True)
         self.cluster_data_name = st.selectbox(
             "Use which data for cluster",

@@ -16,6 +16,11 @@ st.set_page_config(
     page_title="Upset Plot",
     initial_sidebar_state="collapsed",
     page_icon=imread("img/favicon.png"),
+    layout="centered",
+    menu_items={
+        'Report a bug': 'https://github.com/heatgraphy/heatgraphy/issues/new/choose',
+        'About': 'A web interface for Heatgraphy'
+    }
 )
 
 inject_css()
@@ -33,6 +38,8 @@ init_state(
 )
 
 st.header("Upset Plot")
+
+st.warning("Under construction", icon="🚧")
 
 st.markdown("[What is upset plot?](https://upset.app/)")
 
