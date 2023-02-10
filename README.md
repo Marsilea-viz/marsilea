@@ -20,9 +20,6 @@ pip install heatgraphy
 
 ### Examples
 
-<img width=200 src="https://heatgraphy.readthedocs.io/en/latest/_images/sphx_glr_plot_stacked_bar_thumb.png">
-
-<img width=200 src="https://heatgraphy.readthedocs.io/en/latest/_images/sphx_glr_plot_pbmc3k_thumb.png">
-
-<img width=200 src="https://heatgraphy.readthedocs.io/en/latest/_images/sphx_glr_plot_oncoprint_thumb.png">
-
+| ![stacked bar](https://heatgraphy.readthedocs.io/en/latest/_images/sphx_glr_plot_stacked_bar_thumb.png) | ![heatmap](https://heatgraphy.readthedocs.io/en/latest/_images/sphx_glr_plot_pbmc3k_thumb.png) | ![oncoprint](https://heatgraphy.readthedocs.io/en/latest/_images/sphx_glr_plot_oncoprint_thumb.png) |
+| :---:         |     :---:      |          :---: |
+| **Stacked Bar** | **Heatmap** | **Oncoprint** |
