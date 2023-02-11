@@ -22,7 +22,7 @@ enable_nested_columns()
 st.set_page_config(
     page_title="Heatgraphy",
     layout="centered",
-    page_icon=imread("img/favicon.png"),
+    page_icon=imread("app/img/favicon.png"),
     initial_sidebar_state="collapsed",
     menu_items={
         'Report a bug': 'https://github.com/heatgraphy/heatgraphy/issues/new/choose',
@@ -143,7 +143,7 @@ heat, sheat, mar = st.tabs(["Heatmap", "Sized Heatmap", "Mark"])
 
 with heat:
     st.markdown("Heatmap reveal variation through color strength.")
-    st.image("img/heatmap.png", width=100)
+    st.image("app/img/heatmap.png", width=100)
     h_data = HeatmapData()
 
 with sheat:
@@ -151,16 +151,16 @@ with sheat:
     c1, c2 = st.columns(2)
     with c1:
         st.markdown("Size Only")
-        st.image("img/sized_onlymap.png", width=100)
+        st.image("app/img/sized_onlymap.png", width=100)
     with c2:
         st.markdown("Color + Size")
-        st.image("img/sized_heatmap.png", width=100)
+        st.image("app/img/sized_heatmap.png", width=100)
 
     sh_data = SizedHeatmapData()
 
 with mar:
     st.markdown("Use a mark to mark the cell on heatmap")
-    st.image("img/mark_map.png", width=100)
+    st.image("app/img/mark_map.png", width=100)
     m_data = MarkerData()
 
 if st.session_state["data_ready"]:

@@ -149,7 +149,7 @@ class LabelAdder(PlotAdder):
 class ColorsAdder(PlotAdder):
     name = "Color Strip"
     plotter = Colors
-    example_image = "img/colors.png"
+    example_image = "app/img/colors.png"
 
 
 class TitleAdder(PlotAdder):
@@ -213,7 +213,7 @@ class DendrogramAdder(PlotAdder):
 
     plot_explain = "Perform hierarchy clustering and draw the dendrogram " \
                    "that represents the clustering result."
-    example_image = "img/dendrogram.svg"
+    example_image = "app/img/dendrogram.svg"
 
     def input_panel(self):
         pass
@@ -267,7 +267,7 @@ class BarAdder(PlotAdder):
     plot_explain = "Bar plot use rectangles to show data, " \
                    "For multiple observations, estimates and errors " \
                    "will be shown as error bar."
-    example_image = "img/bar.png"
+    example_image = "app/img/bar.png"
 
     def extra_options(self):
         c1, c2, c3, c4, c5 = st.columns(5)
@@ -301,7 +301,7 @@ class BoxAdder(PlotAdder):
 
     input_help = STATS_INPUT_HELP
     plot_explain = "Box plot shows the distribution of your data"
-    example_image = "img/box.png"
+    example_image = "app/img/box.png"
 
     def extra_options(self):
         c1, c2, c3 = st.columns(3)
@@ -331,7 +331,7 @@ class BoxenAdder(PlotAdder):
 
     input_help = STATS_INPUT_HELP
     plot_explain = "An enhanced variant of box plot"
-    example_image = "img/boxen.png"
+    example_image = "app/img/boxen.png"
 
     def extra_options(self):
         c1, c2, c3, c4 = st.columns(4)
@@ -371,7 +371,7 @@ class PointAdder(PlotAdder):
 
     input_help = STATS_INPUT_HELP
     plot_explain = "Similar to box plot, but use point."
-    example_image = "img/point.png"
+    example_image = "app/img/point.png"
 
     def extra_options(self):
         c1, c2, c3, c4 = st.columns(4)
@@ -407,7 +407,7 @@ class ViolinAdder(PlotAdder):
     input_help = STATS_INPUT_HELP
     plot_explain = "Violin plot is a combination of boxplot " \
                    "and kernel density estimate."
-    example_image = "img/violin.png"
+    example_image = "app/img/violin.png"
 
     def extra_options(self):
         c1, c2, c3, c4 = st.columns(4)
@@ -448,7 +448,7 @@ class StripAdder(PlotAdder):
 
     input_help = STATS_INPUT_HELP
     plot_explain = "Showing the underlying distribution of your data point"
-    example_image = "img/strip.png"
+    example_image = "app/img/strip.png"
 
     def extra_options(self):
         c1, c2 = st.columns(2)
@@ -467,7 +467,7 @@ class StripAdder(PlotAdder):
 class SwarmAdder(StripAdder):
     name = "Swarm"
     plotter = Swarm
-    example_image = "img/swarm.png"
+    example_image = "app/img/swarm.png"
 
 
 class CountAdder(PlotAdder):
@@ -476,7 +476,7 @@ class CountAdder(PlotAdder):
     color: str
 
     plot_explain = "Show the counts of observations in each categorical."
-    example_image = "img/count.svg"
+    example_image = "app/img/count.svg"
 
     def extra_options(self):
         self.color = st.color_picker("Color", value="#00b796")
@@ -489,7 +489,7 @@ class AnnoLabelsAdder(PlotAdder):
     name = "Annotated specific labels"
     plotter = AnnoLabels
     plot_explain = "Annotate a few rows or columns."
-    example_image = "img/annolabels.png"
+    example_image = "app/img/annolabels.png"
 
     def input_panel(self):
         super().input_panel()

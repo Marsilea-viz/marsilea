@@ -9,7 +9,7 @@ st.markdown("## What's x-layout?")
 
 _, img, _ = st.columns((1, 2, 1))
 with img:
-    st.image("img/x-layout.png", use_column_width=True,
+    st.image("app/img/x-layout.png", use_column_width=True,
              caption="Schematic of x-layout")
 
 st.markdown(
