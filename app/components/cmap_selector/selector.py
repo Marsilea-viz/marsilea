@@ -59,7 +59,7 @@ class ColormapSelector:
                                     options=cmap_options,
                                     index=default_index,
                                     format_func=lambda v: cmap_data[v],
-                                    help="The preset colormap are illuminated"
+                                    help="The preset colormap are illuminated "
                                          "compensated for best visual effect"
                                     )
                 cmap = get_cmap(cmap)

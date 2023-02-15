@@ -19,19 +19,10 @@ from matplotlib.image import imread
 
 enable_nested_columns()
 
-st.set_page_config(
-    page_title="Heatgraphy",
-    layout="centered",
-    page_icon=imread("app/img/favicon.png"),
-    initial_sidebar_state="collapsed",
-    menu_items={
-        'Report a bug': 'https://github.com/heatgraphy/heatgraphy/issues/new/choose',
-        'About': 'A web interface for Heatgraphy'
-    }
-)
-
 inject_css()
 
+IMG_ROOT = "https://raw.githubusercontent.com/" \
+           "Heatgraphy/heatgraphy/main/app/img/"
 
 @st.cache_data
 def empty_figure():
@@ -143,7 +134,7 @@ heat, sheat, mar = st.tabs(["Heatmap", "Sized Heatmap", "Mark"])
 
 with heat:
     st.markdown("Heatmap reveal variation through color strength.")
-    st.image("app/img/heatmap.png", width=100)
+    st.image(f"{IMG_ROOT}/heatmap.png", width=100)
     h_data = HeatmapData()
 
 with sheat:
@@ -151,10 +142,10 @@ with sheat:
     c1, c2 = st.columns(2)
     with c1:
         st.markdown("Size Only")
-        st.image("app/img/sized_onlymap.png", width=100)
+        st.image(f"{IMG_ROOT}/sized_onlymap.png", width=100)
     with c2:
         st.markdown("Color + Size")
-        st.image("app/img/sized_heatmap.png", width=100)
+        st.image(f"{IMG_ROOT}/sized_heatmap.png", width=100)
 
     sh_data = SizedHeatmapData()
 

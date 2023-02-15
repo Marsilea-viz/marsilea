@@ -27,13 +27,14 @@ class InputBase:
 
 
 @st.cache_resource
-def parse_file(file, export="ndarray", header=False):
+def parse_file(file, export="ndarray", header=False, index=False):
     header = None if not header else "infer"
+    index_col = None if not index else 0
     suffix = file.name.split(".")[-1]
     if suffix in ["csv", "txt", "tsv"]:
         reader = pd.read_csv
         sep = "," if suffix == "csv" else "\t"
-        kws = dict(sep=sep, header=header)
+        kws = dict(sep=sep, header=header, index_col=index_col)
     else:
         reader = pd.read_excel
         kws = {}
@@ -48,25 +49,44 @@ def parse_file(file, export="ndarray", header=False):
 
 class FileUpload(InputBase):
 
-    def __init__(self, key=None):
+    def __init__(self, key=None, header=False, index=False):
         super().__init__(key=key)
+        self.header = False
+        self.index = False
 
         self.user_input = st.file_uploader("Choose a table file",
                                            key=f"table_reader-{self.key}",
                                            accept_multiple_files=False,
                                            label_visibility="collapsed",
                                            type=["txt", "csv", "xlsx"])
-        self.header = st.checkbox("Does your file has header?",
-                                  key=f"select-header-{key}")
+
+        if index & header:
+            h1, h2 = st.columns(2)
+            with h1:
+                self.header = self._header_checkbox()
+            with h2:
+                self.index = self._index_checkbox()
+
+        elif header:
+            self.header = self._header_checkbox()
+
+        elif index:
+            self.index = self._index_checkbox()
+
+    def _header_checkbox(self):
+        return st.checkbox("Use header?", key=f"select-header-{self.key}")
+
+    def _index_checkbox(self):
+        return st.checkbox("Use row labels?", key=f"select-index-{self.key}")
 
     def parse(self):
         if self.user_input is not None:
             return parse_file(self.user_input, header=self.header)
 
-    def parse_dataframe(self, header=True):
+    def parse_dataframe(self, header=True, index=False):
         if self.user_input is not None:
             return parse_file(self.user_input, export="dataframe",
-                              header=header)
+                              header=header, )
 
 
 class PasteText(InputBase):
