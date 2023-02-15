@@ -2,11 +2,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from app.components.initialize import enable_nested_columns
-from app.components.state import State
-from app.components.data_input import FileUpload
-from app.components.cmap_selector import ColormapSelector
-from app.components.font import FontFamily
+from components.initialize import enable_nested_columns
+from components.state import State
+from components.data_input import FileUpload
+from components.cmap_selector import ColormapSelector
+from components.font import FontFamily
 
 import streamlit as st
 import matplotlib as mpl

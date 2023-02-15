@@ -1,6 +1,6 @@
 import streamlit as st
-from app.components.data_input import FileUpload
-from app.components.state import State
+from components.data_input import FileUpload
+from components.state import State
 
 s = State(
     datasets_names=[],
