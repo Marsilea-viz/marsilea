@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from functools import partial
 from typing import Any, Callable
 
 import matplotlib.pyplot as plt
@@ -13,7 +14,7 @@ from heatgraphy.plotter import (Bar, Box, Boxen, Colors, Count, Strip, Violin,
                                 Title)
 from heatgraphy.plotter import RenderPlan
 from .data_input import FileUpload
-
+from .state import init_state
 
 IMG_ROOT = "https://raw.githubusercontent.com/" \
            "Heatgraphy/heatgraphy/main/app/img/"
@@ -70,11 +71,14 @@ class PlotAdder:
     def __repr__(self):
         return f"Draw at {self.side} with size {self.size} and {self.pad}"
 
-    def __init__(self, key, side):
+    def __init__(self, key, side, datasets, main_data):
         self.key = key
         self.side = side
         self.plot_key = f"Add side plotter-{key}-{side}"
         self.data = None
+        self.pass_check = False
+        self.datasets = datasets
+        self.main_data = main_data
 
         if self.plot_explain is not None:
             st.markdown(self.plot_explain)
@@ -82,56 +86,70 @@ class PlotAdder:
         if self.example_image is not None:
             st.image(f"{IMG_ROOT}/{self.example_image}", width=150)
 
-        with self.form():
+        if not self.no_data:
             self.input_panel()
-            self.base_elements()
+        self.base_elements()
 
-            with st.expander("More Options"):
-                self.extra_options()
-            add = st.form_submit_button(label="Add plot")
+        # with st.expander("More Options"):
+        self.extra_options()
 
-        if add:
-            # rerender figure
-            # TODO: Check the data input and tips prompt
-            if not self.no_data:
-                self.data = self.get_data()
-                main_data = st.session_state["main_data"]
-                if self.side in ["left", "right"]:
-                    match_num = main_data.shape[0]
-                else:
-                    match_num = main_data.shape[1]
-                if self.data.ndim == 1:
-                    if len(self.data) > match_num:
-                        st.error("Your input data is more than required.")
-                    if len(self.data) < match_num:
-                        st.error("Your input data is less than required.")
-            self.write_action()
-
-    def get_data(self):
-        return self.user_input.parse()
+        # if add:
+        #     # rerender figure
+        #     # TODO: Check the data input and tips prompt
+        #     if not self.no_data:
+        #         self.data = self.get_data()
+        #         main_data = st.session_state["main_data"]
+        #         if self.side in ["left", "right"]:
+        #             match_num = main_data.shape[0]
+        #         else:
+        #             match_num = main_data.shape[1]
+        #         if self.data.ndim == 1:
+        #             if len(self.data) > match_num:
+        #                 st.error("Your input data is more than required.")
+        #             if len(self.data) < match_num:
+        #                 st.error("Your input data is less than required.")
+        #     self.write_action()
 
     def form(self):
         return st.form(self.plot_key)
 
     def base_elements(self):
         st.markdown("**Plot Options**")
-        c1, c2, _ = st.columns([1, 1, 3])
+        c1, c2, _ = st.columns([1, 1, 1])
         self.size = c1.number_input("Size", min_value=0.1,
+                                    key=f"{self.plot_key}_size",
                                     value=self.init_size,
                                     help="Adjust the size of this plot")
         self.pad = c2.number_input("Pad", min_value=0.,
+                                   key=f"{self.plot_key}_pad",
                                    value=self.init_pad,
                                    help="Adjust the space between this plot"
                                         " and the adjacent plot.")
 
     def input_panel(self):
-        st.markdown("**Input data**")
-        if self.input_help is not None:
-            st.markdown(self.input_help)
-        self.user_input = FileUpload(key=self.plot_key)
+        used_dataset = st.selectbox("Select Dataset",
+                                    key=f"{self.plot_key}_datasets",
+                                    options=[""] + self.datasets)
+        if used_dataset != "":
+            data = st.session_state['datasets'][used_dataset]
+            main_shape = self.main_data.shape
+            match_to = main_shape[0] if self.side in ["left", "right"] else \
+                main_shape[1]
+            axis = "row" if self.side in ["left", "right"] else "column"
+            # TODO: Check this logic
+            if data.shape[1] == 1:
+                if data.size != match_to:
+                    st.error(f"Selected dataset with size ({data.size}) "
+                             f"must match to the number of {axis} of "
+                             f"cluster data ({match_to})")
+            else:
+                if data.shape[1] != match_to:
+                    st.error(f"The column of selected dataset {data.shape[1]} "
+                             f"does not match to the number of {axis} of "
+                             f"cluster data ({match_to})")
 
     def extra_options(self):
-        st.markdown("No more options.")
+        pass
 
     def get_options(self):
         return {}
@@ -142,7 +160,7 @@ class PlotAdder:
                                   data=self.data, size=self.size,
                                   pad=self.pad, plotter=self.plotter,
                                   kwargs=self.get_options())
-            st.session_state[f"render_plan"][self.side][self.plot_key] = action
+            return action
 
 
 class LabelAdder(PlotAdder):
@@ -223,14 +241,22 @@ class DendrogramAdder(PlotAdder):
         pass
 
     def extra_options(self):
-        self.method = st.selectbox("Method", options=self.methods)
-        self.metric = st.selectbox("Metric", options=self.metrics)
-        self.add_divider = st.checkbox("Add divide line")
-        self.add_base = st.checkbox("Add base dendrogram", value=True)
-        self.add_meta = st.checkbox("Add meta dendrogram", value=True)
-        self.meta_color = st.color_picker("Color for meta dendrogram")
-        self.colors = st.color_picker("Dendrogram base color")
-        self.linewidth = st.number_input("Line Width", min_value=0., value=.5)
+        self.method = st.selectbox("Method", options=self.methods,
+                                   key=f"{self.plot_key}_dendrogram_method", )
+        self.metric = st.selectbox("Metric", options=self.metrics,
+                                   key=f"{self.plot_key}_dendrogram_metric", )
+        self.add_divider = st.checkbox("Add divide line",
+                                       key=f"{self.plot_key}_add_divider", )
+        self.add_base = st.checkbox("Add base dendrogram", value=True,
+                                    key=f"{self.plot_key}_add_base", )
+        self.add_meta = st.checkbox("Add meta dendrogram", value=True,
+                                    key=f"{self.plot_key}_add_meta", )
+        self.meta_color = st.color_picker("Color for meta dendrogram",
+                                          key=f"{self.plot_key}_meta_color", )
+        self.colors = st.color_picker("Dendrogram base color",
+                                      key=f"{self.plot_key}_dendrogram_colors")
+        self.linewidth = st.number_input("Line Width", min_value=0., value=.5,
+                                         key=f"{self.plot_key}_lw", )
 
     def get_options(self):
         if self.method == "ward":
@@ -522,27 +548,50 @@ PLOTTERS = [
 ]
 plot_options = dict(zip([p.name for p in PLOTTERS], PLOTTERS))
 
-def plot_panel(key, side):
-    with st.expander(f"Side plot {key + 1}", expanded=True):
+
+def plot_panel(key, side, datasets, main_data):
+    with st.expander(f"{side.capitalize()} plot {key + 1}", expanded=False):
         selector, _ = st.columns([1, 1])
         adder = selector.selectbox(f"Plot type",
                                    options=list(plot_options.keys()),
                                    label_visibility="collapsed",
                                    key=f"{key}-{side}")
         adder_func = plot_options[adder]
-        adder_func(key, side)
+        adder_func(key, side, datasets, main_data)
 
 
-def side_plots_adder():
+def side_plots_adder(datasets, main_data, storage):
     side_options = ["right", "top", "left", "bottom"]
     tabs = st.tabs([s.capitalize() for s in side_options])
+    for side in side_options:
+        state_key = f"{side}_plot_counts"
+        storage.add_state(state_key, 0)
     for ix, (t, side) in enumerate(zip(tabs, side_options)):
+        state_key = f"{side}_plot_counts"
+
+        def add_callback(state_key):
+            storage[state_key] += 1
+
+        def delete_callback(state_key):
+            if storage[state_key] > 0:
+                storage[state_key] -= 1
+
         with t:
-            adder, _ = st.columns([1, 4])
-            add_plots = adder.number_input(f"Add plots", key=ix,
-                                           min_value=0, max_value=50)
-            for i in range(add_plots):
-                plot_panel(key=i, side=side)
+            adder, deleter, _ = st.columns([1, 2, 2.5])
+            with adder:
+                st.button(f"➕ Add One",
+                          use_container_width=True,
+                          key=f"{side}_{ix}_add",
+                          on_click=partial(add_callback, state_key))
+            with deleter:
+                st.button(f"❌ Remove Last Added",
+                          use_container_width=True,
+                          key=f"{side}_{ix}_delete",
+                          on_click=partial(delete_callback, state_key),
+                          disabled=storage[state_key] == 0,
+                          )
+            for i in range(storage[state_key]):
+                plot_panel(i, side, datasets, main_data)
 
 
 @dataclass
@@ -551,38 +600,36 @@ class SplitAction:
     cut: list = field(default=None)
     labels: list = field(default=None)
     order: list = field(default=None)
+    spacing: float = 0.01
 
 
-def spliter(orient="h"):
-    title = "Horizontally" if orient == "h" else "Vertically"
-    st.subheader(f"Split {title}")
-    with st.form(f"Split {orient}"):
-        st.markdown("Split by number")
-        cut = st.text_input("split by number", label_visibility="collapsed",
-                            help="Use number seperated by comma to indicate "
-                                 "where to split the heatmap eg. 10,15"
-                            )
-        st.markdown("Split by label")
-        labels = FileUpload(key=f"split-{orient}")
-        order = st.text_input("Order", help="eg. a,b")
-        submit = st.form_submit_button("Confirm")
-        if submit:
+def spliter(orient, datastorage):
+
+    how = st.selectbox("How to partition",
+                       options=["By Position", "By Data"],
+                       key=f"{orient}-how-to-partition"
+                       )
+    space = st.number_input("Gap", value=1, min_value=0, max_value=100,
+                            key=f"{orient}-partition-space",
+                            help="Percentage of the canvas size")
+    if how == "By Position":
+        cut = st.text_input("Example: 10,15",
+                            key=f"{orient}-partition-by-position")
+        if cut != "":
             cut = [int(c.strip()) for c in cut.split(",")]
-            # labels = [str(label) for label in labels.split(",")]
-            labels = labels.parse()
-            if labels is not None:
-                if np.unique(labels) > len(labels) * .7:
-                    st.error("There are more than 70% of labels are unique.")
-            order = [str(o.strip()) for o in order.split(",")]
-            st.session_state[f"split_{orient}"] = (
-                SplitAction(orient=orient, cut=cut,
-                            labels=labels, order=order))
+            return SplitAction(orient=orient, cut=cut, spacing=space/100)
+    else:
+        dataset_name = st.selectbox("Which dataset",
+                                    key=f"{orient}-partition-select-dataset",
+                                    options=[""] + datastorage.get_names())
+        order = st.text_input("Order", help="eg. a,b",
+                              key=f"{orient}-partition-order")
+        if dataset_name != "":
+            if order != "":
+                order = [str(o.strip()) for o in order.split(",")]
+            else:
+                order = None
+            return SplitAction(orient=orient,
+                               labels=datastorage.get_datasets(dataset_name),
+                               order=order, spacing=space/100)
 
-
-def split_plot():
-    st.markdown("Split the heatmap by groups")
-    col1, col2 = st.columns(2)
-    with col1:
-        spliter("h")
-    with col2:
-        spliter("v")

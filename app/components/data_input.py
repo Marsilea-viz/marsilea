@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -87,6 +88,13 @@ class FileUpload(InputBase):
         if self.user_input is not None:
             return parse_file(self.user_input, export="dataframe",
                               header=header, )
+
+    @property
+    def name(self):
+        if self.user_input is None:
+            return ""
+        else:
+            return Path(self.user_input.name).stem
 
 
 class PasteText(InputBase):

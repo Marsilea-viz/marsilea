@@ -20,12 +20,16 @@ def get_colormap_images(cmap):
     gradient = np.linspace(0, 1, 256)
     gradient = np.vstack((gradient, gradient))
 
-    fig = plt.figure(figsize=(2.5, .5), dpi=90)
+    fig = plt.figure(figsize=(6, .5), dpi=90)
     ax = fig.add_axes([0, 0, 1, 1])
     ax.imshow(gradient, aspect="auto", cmap=cmap)
     ax.set_axis_off()
     plt.close(fig)
     return fig
+
+
+def random_color():
+    return "#" + "".join(np.random.choice(list('0123456789ABCDEF'), 6))
 
 
 class ColormapSelector:
@@ -36,25 +40,26 @@ class ColormapSelector:
         default_index = cmap_options.index(default)
         self.reverse = False
 
-        st.markdown("")
-        st.markdown("**Choose colormap**")
+        st.markdown("**Colormap**")
 
-        radio_box, select_box = st.columns(2)
-        color_box, cmap_box = st.columns(2)
+        radio_box, rev_box = st.columns(2)
 
         with radio_box:
             input_cmap = st.radio(label="cmap_input",
-                                  label_visibility="hidden",
-                                  options=["Preset", "Customize"],
+                                  label_visibility="collapsed",
+                                  options=["Preset", "Create New"],
                                   horizontal=True,
                                   key=f'{key}-input-cmap'
                                   )
+        with rev_box:
             self.reverse = st.checkbox("Reverse colormap",
                                        key=f'{key}-rev-cmap')
 
         if input_cmap == "Preset":
-            with select_box:
+            color_box, cmap_box = st.columns(2)
+            with color_box:
                 cmap = st.selectbox("Select Preset Colormap",
+                                    label_visibility="collapsed",
                                     key=f'{key}-preset-cmap',
                                     options=cmap_options,
                                     index=default_index,
@@ -70,36 +75,32 @@ class ColormapSelector:
                 cmap_fig = get_colormap_images(self.cmap)
                 st.pyplot(cmap_fig)
         else:
+            select_box, cmap_box = st.columns(2)
             with select_box:
                 ncolors = st.selectbox(
                     label="Colormap Type", key=f'{key}-select-gradient',
+                    label_visibility="collapsed",
                     options=["One Gradient", "Two Gradient"])
+            _, c_lower, c_center, c_upper = st.columns([4, 1, 1, 1])
+            with c_lower:
+                lower = st.color_picker(label="Lower",
+                                        value="#CB1B45",
+                                        key=f'{key}-lower-cmap-2', )
+            with c_upper:
+                upper = st.color_picker(label="Upper",
+                                        value="#7B90D2",
+                                        key=f'{key}-upper-cmap-2', )
 
-            with color_box:
-                if ncolors == "One Gradient":
-                    c1, c2 = st.columns(2)
-                    with c1:
-                        lower = st.color_picker(label="Lower",
-                                                key=f'{key}-lower-cmap-2',)
-                    with c2:
-                        upper = st.color_picker(label="Upper",
-                                                key=f'{key}-upper-cmap-2',)
-                    self.cmap = (LinearSegmentedColormap
-                                 .from_list("user_cmap", [lower, upper]))
-                else:
-                    c1, c2, c3 = st.columns(3)
-                    with c1:
-                        lower = st.color_picker(label="Lower",
-                                                key=f'{key}-lower-cmap-3',)
-                    with c2:
-                        center = st.color_picker(label="Center",
-                                                 key=f'{key}-center-cmap-3',)
-                    with c3:
-                        upper = st.color_picker(label="Upper",
-                                                key=f'{key}-upper-cmap-3',)
-                    self.cmap = (LinearSegmentedColormap
-                                 .from_list("user_cmap",
-                                            [lower, center, upper]))
+            if ncolors == "One Gradient":
+                colors = [lower, upper]
+            else:
+                with c_center:
+                    center = st.color_picker(label="Center",
+                                             value="#BDC0BA",
+                                             key=f'{key}-center-cmap-3',)
+                colors = [lower, center, upper]
+            self.cmap = (LinearSegmentedColormap
+                         .from_list("user_cmap", colors))
 
             if self.reverse:
                 self.cmap = self.cmap.reversed()

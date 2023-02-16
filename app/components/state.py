@@ -10,14 +10,14 @@ def init_state(**mapping):
 class State:
 
     def __init__(self, **kwargs):
-        self._state_keys = []
+        self._state_keys = set()
         for key, value in kwargs.items():
             self.add_state(key, value)
 
     def add_state(self, key, value):
         if key not in st.session_state:
             st.session_state[key] = value
-        self._state_keys.append(key)
+        self._state_keys.add(key)
 
     def get_state(self, key):
         return self.__getitem__(key)
@@ -36,4 +36,27 @@ class State:
             st.session_state[item] = value
         else:
             raise AttributeError(f"{item} is not initialized")
+
+
+class DataStorage:
+
+    def __init__(self):
+        self.state = State(datasets_names=[],
+                           datasets={},)
+
+    def add_dataset(self, name, data):
+        if (name != "") & (name not in self.state['datasets_names']):
+            self.state['datasets_names'].append(name)
+            self.state['datasets'][name] = data
+            return True
+        else:
+            return False
+
+    def get_names(self):
+        return self.state['datasets_names']
+
+    def get_datasets(self, name):
+        return self.state['datasets'][name]
+
+
 

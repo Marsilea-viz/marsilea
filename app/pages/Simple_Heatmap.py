@@ -41,6 +41,10 @@ if s['data'] is not None:
         st.dataframe(s['data'])
 
 if s['data'] is not None:
+    main_data = s['data'].to_numpy()
+    row_labels = s['data'].index.astype(str).tolist()
+    col_labels = s['data'].columns.astype(str).tolist()
+
     st.markdown("---")
     st.subheader("Setup Your Heatmap")
 
@@ -97,18 +101,20 @@ if s['data'] is not None:
     with l1:
         st.markdown("**Row Labels**")
         add_row_labels = st.checkbox("Add", key="row_add")
-        row_marks = st.text_input("Show specific labels",
-                                  help="Label a few important rows, "
-                                       "eg. banana,apple",
-                                  key="row_mark")
+        row_marks = st.multiselect("Show only specified labels",
+                                   options=row_labels,
+                                   default=[],
+                                   help="Label a few important rows",
+                                   key="row_mark")
         row_rotation = st.number_input("Rotation", value=0, key="row_rotation")
 
     with l2:
         st.markdown("**Column Labels**")
         add_col_labels = st.checkbox("Add", key="col_add")
-        col_marks = st.text_input("Show specific labels",
-                                  help="Label a few important columns, "
-                                       "eg. banana,apple",
+        col_marks = st.multiselect("Show only specified labels",
+                                  options=col_labels,
+                                  default=[],
+                                  help="Label a few important columns",
                                   key="col_mark")
         col_rotation = st.number_input("Rotation", value=-45,
                                        key="col_rotation")
@@ -120,10 +126,6 @@ if s['data'] is not None:
     s['cmap'] = cmap.get_cmap()
 
     st.markdown("---")
-
-    main_data = s['data'].to_numpy()
-    row_labels = s['data'].index.astype(str).tolist()
-    col_labels = s['data'].columns.astype(str).tolist()
 
     st.subheader("Result")
 
@@ -141,10 +143,9 @@ if s['data'] is not None:
             h.add_dendrogram("top", method=method, metric=metric)
 
         if add_row_labels:
-            if row_marks != "":
-                marks = [i.strip() for i in row_marks.split(",")]
+            if len(row_marks) > 0:
                 row_label_plot = AnnoLabels(
-                    row_labels, mark=marks, fontsize=font_size
+                    row_labels, mark=row_marks, fontsize=font_size
                 )
             else:
                 row_label_plot = Labels(row_labels, text_pad=.1,
@@ -153,10 +154,9 @@ if s['data'] is not None:
             h.add_right(row_label_plot)
         if add_col_labels:
             kws = dict()
-            if col_marks != "":
-                marks = [i.strip() for i in col_marks.split(",")]
+            if len(col_marks) > 0:
                 col_label_plot = AnnoLabels(
-                    col_labels, mark=marks, fontsize=font_size
+                    col_labels, mark=col_marks, fontsize=font_size
                 )
             else:
                 col_label_plot = Labels(col_labels, text_pad=.1,
