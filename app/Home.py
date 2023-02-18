@@ -1,19 +1,10 @@
 import streamlit as st
 from matplotlib.image import imread
 
-from components.initialize import inject_css
+from components.initialize import init_page, inject_css
 
-st.set_page_config(
-    page_title="Heatgraphy",
-    layout="centered",
-    page_icon=imread("app/img/favicon.png"),
-    initial_sidebar_state="collapsed",
-    menu_items={
-        'Report a bug': 'https://github.com/heatgraphy/heatgraphy/issues/new/choose',
-        'About': 'A web interface for Heatgraphy'
-    }
-)
 
+init_page("Heatgraphy")
 inject_css()
 
 banner, title = st.columns([1, 1.1], gap="medium")
@@ -39,27 +30,31 @@ st.text("")
 t1, t2, t3 = st.columns(3)
 
 
-def tools(name, img, size=150):
+def tools(name, img, page, size=150):
     st.markdown(
         f'<div style="display: flex; justify-content: center; align-items: center; flex-direction: column;">'
         f'<p style="font-weight: 600;">{name}</p>'
-        f'<img style="width: {size}px;" src="{img}">'
+        f'<a target="_self" href="{page}">'
+        f'<img style="width: {size}px;" src="{img}"></a>'
         f'</div>',
         unsafe_allow_html=True)
 
 
 with t1:
     tools("Simple Heatmap",
-          "https://heatgraphy.readthedocs.io/en/latest/_images/customized_render-1.png")
+          "https://heatgraphy.readthedocs.io/en/latest/_images/customized_render-1.png",
+          page="/Simple_Heatmap")
 
 with t2:
     tools("Upset Plot",
           "https://heatgraphy.readthedocs.io/en/latest/_images/sphx_glr_plot_upset_thumb.png",
+          page="/Upsetplot",
           size=220)
 
 with t3:
     tools("x-layout",
           "https://heatgraphy.readthedocs.io/en/latest/_images/sphx_glr_plot_pbmc3k_thumb.png",
+          page="X-Layout_Heatmap",
           size=200)
 
 st.markdown("---")

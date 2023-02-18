@@ -106,3 +106,19 @@ def inject_css():
 
     </style>
     """, unsafe_allow_html=True)
+
+
+def init_page(title):
+    IMG_ROOT = "https://raw.githubusercontent.com/" \
+               "Heatgraphy/heatgraphy/main/app/img"
+
+    st.set_page_config(
+        page_title=title,
+        layout="centered",
+        page_icon=f"{IMG_ROOT}/favicon.png",
+        initial_sidebar_state="collapsed",
+        menu_items={
+            'Report a bug': 'https://github.com/heatgraphy/heatgraphy/issues/new/choose',
+            'About': 'A web interface for Heatgraphy'
+        }
+    )

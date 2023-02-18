@@ -1,17 +1,17 @@
-import numpy as np
-import pandas as pd
-import streamlit as st
 import matplotlib as mpl
-import heatgraphy as hg
-
+import numpy as np
+import streamlit as st
 from components.data_input import FileUpload
-from components.state import State, DataStorage
-
+from components.initialize import init_page
 from components.main_plots import MainHeatmap, MainSizedHeatmap, MainMark
 from components.resource import xlayout_example_data, get_font_list
+from components.saver import ChartSaver
 from components.side_plots import Splitter, SidePlotAdder
+from components.state import State, DataStorage
 
-from app.components.saver import ChartSaver
+import heatgraphy as hg
+
+init_page("X-Layout Heatmap")
 
 s = State(key="x-layout-heatmap")
 s.init_state(figure=None, data_loaded=False)

@@ -1,95 +1,106 @@
+from typing import Any
+
+import numpy as np
 import streamlit as st
 
+from heatgraphy import ClusterBoard
+from heatgraphy.plotter import ColorMesh, SizedMesh, MarkerMesh
 from .cmap_selector import ColormapSelector
-from .data_input import FileUpload
-from .font import FontFamily
-from .transformation import Transformation
+
+IMG_ROOT = "https://raw.githubusercontent.com/" \
+           "Heatgraphy/heatgraphy/main/app/img/"
 
 
-def data_ready_action(data, data_key, raw_data_key, transform_key,
-                      transform_tab, viewer_tab):
-    st.session_state[data_key] = data
-    st.session_state[raw_data_key] = data
-    if not st.session_state["data_ready"]:
-        st.session_state["main_data"] = data
-        st.session_state["data_ready"] = True
+class MainPlotter:
+    launch = False
+    data = None
+    label = None
+    zorder = 0
 
-    with viewer_tab:
-        data_anchor = st.empty()
+    plot_explain = ""
+    example_image = None
 
-    with transform_tab:
-        reset = st.button("Reset", key=data_key + raw_data_key)
-        if reset:
-            st.session_state[data_key] = \
-                st.session_state[raw_data_key]
-        Transformation(
-            transform_key,
-            key=data_key + raw_data_key + "trans")
+    def __init__(self, datastorage, key):
+        self.datastorage = datastorage
+        self.key = key
 
-    if st.session_state[transform_key] is not None:
-        action = st.session_state[transform_key]
-        st.session_state[data_key] = \
-            action.apply(st.session_state[raw_data_key])
+        self.showcase()
 
-    data_anchor.dataframe(st.session_state[data_key])
+        self.select_panel()
+        self.extra_options()
 
+    def showcase(self):
+        img_col, text_col, _ = st.columns([1, 4, 3], gap="large")
 
-class HeatmapData:
-    allow_text = True
-    cmap = "coolwarm"
-    annot = False
-    linewidth = 0
-    fontsize = 6
+        if self.plot_explain is not None:
+            with text_col:
+                st.markdown(self.plot_explain)
 
-    def __init__(self):
-        data_input, data_transformation, data_viewer, style = st.tabs(
-            ["Input Data", "Transform", "View", "Styles"])
+        if self.example_image is not None:
+            with img_col:
+                st.image(f"{IMG_ROOT}/{self.example_image}", width=100)
 
-        with data_input:
-            label = st.text_input("Label", key=f"heatmap-data-name")
-            self.label = label if label != "" else None
-            user_input = FileUpload(key="main-data")
-        data = user_input.parse()
-
-        if data is not None:
-
-            if data.size > 200:
-                self.allow_text = False
-
-            data_ready_action(data, "heatmap_data", "heatmap_raw_data",
-                              "heatmap_transform",
-                              data_transformation, data_viewer)
-
-        with style:
-            self.styles()
-
-    def styles(self):
-        annot = st.checkbox("Add Text", disabled=not self.allow_text)
-
-        c1, c2 = st.columns(2)
-
+    def select_panel(self):
+        c1, c2 = st.columns([1, 2])
         with c1:
-            fontsize = st.number_input("Font size", min_value=1,
-                                       step=1, value=6)
+            self.label = st.text_input("Label", key=f"{self.key}-data-label")
+
         with c2:
-            grid_linewidth = st.number_input("Grid line", min_value=0.)
+            used_dataset = st.selectbox(
+                "Select Dataset",
+                key=f"{self.key}-data-select",
+                options=[""] + self.datastorage.get_names(subset="2d"))
+            if used_dataset != "":
+                data = self.datastorage.get_datasets(used_dataset)
+                self.launch = self.datastorage.align_main("main", data)
+                self.data = data
 
-        cmap_selector = ColormapSelector(key="heatmap", default="coolwarm")
+    def extra_options(self):
+        pass
 
+    def apply(self, h):
+        pass
+
+
+class MainHeatmap(MainPlotter):
+    annot: bool
+    fontsize: int
+    linewidth: float
+    cmap: Any
+
+    plot_explain = "Heatmap reveal variation through color strength."
+    example_image = "heatmap.png"
+
+    def extra_options(self):
+        c1, c2, c3 = st.columns([1, 1, 2])
+        with c1:
+            st.markdown("**Display value**")
+        with c2:
+            disabled = False
+            if self.data is not None:
+                disabled = self.data.size > 1000
+            self.annot = st.checkbox("Display", value=False, disabled=disabled)
+        with c3:
+            self.fontsize = st.number_input("Font size", min_value=1,
+                                            step=1, value=6)
+        self.linewidth = st.number_input("Grid line", min_value=0.)
+
+        cmap_selector = ColormapSelector(key=self.key, default="coolwarm")
         self.cmap = cmap_selector.get_cmap()
-        self.annot = annot
-        self.linewidth = grid_linewidth
-        self.fontsize = fontsize
 
-    def get_styles(self):
-        return dict(cmap=self.cmap, annot=self.annot,
-                    linewidth=self.linewidth,
-                    annot_kws=dict(fontsize=self.fontsize),
-                    label=self.label,
-                    )
+    def apply(self, h: ClusterBoard):
+        if self.launch:
+            mesh = ColorMesh(data=self.data,
+                             cmap=self.cmap,
+                             linewidth=self.linewidth,
+                             annot=self.annot,
+                             annot_kws=dict(fontsize=self.fontsize),
+                             label=self.label,
+                             )
+            h.add_layer(mesh, zorder=self.zorder)
 
 
-marker_options = {
+MARKER_OPTIONS = {
     "Triangle": "^",
     "Triangle Down": "v",
     "Triangle Left": "<",
@@ -117,119 +128,136 @@ marker_options = {
     "Horizontal Line": "_",
 }
 
-MARKERS = list(marker_options.keys())
+MARKERS = list(MARKER_OPTIONS.keys())
 CIRCLE_INDEX = MARKERS.index("Circle")
 CROSS_INDEX = MARKERS.index("Cross (stroke)")
 
 
-class SizedHeatmapData:
+class MainSizedHeatmap(MainPlotter):
     cmap = "Greens"
     color = "#BF6766"
     edgecolor = "#91989F"
     marker = "o"
     linewidth = 0.
+    size_data = None
+    color_data = None
 
-    def __init__(self):
-        data_input, size_transformation, size_viewer, \
-            color_transformation, color_viewer, style = st.tabs([
-            "Input Data",
-            "Transform (Size)",
-            "View (Size)",
-            "Transform(Color)",
-            "View (Color)",
-            "Styles"])
-        with data_input:
-            c1, c2 = st.columns(2)
-            with c1:
-                st.markdown("**Size Data**")
-                size_label = st.text_input("Size Label", key=f"sizemap-size-name")
-                self.size_label = size_label if size_label != "" else None
-                size_input = FileUpload(key="size-data")
+    def showcase(self):
 
-            with c2:
-                st.markdown("**Color Data** (optional)")
-                color_label = st.text_input("Color Label", key=f"sizemap-color-name")
-                self.color_label = color_label if color_label != "" else None
-                color_input = FileUpload(key="color-data")
-
-        size_data = size_input.parse()
-        color_data = color_input.parse()
-
-        if size_data is not None:
-            data_ready_action(size_data, "size_data", "size_raw_data",
-                              "size_transform",
-                              size_transformation, size_viewer)
-        if color_data is not None:
-            data_ready_action(size_data, "color_data", "color_raw_data",
-                              "color_transform",
-                              color_transformation, color_viewer)
-
-        with style:
-            self.styles()
-
-    def styles(self):
-        c1, c2, c3, c4 = st.columns(4)
+        c1, c2, c3, _ = st.columns([1, 1, 2, 2])
         with c1:
-            self.linewidth = st.number_input(label="Stroke size",
-                                             min_value=0., value=.5)
+            st.image(f"{IMG_ROOT}/sized_onlymap.png",
+                     caption="Size Only",
+                     width=100)
+        with c2:
+            st.image(f"{IMG_ROOT}/sized_heatmap.png",
+                     caption="Color + Size",
+                     width=100)
+        with c3:
+            st.markdown(
+                "Sized Heatmap encodes size as extra information in heatmap")
+
+    def select_panel(self):
+        self.label = st.text_input("Label", key=f"{self.key}-data-label")
+
+        c1, c2 = st.columns(2)
+        with c1:
+            sized_dataset = st.selectbox(
+                "Select Sized Dataset",
+                key=f"{self.key}-data-select-size",
+                options=[""] + self.datastorage.get_names(subset="2d"))
 
         with c2:
+            color_dataset = st.selectbox(
+                "Select Color Dataset (Optional)",
+                key=f"{self.key}-data-select-color",
+                options=[""] + self.datastorage.get_names(subset="2d"))
+
+        if sized_dataset != "":
+            self.size_data = self.datastorage.get_datasets(sized_dataset)
+            check_size = self.datastorage.align_main("main", self.size_data)
+            if color_dataset != "":
+                self.color_data = self.datastorage.get_datasets(color_dataset)
+                check_color = self.datastorage.align_main(
+                    "main", self.color_data)
+                if check_color:
+                    self.launch = True
+            if check_size:
+                self.launch = True
+
+    def extra_options(self):
+        c1, c2, c3, c4 = st.columns(4)
+        with c1:
             marker = st.selectbox(label="Shape", options=MARKERS,
                                   index=CIRCLE_INDEX)
+
+        with c2:
+            self.linewidth = st.number_input(label="Stroke size",
+                                             min_value=0., value=.5)
 
         with c3:
             self.edgecolor = st.color_picker(label="Stroke Color",
                                              value="#C1C1C1")
 
         with c4:
-            self.color = st.color_picker(label="Fill Color",
-                                             value="#BF6766")
+            self.color = st.color_picker(
+                label="Fill Color",
+                value="#BF6766",
+                help="Only works when no color data is selected"
+            )
 
-        if st.session_state["color_data"] is not None:
-            cmap_selector = ColormapSelector(key="sizedheatmap", default="Greens")
-            self.cmap = cmap_selector.get_cmap()
+        cmap_selector = ColormapSelector(key=f"{self.key}-cmap-select",
+                                         default="Greens")
+        self.cmap = cmap_selector.get_cmap()
+
+        self.marker = MARKER_OPTIONS[marker]
+
+    def apply(self, h):
+        if self.launch:
+            if self.color_data is None:
+                color = self.color
+            else:
+                color = self.color_data
+            mesh = SizedMesh(self.size_data,
+                             color=color,
+                             linewidth=self.linewidth,
+                             marker=self.marker,
+                             cmap=self.cmap,
+                             edgecolor=self.edgecolor,
+                             label=self.label,
+                             )
+            h.add_layer(mesh, zorder=self.zorder)
 
 
-        self.marker = marker_options[marker]
-
-    def get_styles(self):
-
-        return dict(
-            size_legend_kws=dict(title=self.size_label),
-            color_legend_kws=dict(title=self.color_label),
-            cmap=self.cmap, color=self.color,
-            edgecolor=self.edgecolor,
-            marker=self.marker,
-            linewidth=self.linewidth,
-        )
-
-
-class MarkerData:
+class MainMark(MainPlotter):
     color = "#CB4042"
     marker = "s"
     marker_size = 30
 
-    def __init__(self):
-        data_input, data_transformation, data_viewer, style = st.tabs(
-            ["Input Data", "Transform", "View", "Styles"])
+    plot_explain = "Use a mark to mark the cell on heatmap"
+    example_image = "mark_map.png"
 
-        with data_input:
-            st.markdown("The data must only contains 1 and 0 "
-                        "to indicate whether to mark a cell.")
-            user_input = FileUpload(key="marker-data")
-        data = user_input.parse()
+    def select_panel(self):
+        c1, c2 = st.columns([1, 2])
+        with c1:
+            self.label = st.text_input("Label", key=f"{self.key}-data-label")
 
-        name = st.text_input("Name", key=f"markmap-data-name")
-        self.name = name if name != "" else None
+        with c2:
+            used_dataset = st.selectbox(
+                "Select Dataset",
+                key=f"{self.key}-data-select",
+                options=[""] + self.datastorage.get_names(subset="2d"))
+            if used_dataset != "":
+                data = self.datastorage.get_datasets(used_dataset)
+                check_shape = self.datastorage.align_main("main", data)
+                check_data_type = np.array_equal(data, data.astype(bool))
+                if not check_data_type:
+                    st.error("Selected data must contain only 0 and 1")
+                if check_shape & check_data_type:
+                    self.launch = True
+                self.data = data
 
-        if data is not None:
-            st.session_state["mark_data"] = data
-            st.session_state["data_ready"] = True
-
-        with style:
-            self.styles()
-
-    def styles(self):
+    def extra_options(self):
         c1, c2, c3 = st.columns(3)
 
         with c1:
@@ -239,83 +267,19 @@ class MarkerData:
             marker = st.selectbox(label="Mark Shape",
                                   options=MARKERS,
                                   index=CROSS_INDEX)
-            self.marker = marker_options[marker]
+            self.marker = MARKER_OPTIONS[marker]
 
         with c3:
             self.marker_size = st.number_input(label="size",
                                                min_value=0, value=30)
 
-    def get_styles(self):
-        return dict(
-            label=self.name,
-            color=self.color, marker=self.marker,
-            size=self.marker_size,
-        )
-
-
-@st.cache_data
-def get_font_list():
-    return FontFamily().font_list
-
-
-class GlobalConfig:
-    cluster_name = {
-        "heatmap_data": "Heatmap",
-        "size_data": "Sized Data",
-        "color_data": "Color Data",
-        "mark_data": "Mark Data"
-    }
-
-    def __init__(self):
-        st.markdown("Adjust the global options here; To adjust plot specifc "
-                    "options like heatmap colors, go to its own style tab.")
-        self.add_legends = st.checkbox("Add Legends", value=True)
-        self.cluster_data_name = st.selectbox(
-            "Use which data for cluster",
-            options=self.get_cluster_data_options(),
-            format_func=self._format_cluster_name)
-
-        st.markdown("Font Options")
-        c1, c2 = st.columns(2)
-        with c1:
-            self.fontsize = st.number_input(
-                "Font size", min_value=1, step=1, value=10)
-        with c2:
-            font_list = get_font_list()
-            DEFAULT_FONT = font_list.index("Source Sans Pro")
-            self.fontfamily = st.selectbox("Font Family", options=font_list,
-                                           index=DEFAULT_FONT)
-
-        st.markdown("Main Canvas Size")
-        c3, c4 = st.columns(2)
-        with c3:
-            self.width = st.number_input("Width", min_value=1, step=1,
-                                         max_value=10, value=5)
-        with c4:
-            self.height = st.number_input("Height", min_value=1, step=1,
-                                          max_value=10, value=4)
-
-    def _format_cluster_name(self, v):
-        return self.cluster_name[v]
-
-    def get_cluster_data_options(self):
-        options = []
-        if st.session_state["heatmap_data"] is not None:
-            options.append("heatmap_data")
-        if st.session_state["size_data"] is not None:
-            options.append("size_data")
-        if st.session_state["color_data"] is not None:
-            options.append("color_data")
-        if st.session_state["mark_data"] is not None:
-            options.append("mark_data")
-        return options
-
-    def get_conf(self):
-        return dict(
-            cluster_data_name=self.cluster_data_name,
-            fontsize=self.fontsize,
-            fontfamily=self.fontfamily,
-            add_legends=self.add_legends,
-            width=self.width,
-            height=self.height
-        )
+    def apply(self, h):
+        if self.launch:
+            mesh = MarkerMesh(self.data,
+                              color=self.color,
+                              marker=self.marker,
+                              size=self.marker_size,
+                              label=self.label,
+                              )
+            legend = self.label != ""
+            h.add_layer(mesh, zorder=self.zorder, legend=legend)

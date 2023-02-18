@@ -2,8 +2,8 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import streamlit as st
-from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.cm import get_cmap
+from matplotlib.colors import LinearSegmentedColormap
 
 
 @st.cache_data
@@ -97,7 +97,7 @@ class ColormapSelector:
                 with c_center:
                     center = st.color_picker(label="Center",
                                              value="#BDC0BA",
-                                             key=f'{key}-center-cmap-3',)
+                                             key=f'{key}-center-cmap-3', )
                 colors = [lower, center, upper]
             self.cmap = (LinearSegmentedColormap
                          .from_list("user_cmap", colors))

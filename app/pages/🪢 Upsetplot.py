@@ -3,28 +3,23 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import streamlit as st
-
 from components.data_input import FileUpload
+from components.initialize import init_page
 from components.initialize import inject_css
-from components.layer_data import get_font_list
-from components.state import init_state
-from matplotlib.image import imread
+from components.resource import get_font_list
+from components.saver import ChartSaver
+from components.state import State
 
 from heatgraphy import UpsetData, Upset
 
-
+init_page("Upsetplot")
 inject_css()
 
-
-@st.cache_data
-def empty_figure():
-    return plt.figure(figsize=(1, 1))
-
-
-init_state(
-    upset_data=None,
+s = State(key="upsetplot")
+s.init_state(
     parse_success=False,
-    figure=empty_figure()
+    upset_data=None,
+    figure=None,
 )
 
 st.header("Upset Plot")
@@ -61,7 +56,7 @@ else:
                       columns=["Set 1", "Set 2", "Set 3"])
     st.dataframe(df)
 
-user_input = FileUpload()
+user_input = FileUpload(key="upset", header=True, use_header=True)
 data = user_input.parse_dataframe()
 
 
@@ -85,19 +80,14 @@ def process_upset_data(format, data):
 if data is not None:
     try:
         upset_data = process_upset_data(format, data)
-        st.session_state["parse_success"] = True
+        s["parse_success"] = True
     except Exception as e:
-        st.session_state["parse_success"] = False
+        s["parse_success"] = False
         st.error("Failed to read set data, please select the correct"
                  "set format and check your input.", icon="🚨")
-        # raise e
 
-    fig_container = st.empty()
-    with fig_container:
-        st.pyplot(st.session_state["figure"])
-
-    if st.session_state["parse_success"]:
-        st.session_state['upset_data'] = upset_data
+    if s["parse_success"]:
+        s['upset_data'] = upset_data
 
         filter, highlight, styles = st.tabs(["Filter", "Highlight", "Styles"])
 
@@ -150,16 +140,32 @@ if data is not None:
         with highlight:
             pass
 
-        with mpl.rc_context({'text.color': fontcolor,
-                             'font.size': fontsize,
-                             'font.family': fontfamily}):
-            fig = plt.figure()
-            up = Upset(upset_data, min_size=size_range[0],
-                       max_size=size_range[1],
-                       min_degree=degree_range[0], max_degree=degree_range[1],
-                       color=color, linewidth=linewidth, shading=shading,
-                       grid_background=grid_background
-                       )
-            up.render(fig, scale=1.5)
-            fig_container.pyplot(fig)
-            st.session_state["figure"] = fig
+        _, render_button, _ = st.columns(3)
+
+        with render_button:
+            render = st.button("Render", type="primary",
+                               use_container_width=True)
+
+        if render:
+            with mpl.rc_context({'text.color': fontcolor,
+                                 'font.size': fontsize,
+                                 'font.family': fontfamily}):
+                fig = plt.figure()
+                up = Upset(upset_data,
+                           min_size=size_range[0],
+                           max_size=size_range[1],
+                           min_degree=degree_range[0],
+                           max_degree=degree_range[1],
+                           color=color,
+                           linewidth=linewidth,
+                           shading=shading,
+                           grid_background=grid_background
+                           )
+                up.render(fig)
+                s['figure'] = fig
+
+        if s['figure'] is not None:
+            st.pyplot(s['figure'])
+
+            with st.sidebar:
+                ChartSaver(s['figure'])

@@ -27,7 +27,7 @@ class InputBase:
         self.sep = sep_options[user_sep]
 
 
-@st.cache_resource
+@st.cache_data
 def parse_file(file, export="ndarray", header=False, index=False):
     header = None if not header else "infer"
     index_col = None if not index else 0
@@ -50,10 +50,13 @@ def parse_file(file, export="ndarray", header=False, index=False):
 
 class FileUpload(InputBase):
 
-    def __init__(self, key=None, header=False, index=False):
+    def __init__(self, key=None, header=False, index=False,
+                 use_header=False, use_index=False):
         super().__init__(key=key)
         self.header = False
         self.index = False
+        self.use_header = use_header
+        self.use_index = use_index
 
         self.user_input = st.file_uploader("Choose a table file",
                                            key=f"table_reader-{self.key}",
@@ -75,19 +78,24 @@ class FileUpload(InputBase):
             self.index = self._index_checkbox()
 
     def _header_checkbox(self):
-        return st.checkbox("Use header?", key=f"select-header-{self.key}")
+        return st.checkbox("Use header?",
+                           value=self.use_header,
+                           key=f"select-header-{self.key}")
 
     def _index_checkbox(self):
-        return st.checkbox("Use row labels?", key=f"select-index-{self.key}")
+        return st.checkbox("Use row labels?",
+                           value=self.use_index,
+                           key=f"select-index-{self.key}")
 
-    def parse(self):
+    def parse(self) -> np.ndarray:
         if self.user_input is not None:
-            return parse_file(self.user_input, header=self.header)
+            return parse_file(self.user_input, header=self.header,
+                              index=self.index)
 
-    def parse_dataframe(self, header=True, index=False):
+    def parse_dataframe(self) -> pd.DataFrame:
         if self.user_input is not None:
             return parse_file(self.user_input, export="dataframe",
-                              header=header, )
+                              header=self.header, index=self.index)
 
     @property
     def name(self):

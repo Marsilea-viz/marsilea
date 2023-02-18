@@ -1,54 +1,20 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from functools import partial
-from typing import Any, Callable
+from typing import Any, List
 
-import matplotlib.pyplot as plt
 import numpy as np
 import streamlit as st
 
 from heatgraphy.base import ClusterBoard
-from heatgraphy.plotter import (Bar, Box, Boxen, Colors, Count, Strip, Violin,
-                                Point, Swarm, ColorMesh, AnnoLabels, Labels,
+from heatgraphy.plotter import (Bar, Box, Boxen, Colors, Count, Chunk, Strip,
+                                Violin,
+                                Point, Swarm, AnnoLabels, Labels,
                                 Title)
 from heatgraphy.plotter import RenderPlan
-from .data_input import FileUpload
-from .state import init_state
+from .cmap_selector import ColormapSelector
 
 IMG_ROOT = "https://raw.githubusercontent.com/" \
            "Heatgraphy/heatgraphy/main/app/img/"
-
-
-@dataclass
-class RenderAction:
-    key: int
-    side: str
-    plotter: RenderPlan
-    data: Any
-    size: float = None
-    pad: float = None
-    kwargs: dict = field(default_factory=dict)
-
-    def __hash__(self):
-        return hash((self.side, self.key))
-
-    def __eq__(self, other):
-        cmp_side = self.side == other.side
-        cmp_key = self.key == other.key
-        return cmp_key & cmp_side
-
-    def apply(self, h: ClusterBoard):
-        p = self.plotter(self.data, **self.kwargs)
-        h.add_plot(self.side, p, size=self.size, pad=self.pad)
-
-
-@dataclass
-class DendrogramAction(RenderAction):
-
-    def apply(self, h):
-        h.add_dendrogram(self.side,
-                         **self.kwargs, size=self.size, pad=self.pad, )
 
 
 class PlotAdder:
@@ -60,31 +26,34 @@ class PlotAdder:
     no_data: bool = False
     is_numeric: bool = True
 
-    user_input: Any
     plotter: RenderPlan = None
 
     name: str = ""
-    input_help: str = None
     plot_explain: str = None
     example_image: str = None
+    launch = False
+    subset = None
 
     def __repr__(self):
         return f"Draw at {self.side} with size {self.size} and {self.pad}"
 
-    def __init__(self, key, side, datasets, main_data):
+    def __init__(self, key, side, datastorage):
         self.key = key
         self.side = side
         self.plot_key = f"Add side plotter-{key}-{side}"
         self.data = None
-        self.pass_check = False
-        self.datasets = datasets
-        self.main_data = main_data
-
-        if self.plot_explain is not None:
-            st.markdown(self.plot_explain)
+        self.datastorage = datastorage
 
         if self.example_image is not None:
-            st.image(f"{IMG_ROOT}/{self.example_image}", width=150)
+            img_col, text_col, _ = st.columns([1, 4, 3], gap="large")
+            with img_col:
+                st.image(f"{IMG_ROOT}/{self.example_image}", width=100)
+            if self.plot_explain is not None:
+                with text_col:
+                    st.markdown(self.plot_explain)
+        else:
+            if self.plot_explain is not None:
+                st.markdown(self.plot_explain)
 
         if not self.no_data:
             self.input_panel()
@@ -93,28 +62,10 @@ class PlotAdder:
         # with st.expander("More Options"):
         self.extra_options()
 
-        # if add:
-        #     # rerender figure
-        #     # TODO: Check the data input and tips prompt
-        #     if not self.no_data:
-        #         self.data = self.get_data()
-        #         main_data = st.session_state["main_data"]
-        #         if self.side in ["left", "right"]:
-        #             match_num = main_data.shape[0]
-        #         else:
-        #             match_num = main_data.shape[1]
-        #         if self.data.ndim == 1:
-        #             if len(self.data) > match_num:
-        #                 st.error("Your input data is more than required.")
-        #             if len(self.data) < match_num:
-        #                 st.error("Your input data is less than required.")
-        #     self.write_action()
-
     def form(self):
         return st.form(self.plot_key)
 
     def base_elements(self):
-        st.markdown("**Plot Options**")
         c1, c2, _ = st.columns([1, 1, 1])
         self.size = c1.number_input("Size", min_value=0.1,
                                     key=f"{self.plot_key}_size",
@@ -127,26 +78,15 @@ class PlotAdder:
                                         " and the adjacent plot.")
 
     def input_panel(self):
-        used_dataset = st.selectbox("Select Dataset",
-                                    key=f"{self.plot_key}_datasets",
-                                    options=[""] + self.datasets)
+        used_dataset = st.selectbox(
+            "Select Dataset",
+            key=f"{self.plot_key}_datasets",
+            options=[""] + self.datastorage.get_names(subset=self.subset))
+
         if used_dataset != "":
-            data = st.session_state['datasets'][used_dataset]
-            main_shape = self.main_data.shape
-            match_to = main_shape[0] if self.side in ["left", "right"] else \
-                main_shape[1]
-            axis = "row" if self.side in ["left", "right"] else "column"
-            # TODO: Check this logic
-            if data.shape[1] == 1:
-                if data.size != match_to:
-                    st.error(f"Selected dataset with size ({data.size}) "
-                             f"must match to the number of {axis} of "
-                             f"cluster data ({match_to})")
-            else:
-                if data.shape[1] != match_to:
-                    st.error(f"The column of selected dataset {data.shape[1]} "
-                             f"does not match to the number of {axis} of "
-                             f"cluster data ({match_to})")
+            data = self.datastorage.get_datasets(used_dataset)
+            self.launch = self.datastorage.align_main(self.side, data)
+            self.data = data
 
     def extra_options(self):
         pass
@@ -154,24 +94,67 @@ class PlotAdder:
     def get_options(self):
         return {}
 
-    def write_action(self):
-        if self.data is not None:
-            action = RenderAction(key=self.key, side=self.side,
-                                  data=self.data, size=self.size,
-                                  pad=self.pad, plotter=self.plotter,
-                                  kwargs=self.get_options())
-            return action
+    def apply(self, h):
+        if self.launch:
+            p = self.plotter(self.data, **self.get_options())
+            h.add_plot(self.side, p, size=self.size, pad=self.pad)
 
 
 class LabelAdder(PlotAdder):
     name = "Labels"
     plotter = Labels
+    subset = "1d"
+
+    align: str
+    color: str
+    pad: float
+
+    align_options = {
+        "left": ["right", "left", "center"],
+        "right": ["left", "center", "right"],
+        "top": ["bottom", "center", "top"],
+        "bottom": ["top", "center", "bottom"]
+    }
+
+    def extra_options(self):
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            self.color = st.color_picker("Text Color",
+                                         key=f"{self.plot_key}_label_color")
+        with c2:
+            self.align = st.selectbox("Alignment",
+                                      options=self.align_options[self.side],
+                                      key=f"{self.plot_key}_label_align"
+                                      )
+        with c3:
+            self.pad = st.number_input("Space around text",
+                                       min_value=0.,
+                                       value=.1,
+                                       max_value=1.,
+                                       key=f"{self.plot_key}_label_pad")
+
+    def get_options(self):
+        return dict(align=self.align, text_pad=self.pad,
+                    color=self.color)
 
 
 class ColorsAdder(PlotAdder):
     name = "Color Strip"
     plotter = Colors
     example_image = "colors.png"
+    plot_explain = "Use colors to annotate your categorical variable"
+
+    label: str
+    cmap: Any
+
+    def extra_options(self):
+        self.label = st.text_input("Label",
+                                   key=f"{self.plot_key}_colors_label")
+        cmap = ColormapSelector(key=self.plot_key, default="Dark2")
+        self.cmap = cmap.get_cmap()
+
+    def get_options(self):
+        return dict(label=self.label, cmap=self.cmap)
 
 
 class TitleAdder(PlotAdder):
@@ -186,18 +169,20 @@ class TitleAdder(PlotAdder):
 
     plot_explain = "Add a title component to your plot"
 
-    def input_panel(self):
-        self.data = st.text_input("Title")
-
     def extra_options(self):
-        self.color = st.color_picker("Title color")
-        self.fontsize = st.number_input("Title font size", value=10,
-                                        min_value=5, max_value=20)
-        fontstyle = st.selectbox("Title font style",
-                                 options=["regular", "Bold", "Italic",
-                                          "Bold + Italic"],
-                                 help="Style is not available for some font"
-                                 )
+
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            self.color = st.color_picker("Title color")
+        with c2:
+            self.fontsize = st.number_input("Title font size", value=10,
+                                            min_value=5, max_value=20)
+        with c3:
+            fontstyle = st.selectbox("Title font style",
+                                     options=["regular", "Bold", "Italic",
+                                              "Bold + Italic"],
+                                     help="Style is not available for some font"
+                                     )
         if fontstyle != "regular":
             if fontstyle != "Italic":
                 self.fontweight = "bold"
@@ -241,42 +226,49 @@ class DendrogramAdder(PlotAdder):
         pass
 
     def extra_options(self):
-        self.method = st.selectbox("Method", options=self.methods,
-                                   key=f"{self.plot_key}_dendrogram_method", )
-        self.metric = st.selectbox("Metric", options=self.metrics,
-                                   key=f"{self.plot_key}_dendrogram_metric", )
-        self.add_divider = st.checkbox("Add divide line",
-                                       key=f"{self.plot_key}_add_divider", )
-        self.add_base = st.checkbox("Add base dendrogram", value=True,
-                                    key=f"{self.plot_key}_add_base", )
-        self.add_meta = st.checkbox("Add meta dendrogram", value=True,
-                                    key=f"{self.plot_key}_add_meta", )
-        self.meta_color = st.color_picker("Color for meta dendrogram",
-                                          key=f"{self.plot_key}_meta_color", )
-        self.colors = st.color_picker("Dendrogram base color",
-                                      key=f"{self.plot_key}_dendrogram_colors")
-        self.linewidth = st.number_input("Line Width", min_value=0., value=.5,
-                                         key=f"{self.plot_key}_lw", )
+        c1, c2 = st.columns(2)
 
-    def get_options(self):
-        if self.method == "ward":
-            self.metric = "euclidean"
-        return dict(method=self.method,
-                    metric=self.metric,
-                    add_divider=self.add_divider,
-                    add_base=self.add_base,
-                    add_meta=self.add_meta,
-                    meta_color=self.meta_color,
-                    colors=self.colors,
-                    linewidth=self.linewidth
-                    )
+        with c1:
+            self.method = st.selectbox("Method", options=self.methods,
+                                       key=f"{self.plot_key}_dendrogram_method", )
 
-    def write_action(self):
-        action = DendrogramAction(key=self.key, side=self.side,
-                                  data=None, size=self.size,
-                                  pad=self.pad, plotter=self.plotter,
-                                  kwargs=self.get_options())
-        st.session_state[f"render_plan"][self.side][self.plot_key] = action
+        with c2:
+            self.metric = st.selectbox("Metric", options=self.metrics,
+                                       key=f"{self.plot_key}_dendrogram_metric", )
+
+        a1, a2, a3 = st.columns(3)
+        with a1:
+            self.add_base = st.checkbox("Add base dendrogram", value=True,
+                                        key=f"{self.plot_key}_add_base", )
+
+        with a2:
+            self.add_meta = st.checkbox("Add meta dendrogram", value=True,
+                                        key=f"{self.plot_key}_add_meta", )
+        with a3:
+            self.add_divider = st.checkbox("Add divide line",
+                                           key=f"{self.plot_key}_add_divider", )
+
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            self.colors = st.color_picker("Dendrogram base color",
+                                          key=f"{self.plot_key}_dendrogram_colors")
+        with c2:
+            self.meta_color = st.color_picker(
+                "Color for meta dendrogram",
+                value="#113285",
+                key=f"{self.plot_key}_meta_color")
+        with c3:
+            self.linewidth = st.number_input("Line Width", min_value=0.,
+                                             value=.5,
+                                             key=f"{self.plot_key}_lw", )
+
+    def apply(self, h: ClusterBoard):
+        h.add_dendrogram(self.side, method=self.method, metric=self.metric,
+                         add_base=self.add_base, add_meta=self.add_meta,
+                         meta_color=self.meta_color, colors=self.colors,
+                         linewidth=self.linewidth,
+                         add_divider=self.add_divider,
+                         )
 
 
 STATS_INPUT_HELP = "Table data: Each column corresponds to the row or column " \
@@ -521,15 +513,66 @@ class AnnoLabelsAdder(PlotAdder):
     plot_explain = "Annotate a few rows or columns."
     example_image = "annolabels.png"
 
+    anno_texts: List[str]
+
     def input_panel(self):
         super().input_panel()
-        self.anno_texts = st.text_input(
-            "The label to show, seperated by comma(,)")
-        self.anno_texts = self.anno_texts.split(",")
+        options = []
+        if self.data is not None:
+            options = self.data.flatten()
+        self.anno_texts = st.multiselect(
+            "Select label to show",
+            options=options,
+            default=[],
+            help="Label a few important columns",
+            key=f"{self.plot_key}_annolabels_select")
 
-    def get_data(self):
-        texts = self.user_input.parse()
-        return np.ma.masked_where(~np.in1d(texts, self.anno_texts), texts)
+    def apply(self, h):
+        p = AnnoLabels(self.data, mark=self.anno_texts, **self.get_options())
+        h.add_plot(self.side, p, size=self.size, pad=self.pad)
+
+
+class ChunkAdder(PlotAdder):
+    name = "Chunk"
+    plotter = Chunk
+    plot_explain = "Annotate each of your partition"
+
+    text_pad = .1
+    labels = []
+    colors = []
+
+    def input_panel(self):
+        current_chunks = self.datastorage.get_chunk()
+
+        self.labels = []
+        self.colors = []
+
+        color_cols = st.columns(current_chunks)
+        for ix, ccol in enumerate(color_cols):
+            with ccol:
+                color = st.color_picker(f"Color {ix + 1}",
+                                        value="#fff",
+                                        key=f"{self.plot_key}_color_{ix}")
+                self.colors.append(color)
+
+        label_cols = st.columns(current_chunks)
+        for ix, lcol in enumerate(label_cols):
+            with lcol:
+                label = st.text_input(f"Label {ix + 1}",
+                                      key=f"{self.plot_key}_label_{ix}")
+                self.labels.append(label)
+
+        filter_labels = [i != "" for i in self.labels]
+        self.launch = np.sum(filter_labels) == current_chunks
+
+    def extra_options(self):
+        self.text_pad = st.number_input("Space around text", min_value=0.,
+                                        value=.2)
+
+    def apply(self, h):
+        p = Chunk(texts=self.labels, fill_colors=self.colors,
+                  text_pad=self.text_pad)
+        h.add_plot(self.side, p, size=self.size, pad=self.pad)
 
 
 PLOTTERS = [
@@ -537,6 +580,8 @@ PLOTTERS = [
     ColorsAdder,
     LabelAdder,
     AnnoLabelsAdder,
+    TitleAdder,
+    ChunkAdder,
     BarAdder,
     BoxAdder,
     BoxenAdder,
@@ -546,90 +591,140 @@ PLOTTERS = [
     StripAdder,
     SwarmAdder,
 ]
-plot_options = dict(zip([p.name for p in PLOTTERS], PLOTTERS))
+
+PLOTTER_OPTIONS = dict(zip([p.name for p in PLOTTERS], PLOTTERS))
 
 
-def plot_panel(key, side, datasets, main_data):
-    with st.expander(f"{side.capitalize()} plot {key + 1}", expanded=False):
-        selector, _ = st.columns([1, 1])
-        adder = selector.selectbox(f"Plot type",
-                                   options=list(plot_options.keys()),
-                                   label_visibility="collapsed",
-                                   key=f"{key}-{side}")
-        adder_func = plot_options[adder]
-        adder_func(key, side, datasets, main_data)
+class SidePlotAdder:
 
+    def __init__(self, datastorage, storage):
+        self.side_options = ["right", "top", "left", "bottom"]
+        tabs = st.tabs([s.capitalize() for s in self.side_options])
+        for side in self.side_options:
+            state_key = f"{side}_plot_counts"
+            storage.add_state(state_key, 0)
+        self.storage = storage
+        self.datastorage = datastorage
 
-def side_plots_adder(datasets, main_data, storage):
-    side_options = ["right", "top", "left", "bottom"]
-    tabs = st.tabs([s.capitalize() for s in side_options])
-    for side in side_options:
+        self.side_plotter = {}
+
+        for side, tab in zip(self.side_options, tabs):
+            self.side_plotter[side] = self.create_tab(side, tab)
+
+    def create_tab(self, side, tab):
         state_key = f"{side}_plot_counts"
-        storage.add_state(state_key, 0)
-    for ix, (t, side) in enumerate(zip(tabs, side_options)):
-        state_key = f"{side}_plot_counts"
 
-        def add_callback(state_key):
-            storage[state_key] += 1
+        def add_callback():
+            self.storage[state_key] += 1
 
-        def delete_callback(state_key):
-            if storage[state_key] > 0:
-                storage[state_key] -= 1
+        def delete_callback():
+            if self.storage[state_key] > 0:
+                self.storage[state_key] -= 1
 
-        with t:
+        with tab:
             adder, deleter, _ = st.columns([1, 2, 2.5])
             with adder:
                 st.button(f"➕ Add One",
                           use_container_width=True,
-                          key=f"{side}_{ix}_add",
-                          on_click=partial(add_callback, state_key))
+                          key=f"{side}_add",
+                          on_click=add_callback,
+                          )
             with deleter:
                 st.button(f"❌ Remove Last Added",
                           use_container_width=True,
-                          key=f"{side}_{ix}_delete",
-                          on_click=partial(delete_callback, state_key),
-                          disabled=storage[state_key] == 0,
+                          key=f"{side}_delete",
+                          on_click=delete_callback,
+                          disabled=self.storage[state_key] == 0,
                           )
-            for i in range(storage[state_key]):
-                plot_panel(i, side, datasets, main_data)
+            plotter = []
+            for i in range(self.storage[state_key]):
+                p = self.add_plotter(i, side)
+                plotter.append(p)
+        return plotter
+
+    def add_plotter(self, key, side):
+        with st.expander(f"{side.capitalize()} plot {key + 1}",
+                         expanded=False):
+            selector, _ = st.columns([1, 1])
+            plot = selector.selectbox(f"Plot type",
+                                      options=list(PLOTTER_OPTIONS.keys()),
+                                      label_visibility="collapsed",
+                                      key=f"__{key}-{side}-plotter")
+            plotter = PLOTTER_OPTIONS[plot]
+            return plotter(key, side, self.datastorage)
+
+    def apply(self, h: ClusterBoard):
+        for side in self.side_options:
+            for plotter in self.side_plotter[side]:
+                plotter.apply(h)
 
 
-@dataclass
-class SplitAction:
-    orient: str
-    cut: list = field(default=None)
-    labels: list = field(default=None)
-    order: list = field(default=None)
-    spacing: float = 0.01
+class Splitter:
+    ready = False
 
+    def __init__(self, orient, datastorage):
+        self.orient = orient
+        self.datastorage = datastorage
+        self.how = st.selectbox("How to partition",
+                                options=["By Position", "By Data"],
+                                key=f"{orient}-how-to-partition"
+                                )
+        self.space = st.number_input("Gap", value=1, min_value=0,
+                                     max_value=100,
+                                     key=f"{orient}-partition-space",
+                                     help="Percentage of the canvas size")
 
-def spliter(orient, datastorage):
-
-    how = st.selectbox("How to partition",
-                       options=["By Position", "By Data"],
-                       key=f"{orient}-how-to-partition"
-                       )
-    space = st.number_input("Gap", value=1, min_value=0, max_value=100,
-                            key=f"{orient}-partition-space",
-                            help="Percentage of the canvas size")
-    if how == "By Position":
-        cut = st.text_input("Example: 10,15",
-                            key=f"{orient}-partition-by-position")
-        if cut != "":
-            cut = [int(c.strip()) for c in cut.split(",")]
-            return SplitAction(orient=orient, cut=cut, spacing=space/100)
-    else:
-        dataset_name = st.selectbox("Which dataset",
-                                    key=f"{orient}-partition-select-dataset",
-                                    options=[""] + datastorage.get_names())
-        order = st.text_input("Order", help="eg. a,b",
-                              key=f"{orient}-partition-order")
-        if dataset_name != "":
-            if order != "":
-                order = [str(o.strip()) for o in order.split(",")]
+        self.cut = []
+        self.dataset_name = ""
+        self.order = ""
+        if self.how == "By Position":
+            cut = st.text_input(
+                "Example: 10,15",
+                key=f"{orient}-partition-by-position")
+            if cut != "":
+                try:
+                    self.cut = [int(c.strip()) for c in cut.split(",")]
+                    self.ready = True
+                except Exception:
+                    st.error("Cannot parse your input into number, "
+                             "must be integer")
+        else:
+            self.dataset_name = st.selectbox(
+                "Which dataset",
+                key=f"{orient}-partition-select-dataset",
+                options=[""] + datastorage.get_names())
+            options = []
+            if self.dataset_name != "":
+                datasets = self.datastorage.get_datasets(self.dataset_name)
+                options = np.unique(datasets)
+            self.order = st.multiselect("Order",
+                                        options=options,
+                                        default=options,
+                                        key=f"{orient}-partition-order")
+            if len(self.order) != len(options):
+                st.error("The order does not contain all the items", icon="🚨")
             else:
-                order = None
-            return SplitAction(orient=orient,
-                               labels=datastorage.get_datasets(dataset_name),
-                               order=order, spacing=space/100)
+                self.ready = True
+        if self.ready:
+            self.datastorage.set_chunk(self.get_chunks())
 
+    def get_chunks(self) -> int:
+        """Return the number of chunk the heatmap"""
+        if self.how == "By Position":
+            return len(self.cut) + 1
+        else:
+            if self.dataset_name != "":
+                return len(self.order)
+        return 1
+
+    def apply(self, h: ClusterBoard):
+        if not self.ready:
+            return
+        caller = h.hsplit if self.orient == "h" else h.vsplit
+        if self.how == "By Position":
+            caller(cut=self.cut, spacing=self.space / 100)
+        else:
+            if self.dataset_name != "":
+                labels = self.datastorage.get_datasets(self.dataset_name)
+                caller(labels=labels, order=self.order,
+                       spacing=self.space / 100)
