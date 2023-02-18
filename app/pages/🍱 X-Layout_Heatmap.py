@@ -1,0 +1,193 @@
+import numpy as np
+import pandas as pd
+import streamlit as st
+import matplotlib as mpl
+import heatgraphy as hg
+
+from components.data_input import FileUpload
+from components.state import State, DataStorage
+
+from components.main_plots import MainHeatmap, MainSizedHeatmap, MainMark
+from components.resource import xlayout_example_data, get_font_list
+from components.side_plots import Splitter, SidePlotAdder
+
+from app.components.saver import ChartSaver
+
+s = State(key="x-layout-heatmap")
+s.init_state(figure=None, data_loaded=False)
+ds = DataStorage(key="x-layout-heatmap")
+
+st.title("X-Layout Visualization Creator")
+
+st.warning("We are still in beta stage, you may report to us "
+           "if you encounter any bugs",
+           icon="⚠️")
+
+st.header("Step1: Prepare Datasets")
+
+file = FileUpload(key="x-layout", header=False, index=False)
+
+data_name = st.text_input("Name", value=file.name)
+
+add = st.button("Add Dataset")
+if add:
+    if file is not None:
+        process = True
+        if data_name == "":
+            st.error("Please give a name to your dataset", icon="✍️")
+            process = False
+        if data_name in ds.get_names():
+            st.error("The name is already taken by other datasets")
+            process = False
+
+        if process:
+            data = file.parse()
+            ds.add_dataset(data_name, data)
+
+load_example = st.button("Load Example")
+if load_example:
+    examples = xlayout_example_data()
+    for d in examples:
+        ds.add_dataset(d.name, d.data)
+
+if len(ds.get_all_names()) == 0:
+    st.warning("Please add at least one dataset to proceed", icon="🐣")
+
+used_datasets = st.multiselect("Added Datasets",
+                               options=ds.get_all_names(),
+                               default=ds.get_all_names(),
+                               help="Select datasets for plotting"
+                               )
+ds.set_visible_datasets(used_datasets)
+
+if len(used_datasets) > 0:
+    s['data_loaded'] = True
+
+if (len(ds.get_all_names()) > 0) & (len(used_datasets) == 0):
+    st.warning("Please select at least one dataset to proceed", icon="🐣")
+
+with st.expander("View Dataset"):
+    view_data_name = st.selectbox("Select a dataset", options=used_datasets)
+    if s['data_loaded']:
+        view_data = ds.get_datasets(view_data_name)
+        m1, m2, m3, m4 = st.columns(4)
+        view_shape = view_data.shape
+        with m1:
+            if view_data.ndim == 2:
+                st.metric("Row × Column",
+                          value=f"{view_shape[0]} × {view_shape[1]}")
+            else:
+                st.metric("Size", value=f"{view_data.size}")
+        if np.issubdtype(view_data.dtype, np.number):
+            with m2:
+                st.metric("Min", value=view_data.min())
+            with m3:
+                st.metric("Max", value=view_data.max())
+            with m4:
+                st.metric("Mean", value=view_data.mean())
+
+        st.dataframe(view_data)
+
+# st.markdown("---")
+
+if s['data_loaded']:
+
+    st.header("Step2: Main Plot")
+    st.caption("You can add multiple layer to main plot")
+
+    cluster_data_name = \
+        st.selectbox("Which dataset used for cluster",
+                     options=ds.get_names(subset="2d"))
+    ds.set_main_data(cluster_data_name)
+
+    cluster_data = ds.get_datasets(cluster_data_name)
+    cluster_data_shape = cluster_data.shape
+
+    width_col, height_col = st.columns(2)
+    with width_col:
+        width = st.number_input("Width", min_value=1., value=5., step=.1)
+    with height_col:
+        height = st.number_input("Height", min_value=1., value=4., step=.1)
+
+    heat, sized_heat, mark, partition = st.tabs(["Heatmap", "Sized Heatmap",
+                                                 "Mark", "Partition"])
+
+    with heat:
+        heatmap = MainHeatmap(ds, key="main-heatmap")
+
+    with sized_heat:
+        sized_heatmap = MainSizedHeatmap(ds, key="main-sized-heatmap")
+
+    with mark:
+        mark_heatmap = MainMark(ds, key="main-mark-heatmap")
+
+    with partition:
+        st.subheader("Partition the heatmap")
+        s1, s2 = st.columns(2)
+        with s1:
+            st.markdown("**Horizontal**")
+            hsplitter = Splitter("h", ds)
+        with s2:
+            st.markdown("**Vertical**")
+            vsplitter = Splitter("v", ds)
+
+    # ============================= STEP 3 ===================================
+
+    st.header("Step 3: Side Plots")
+
+    side_plotter = SidePlotAdder(ds, s)
+
+    # ============================= STEP 4 ===================================
+
+    st.header("Step 4: Result")
+
+    f1, f2 = st.columns(2)
+    with f1:
+        fonts = get_font_list()
+        font_family = st.selectbox("Font Family", options=fonts,
+                                   index=fonts.index("Noto Sans"))
+    with f2:
+        font_size = st.number_input("Font size", min_value=1, value=10)
+
+    # TODO: How to adjust legend to be more intuitive
+    # l1, l2, l3 = st.columns(3)
+    # with l1:
+    #     legend_side = st.selectbox(
+    #         "Draw Legend",
+    #         options=["right", "left", "top", "bottom", "No Legend"],
+    #         format_func=lambda x: x.capitalize()
+    #     )
+    # with l2:
+    #     legend_stack = st.selectbox("Legend Stack", options=["column", "row"])
+    # with l3:
+    #     legend_stack_size = st.number_input("Stack Size", min_value=1, value=3)
+
+    _, render_button_c, _ = st.columns(3)
+    with render_button_c:
+        render = st.button("Render", type="primary", use_container_width=True)
+    if render:
+        with mpl.rc_context(
+                {"font.family": font_family, "font.size": font_size}):
+            h = hg.ClusterBoard(cluster_data=cluster_data,
+                                width=width, height=height)
+            # apply main
+            heatmap.apply(h)
+            sized_heatmap.apply(h)
+            mark_heatmap.apply(h)
+
+            # apply split
+            hsplitter.apply(h)
+            vsplitter.apply(h)
+
+            # Add Side plot
+            side_plotter.apply(h)
+
+            h.add_legends()
+            h.render()
+        s['figure'] = h.figure
+
+    if s['figure'] is not None:
+        st.pyplot(s['figure'])
+
+        with st.sidebar:
+            ChartSaver(s['figure'])

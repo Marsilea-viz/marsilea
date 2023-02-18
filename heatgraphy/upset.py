@@ -132,7 +132,7 @@ class UpsetData:
             d = [i in s for i in items]
             data.append(d)
         data = np.array(data, dtype=int).T
-        container = cls(data, names=names, items=items,
+        container = cls(data, names=new_names, items=items,
                         sets_attrs=sets_attrs,
                         items_attrs=items_attrs)
         return container
