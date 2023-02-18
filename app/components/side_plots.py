@@ -150,7 +150,8 @@ class ColorsAdder(PlotAdder):
     def extra_options(self):
         self.label = st.text_input("Label",
                                    key=f"{self.plot_key}_colors_label")
-        cmap = ColormapSelector(key=self.plot_key, default="Dark2")
+        cmap = ColormapSelector(
+            key=self.plot_key, default="Dark2", data_mapping=False)
         self.cmap = cmap.get_cmap()
 
     def get_options(self):

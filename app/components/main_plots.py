@@ -67,6 +67,7 @@ class MainHeatmap(MainPlotter):
     fontsize: int
     linewidth: float
     cmap: Any
+    norm: Any
 
     plot_explain = "Heatmap reveal variation through color strength."
     example_image = "heatmap.png"
@@ -87,11 +88,13 @@ class MainHeatmap(MainPlotter):
 
         cmap_selector = ColormapSelector(key=self.key, default="coolwarm")
         self.cmap = cmap_selector.get_cmap()
+        self.norm = cmap_selector.get_norm()
 
     def apply(self, h: ClusterBoard):
         if self.launch:
             mesh = ColorMesh(data=self.data,
                              cmap=self.cmap,
+                             norm=self.norm,
                              linewidth=self.linewidth,
                              annot=self.annot,
                              annot_kws=dict(fontsize=self.fontsize),
@@ -141,6 +144,7 @@ class MainSizedHeatmap(MainPlotter):
     linewidth = 0.
     size_data = None
     color_data = None
+    norm = None
 
     def showcase(self):
 
@@ -209,6 +213,7 @@ class MainSizedHeatmap(MainPlotter):
         cmap_selector = ColormapSelector(key=f"{self.key}-cmap-select",
                                          default="Greens")
         self.cmap = cmap_selector.get_cmap()
+        self.norm = cmap_selector.get_norm()
 
         self.marker = MARKER_OPTIONS[marker]
 
@@ -220,6 +225,7 @@ class MainSizedHeatmap(MainPlotter):
                 color = self.color_data
             mesh = SizedMesh(self.size_data,
                              color=color,
+                             norm=self.norm,
                              linewidth=self.linewidth,
                              marker=self.marker,
                              cmap=self.cmap,

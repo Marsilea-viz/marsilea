@@ -5,6 +5,8 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
+from openpyxl import load_workbook
+
 
 class InputBase:
     sep: str
@@ -28,7 +30,8 @@ class InputBase:
 
 
 @st.cache_data
-def parse_file(file, export="ndarray", header=False, index=False):
+def parse_file(file, header=False, index=False,
+               sheet_name=0):
     header = None if not header else "infer"
     index_col = None if not index else 0
     suffix = file.name.split(".")[-1]
@@ -38,14 +41,9 @@ def parse_file(file, export="ndarray", header=False, index=False):
         kws = dict(sep=sep, header=header, index_col=index_col)
     else:
         reader = pd.read_excel
-        kws = {}
+        kws = dict(header=header, index_col=index_col, sheet_name=sheet_name)
     data = reader(file, **kws)
-    if export == "ndarray":
-        if len(data.columns) == 1:
-            return data.to_numpy().flatten()
-        return data.to_numpy()
-    else:
-        return data
+    return data
 
 
 class FileUpload(InputBase):
@@ -77,6 +75,18 @@ class FileUpload(InputBase):
         elif index:
             self.index = self._index_checkbox()
 
+        self.sheet_name = 0
+        if self.user_input is not None:
+            suffix = self.user_input.name.split(".")[-1]
+            if suffix == "xlsx":
+                wb = load_workbook(
+                    self.user_input, read_only=True, keep_links=False)
+                sheetnames = wb.sheetnames
+                if len(sheetnames) > 1:
+                    self.sheet_name = \
+                        st.selectbox("Please select a sheet",
+                                     options=sheetnames)
+
     def _header_checkbox(self):
         return st.checkbox("Use header?",
                            value=self.use_header,
@@ -87,15 +97,29 @@ class FileUpload(InputBase):
                            value=self.use_index,
                            key=f"select-index-{self.key}")
 
-    def parse(self) -> np.ndarray:
+    def _parse_to_df(self):
         if self.user_input is not None:
             return parse_file(self.user_input, header=self.header,
-                              index=self.index)
+                              index=self.index, sheet_name=self.sheet_name)
+
+    def parse(self) -> np.ndarray:
+        if self.user_input is not None:
+            data = self._parse_to_df()
+            if len(data.columns) == 1:
+                return data.to_numpy().flatten()
+            return data.to_numpy()
+
+    def parse_parts(self, row_label=True, col_label=True):
+        if self.user_input is not None:
+            data = parse_file(self.user_input, header=col_label,
+                              index=row_label, sheet_name=self.sheet_name)
+            row = data.index.to_numpy(dtype=str)
+            col = data.columns.to_numpy(dtype=str)
+            data = data.to_numpy()
+            return data, row, col
 
     def parse_dataframe(self) -> pd.DataFrame:
-        if self.user_input is not None:
-            return parse_file(self.user_input, export="dataframe",
-                              header=self.header, index=self.index)
+        return self._parse_to_df()
 
     @property
     def name(self):

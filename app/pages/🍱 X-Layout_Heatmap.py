@@ -29,7 +29,13 @@ file = FileUpload(key="x-layout", header=False, index=False)
 
 data_name = st.text_input("Name", value=file.name)
 
-add = st.button("Add Dataset")
+c1, c2 = st.columns(2)
+with c1:
+    extract_row_label = st.checkbox("Extract row labels")
+with c2:
+    extract_col_label = st.checkbox("Extract column labels")
+
+add = st.button("Add Dataset", type="primary")
 if add:
     if file is not None:
         process = True
@@ -41,8 +47,19 @@ if add:
             process = False
 
         if process:
-            data = file.parse()
-            ds.add_dataset(data_name, data)
+            if extract_row_label or extract_col_label:
+                data, row, col = file.parse_parts(row_label=extract_row_label,
+                                                  col_label=extract_col_label)
+                ds.add_dataset(data_name, data)
+                if extract_row_label:
+                    row_name = f"{data_name} (Row Labels)"
+                    ds.add_dataset(row_name, row)
+                if extract_col_label:
+                    col_name = f"{data_name} (Column Labels)"
+                    ds.add_dataset(col_name, col)
+            else:
+                data = file.parse()
+                ds.add_dataset(data_name, data)
 
 load_example = st.button("Load Example")
 if load_example:

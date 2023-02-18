@@ -3,7 +3,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import streamlit as st
 from matplotlib.cm import get_cmap
-from matplotlib.colors import LinearSegmentedColormap
+from matplotlib.colors import LinearSegmentedColormap, Normalize, \
+    CenteredNorm, TwoSlopeNorm
 
 
 @st.cache_data
@@ -34,7 +35,7 @@ def random_color():
 
 class ColormapSelector:
 
-    def __init__(self, key, default="coolwarm"):
+    def __init__(self, key, default="coolwarm", data_mapping=True):
         cmap_data = get_colormap_names()
         cmap_options = sorted(cmap_data.keys())
         default_index = cmap_options.index(default)
@@ -109,5 +110,46 @@ class ColormapSelector:
                 cmap_fig = get_colormap_images(self.cmap)
                 st.pyplot(cmap_fig)
 
+        if data_mapping:
+            norm_strategy = st.selectbox(
+                "Mapping Strategy",
+                key=f'{key}-norm-selector',
+                options=["Linear", "Min-Max", "Centered On", "Two Range"])
+            self.norm = None
+            if norm_strategy == "Min-Max":
+                st.caption("Value outside the min/max will be mapped to min/max")
+                v1, v2 = st.columns(2)
+                with v1:
+                    vmin = st.number_input("Min", key=f'{key}-norm-vmin')
+                with v2:
+                    vmax = st.number_input("Max", key=f'{key}-norm-vmax')
+                self.norm = Normalize(vmin=vmin, vmax=vmax)
+            elif norm_strategy == "Centered On":
+                st.caption("Center on a specific value and extend symmetrically")
+                v1, v2 = st.columns(2)
+                with v1:
+                    vcenter = st.number_input("Center",
+                                              key=f'{key}-center_norm-vcenter')
+                with v2:
+                    vhalf = st.number_input("Extend", min_value=0., value=1.,
+                                            key=f'{key}-center_norm-vhalf')
+                self.norm = CenteredNorm(vcenter=vcenter, halfrange=vhalf)
+            elif norm_strategy == "Two Range":
+                st.caption("Map to two range")
+                v1, v2, v3 = st.columns(3)
+                with v1:
+                    vmin = st.number_input(
+                        "Min", value=0., key=f'{key}-tsnorm-vmin')
+                with v2:
+                    vcenter = st.number_input(
+                        "Center", value=vmin+1, key=f'{key}-tsnorm-vcenter')
+                with v3:
+                    vmax = st.number_input(
+                        "Max", value=vcenter+1, key=f'{key}-tsnorm-vmax')
+                self.norm = TwoSlopeNorm(vcenter=vcenter, vmin=vmin, vmax=vmax)
+
     def get_cmap(self):
         return self.cmap
+
+    def get_norm(self):
+        return self.norm

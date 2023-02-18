@@ -19,6 +19,7 @@ s = State(key="simple_heatmap")
 s.init_state(
     data=None,
     cmap="coolwarm",
+    norm=None,
     datasets=[],
     figure=None,
 )
@@ -74,9 +75,9 @@ if s['data'] is not None:
 
         s1, s2 = st.columns(2)
         with s1:
-            width = st.number_input("Width", min_value=0, value=5)
+            width = st.number_input("Heatmap Width", min_value=0, value=5)
         with s2:
-            height = st.number_input("Height", min_value=0, value=5)
+            height = st.number_input("Heatmap Height", min_value=0, value=5)
 
         fonts = get_font_list()
         font_family = st.selectbox("Font Family", options=fonts,
@@ -96,8 +97,12 @@ if s['data'] is not None:
                    "canberra", "braycurtis", "mahalanobis"]
         with s1:
             method = st.selectbox("Method", options=methods)
+            row_size = st.number_input(
+                "Size of Row Dendrogram", min_value=0., value=1.)
         with s2:
             metric = st.selectbox("Distance Metrics", options=metrics)
+            col_size = st.number_input(
+                "Size of Column Dendrogram", min_value=0., value=1.)
 
     with label_tab:
 
@@ -129,6 +134,7 @@ if s['data'] is not None:
     with colormap_tab:
         cmap = ColormapSelector("simple")
         s['cmap'] = cmap.get_cmap()
+        s['norm'] = cmap.get_norm()
 
     st.markdown("---")
 
@@ -145,16 +151,21 @@ if s['data'] is not None:
 
             h = hg.Heatmap(data=main_data,
                            cmap=s['cmap'],
+                           norm=s['norm'],
                            width=width, height=height)
             if method == "ward":
                 metric = "euclidean"
             if cluster == "Row":
-                h.add_dendrogram("left", method=method, metric=metric)
+                h.add_dendrogram(
+                    "left", method=method, metric=metric, size=row_size)
             elif cluster == "Column":
-                h.add_dendrogram("top", method=method, metric=metric)
+                h.add_dendrogram(
+                    "top", method=method, metric=metric, size=col_size)
             elif cluster == "Both":
-                h.add_dendrogram("left", method=method, metric=metric)
-                h.add_dendrogram("top", method=method, metric=metric)
+                h.add_dendrogram(
+                    "left", method=method, metric=metric, size=row_size)
+                h.add_dendrogram(
+                    "top", method=method, metric=metric, size=col_size)
 
             if add_row_labels:
                 if len(row_marks) > 0:
