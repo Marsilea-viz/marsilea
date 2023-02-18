@@ -57,7 +57,8 @@ class DataStorage:
         self.state.init_state(datasets_names=[],
                               datasets={},
                               datasets_dims={},
-                              chunk=1,
+                              h_chunk=1,
+                              v_chunk=1,
                               )
         self.visible_datasets = None
         self.main_data_name = None
@@ -140,9 +141,13 @@ class DataStorage:
                 return False
         return True
 
-    def set_chunk(self, chunk):
+    def set_chunk(self, orient, chunk):
         """To record if the current main data is split"""
-        self.state['chunk'] = chunk
+        key = "h_chunk" if orient == "h" else "v_chunk"
+        self.state[key] = chunk
 
-    def get_chunk(self):
-        return self.state['chunk']
+    def get_chunk(self, side):
+        if side in ["left", "right"]:
+            return self.state["h_chunk"]
+        else:
+            return self.state["v_chunk"]

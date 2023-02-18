@@ -175,14 +175,16 @@ class TitleAdder(PlotAdder):
         with c1:
             self.color = st.color_picker("Title color")
         with c2:
-            self.fontsize = st.number_input("Title font size", value=10,
-                                            min_value=5, max_value=20)
+            self.fontsize = st.number_input(
+                "Title font size", value=10, min_value=5, max_value=20,
+                key=f"{self.plot_key}_title_fontsize")
         with c3:
-            fontstyle = st.selectbox("Title font style",
-                                     options=["regular", "Bold", "Italic",
-                                              "Bold + Italic"],
-                                     help="Style is not available for some font"
-                                     )
+            fontstyle = st.selectbox(
+                "Title font style",
+                options=["regular", "Bold", "Italic", "Bold + Italic"],
+                help="Style is not available for some font",
+                key=f"{self.plot_key}_title_fontstyle"
+            )
         if fontstyle != "regular":
             if fontstyle != "Italic":
                 self.fontweight = "bold"
@@ -229,38 +231,44 @@ class DendrogramAdder(PlotAdder):
         c1, c2 = st.columns(2)
 
         with c1:
-            self.method = st.selectbox("Method", options=self.methods,
-                                       key=f"{self.plot_key}_dendrogram_method", )
+            self.method = st.selectbox(
+                "Method", options=self.methods,
+                key=f"{self.plot_key}_dendrogram_method")
 
         with c2:
-            self.metric = st.selectbox("Metric", options=self.metrics,
-                                       key=f"{self.plot_key}_dendrogram_metric", )
+            self.metric = st.selectbox(
+                "Metric", options=self.metrics,
+                key=f"{self.plot_key}_dendrogram_metric")
 
         a1, a2, a3 = st.columns(3)
         with a1:
-            self.add_base = st.checkbox("Add base dendrogram", value=True,
-                                        key=f"{self.plot_key}_add_base", )
+            self.add_base = st.checkbox(
+                "Add base dendrogram", value=True,
+                key=f"{self.plot_key}_add_base")
 
         with a2:
-            self.add_meta = st.checkbox("Add meta dendrogram", value=True,
-                                        key=f"{self.plot_key}_add_meta", )
+            self.add_meta = st.checkbox(
+                "Add meta dendrogram", value=True,
+                key=f"{self.plot_key}_add_meta")
         with a3:
-            self.add_divider = st.checkbox("Add divide line",
-                                           key=f"{self.plot_key}_add_divider", )
+            self.add_divider = st.checkbox(
+                "Add divide line",
+                key=f"{self.plot_key}_add_divider")
 
         c1, c2, c3 = st.columns(3)
         with c1:
-            self.colors = st.color_picker("Dendrogram base color",
-                                          key=f"{self.plot_key}_dendrogram_colors")
+            self.colors = st.color_picker(
+                "Dendrogram base color",
+                key=f"{self.plot_key}_dendrogram_colors")
         with c2:
             self.meta_color = st.color_picker(
                 "Color for meta dendrogram",
                 value="#113285",
                 key=f"{self.plot_key}_meta_color")
         with c3:
-            self.linewidth = st.number_input("Line Width", min_value=0.,
-                                             value=.5,
-                                             key=f"{self.plot_key}_lw", )
+            self.linewidth = st.number_input(
+                "Line Width", min_value=0., value=.5,
+                key=f"{self.plot_key}_lw")
 
     def apply(self, h: ClusterBoard):
         h.add_dendrogram(self.side, method=self.method, metric=self.metric,
@@ -294,18 +302,24 @@ class BarAdder(PlotAdder):
     def extra_options(self):
         c1, c2, c3, c4, c5 = st.columns(5)
         with c1:
-            self.color = st.color_picker("Color", value="#00b796")
+            self.color = st.color_picker(
+                "Color", value="#00b796", key=f"{self.plot_key}_bar_color")
         with c2:
-            self.errcolor = st.color_picker("Error Bar Color", value="#555555")
+            self.errcolor = st.color_picker(
+                "Error Bar Color", value="#555555",
+                key=f"{self.plot_key}_bar_errcolor")
         with c3:
-            self.errwidth = st.number_input("Error Bar Width", value=1.,
-                                            min_value=0., max_value=5.)
+            self.errwidth = st.number_input(
+                "Error Bar Width", value=1., min_value=0., max_value=5.,
+                key=f"{self.plot_key}_bar_errwidth")
         with c4:
-            self.capsize = st.number_input("Error Cap Size", value=.15,
-                                           min_value=.1, max_value=1.)
+            self.capsize = st.number_input(
+                "Error Cap Size", value=.15, min_value=.1, max_value=1.,
+                key=f"{self.plot_key}_bar_errcapsize")
         with c5:
-            self.bar_width = st.number_input("Bar Width", value=.8,
-                                             min_value=.1, max_value=1.)
+            self.bar_width = st.number_input(
+                "Bar Width", value=.8, min_value=.1, max_value=1.,
+                key=f"{self.plot_key}_bar_width")
 
     def get_options(self):
         return dict(color=self.color, errcolor=self.errcolor,
@@ -328,13 +342,16 @@ class BoxAdder(PlotAdder):
     def extra_options(self):
         c1, c2, c3 = st.columns(3)
         with c1:
-            self.color = st.color_picker("Color", value="#00b796")
+            self.color = st.color_picker(
+                "Color", value="#00b796", key=f"{self.plot_key}_box_color")
         with c2:
-            self.linewidth = st.number_input("Line Width", value=1.,
-                                             min_value=0., max_value=5.)
+            self.linewidth = st.number_input(
+                "Line Width", value=1., min_value=0., max_value=5.,
+                key=f"{self.plot_key}_box_lw")
         with c3:
-            self.box_width = st.number_input("Box Width", value=.8,
-                                             min_value=.1, max_value=1.)
+            self.box_width = st.number_input(
+                "Box Width", value=.8, min_value=.1, max_value=1.,
+                key=f"{self.plot_key}_box_width")
 
     def get_options(self):
         return dict(color=self.color,
@@ -358,16 +375,20 @@ class BoxenAdder(PlotAdder):
     def extra_options(self):
         c1, c2, c3, c4 = st.columns(4)
         with c1:
-            self.color = st.color_picker("Color", value="#00b796")
+            self.color = st.color_picker(
+                "Color", value="#00b796", key=f"{self.plot_key}_boxen_color")
         with c2:
-            self.linewidth = st.number_input("Line Width", value=1.,
-                                             min_value=0., max_value=5.)
+            self.linewidth = st.number_input(
+                "Line Width", value=1., min_value=0., max_value=5.,
+                key=f"{self.plot_key}_boxen_lw")
         with c3:
-            self.box_width = st.number_input("Box Width", value=.8,
-                                             min_value=.1, max_value=1.)
+            self.box_width = st.number_input(
+                "Box Width", value=.8, min_value=.1, max_value=1.,
+                key=f"{self.plot_key}_boxen_width")
         with c4:
-            self.flier_size = st.number_input("Flier Size", value=20,
-                                              min_value=1)
+            self.flier_size = st.number_input(
+                "Flier Size", value=20, min_value=1,
+                key=f"{self.plot_key}_flier_size")
 
     def get_options(self):
         return dict(color=self.color,
@@ -398,17 +419,21 @@ class PointAdder(PlotAdder):
     def extra_options(self):
         c1, c2, c3, c4 = st.columns(4)
         with c1:
-            self.color = st.color_picker("Color", value="#00b796")
+            self.color = st.color_picker(
+                "Color", value="#00b796", key=f"{self.plot_key}_point_color")
         with c2:
             linestyle = st.selectbox(
-                "Line", options=["No Line", "Straight", "Dashed"])
+                "Line", options=["No Line", "Straight", "Dashed"],
+                key=f"{self.plot_key}_point_linestyle")
             self.linestyle = self.ls[linestyle]
         with c3:
-            self.errwidth = st.number_input("Error Bar Width", value=1.,
-                                            min_value=0., max_value=5.)
+            self.errwidth = st.number_input(
+                "Error Bar Width", value=1., min_value=0., max_value=5.,
+                key=f"{self.plot_key}_point_errwidth")
         with c4:
-            self.capsize = st.number_input("Error Cap Size", value=.3,
-                                           min_value=.1, max_value=1.)
+            self.capsize = st.number_input(
+                "Error Cap Size", value=.3, min_value=.1, max_value=1.,
+                key=f"{self.plot_key}_point_capsize")
 
     def get_options(self):
         return dict(color=self.color,
@@ -434,25 +459,28 @@ class ViolinAdder(PlotAdder):
     def extra_options(self):
         c1, c2, c3, c4 = st.columns(4)
         with c1:
-            self.color = st.color_picker("Color", value="#00b796")
+            self.color = st.color_picker(
+                "Color", value="#00b796", key=f"{self.plot_key}_violin_color")
         with c2:
-            self.scale = st.selectbox("Scale Method",
-                                      options=["area", "count", "width"],
-                                      help="The method used to scale the "
-                                           "width of each violin. If area, "
-                                           "each violin will have "
-                                           "the same area.If count, the width "
-                                           "of the violins will be scaled by "
-                                           "the number of observations "
-                                           "in that bin. If width, "
-                                           "each violin will have "
-                                           "the same width.")
+            self.scale = st.selectbox(
+                "Scale Method", options=["area", "count", "width"],
+                help="The method used to scale the width of each violin. "
+                     "If area, each violin will have the same area. "
+                     "If count, the width of the violins will be scaled by "
+                     "the number of observations in that bin. "
+                     "If width, each violin will have the same width.",
+                key=f"{self.plot_key}_violin_scale"
+            )
         with c3:
-            self.inner = st.selectbox("Violin Interior", options=[
-                "box", "quartile", "point", "stick"])
+            self.inner = st.selectbox(
+                "Violin Interior",
+                options=["box", "quartile", "point", "stick"],
+                key=f"{self.plot_key}_violin_inner")
         with c4:
-            self.linewidth = st.number_input("Line Width", value=1.,
-                                             min_value=0., max_value=5.)
+            self.linewidth = st.number_input(
+                "Line Width", value=1., min_value=0., max_value=5.,
+                key=f"{self.plot_key}_violin_linewidth"
+            )
 
     def get_options(self):
         return dict(color=self.color,
@@ -475,10 +503,13 @@ class StripAdder(PlotAdder):
     def extra_options(self):
         c1, c2 = st.columns(2)
         with c1:
-            self.color = st.color_picker("Point Color", value="#00b796")
+            self.color = st.color_picker(
+                "Point Color", value="#00b796",
+                key=f"{self.plot_key}_strip_color")
         with c2:
-            self.marker_size = st.number_input("Marker Size", value=1.,
-                                               min_value=0., max_value=5.)
+            self.marker_size = st.number_input(
+                "Marker Size", value=1., min_value=0., max_value=5.,
+                key=f"{self.plot_key}_strip_marker_size")
 
     def get_options(self):
         return dict(color=self.color,
@@ -542,7 +573,7 @@ class ChunkAdder(PlotAdder):
     colors = []
 
     def input_panel(self):
-        current_chunks = self.datastorage.get_chunk()
+        current_chunks = self.datastorage.get_chunk(self.side)
 
         self.labels = []
         self.colors = []
@@ -550,24 +581,26 @@ class ChunkAdder(PlotAdder):
         color_cols = st.columns(current_chunks)
         for ix, ccol in enumerate(color_cols):
             with ccol:
-                color = st.color_picker(f"Color {ix + 1}",
-                                        value="#fff",
-                                        key=f"{self.plot_key}_color_{ix}")
+                color = st.color_picker(
+                    f"Color {ix + 1}", value="#fff",
+                    key=f"{self.plot_key}_chunk_color_{ix}")
                 self.colors.append(color)
 
         label_cols = st.columns(current_chunks)
         for ix, lcol in enumerate(label_cols):
             with lcol:
-                label = st.text_input(f"Label {ix + 1}",
-                                      key=f"{self.plot_key}_label_{ix}")
+                label = st.text_input(
+                    f"Label {ix + 1}",
+                    key=f"{self.plot_key}_chunk_label_{ix}")
                 self.labels.append(label)
 
         filter_labels = [i != "" for i in self.labels]
         self.launch = np.sum(filter_labels) == current_chunks
 
     def extra_options(self):
-        self.text_pad = st.number_input("Space around text", min_value=0.,
-                                        value=.2)
+        self.text_pad = st.number_input(
+            "Space around text", min_value=0., value=.2,
+            key=f"{self.plot_key}_chunk_text_pad")
 
     def apply(self, h):
         p = Chunk(texts=self.labels, fill_colors=self.colors,
@@ -706,7 +739,7 @@ class Splitter:
             else:
                 self.ready = True
         if self.ready:
-            self.datastorage.set_chunk(self.get_chunks())
+            self.datastorage.set_chunk(orient, self.get_chunks())
 
     def get_chunks(self) -> int:
         """Return the number of chunk the heatmap"""
