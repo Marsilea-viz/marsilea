@@ -510,7 +510,7 @@ def _debug_ax(ax, side, text=None):
 
 def _remove_axes(ax: Axes | List[Axes]):
     if ax is None:
-        pass
+        return
     if isinstance(ax, Axes):
         ax.remove()
     else:

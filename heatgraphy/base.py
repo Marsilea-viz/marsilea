@@ -197,7 +197,7 @@ class WhiteBoard(LegendMaker):
 
     """
     layout: CrossLayout
-    figure: Figure
+    figure: Figure = None
     _row_plan: List[RenderPlan]
     _col_plan: List[RenderPlan]
     _layer_plan: List[RenderPlan]
@@ -392,13 +392,10 @@ class WhiteBoard(LegendMaker):
         self._render_legend()
 
     def save(self, fname, **kwargs):
-        if self.figure is not None:
-            save_options = dict(bbox_inches="tight")
-            save_options.update(kwargs)
-            self.figure.savefig(fname, **save_options)
-        else:
-            warnings.warn("Figure does not exist, "
-                          "please render it before saving as file.")
+        self.render()
+        save_options = dict(bbox_inches="tight")
+        save_options.update(kwargs)
+        self.figure.savefig(fname, **save_options)
 
 
 class CompositeBoard(LegendMaker):
