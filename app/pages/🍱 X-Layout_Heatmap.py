@@ -23,6 +23,13 @@ st.warning("We are still in beta stage, you may report to us "
            "if you encounter any bugs",
            icon="⚠️")
 
+st.markdown(
+    '<video controls width="250" autoplay="true" muted="true" loop="true" '
+    'playsinline style="pointer-events: none;">'
+    '<source src="https://raw.githubusercontent.com/Heatgraphy'
+    '/heatgraphy/main/app/img/V2.mp4" '
+    'type="video/mp4" /></video>', unsafe_allow_html=True)
+
 st.header("Step1: Prepare Datasets")
 
 file = FileUpload(key="x-layout", header=False, index=False)

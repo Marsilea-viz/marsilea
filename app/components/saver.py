@@ -23,7 +23,7 @@ class ChartSaver:
             st.download_button(
                 label=f"Download Image",
                 data=self.serialize(),
-                file_name=f"Heatmap.{self.format}"
+                file_name=f"result.{self.format}"
             )
 
     def serialize(self):

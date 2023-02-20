@@ -2,6 +2,7 @@
 Resources share by multiple pages
 """
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 import mpl_fontkit as fk
@@ -69,3 +70,28 @@ def xlayout_example_data():
     examples.append(ExampleData(name, fake_data))
 
     return examples
+
+
+@st.cache_data
+def upset_showcase_data():
+    sets_df = pd.DataFrame({"Set 1": ["Item 1", "Item 2", ""],
+                            "Set 2": ["Item 4", "Item 2", "Item 3"],
+                            "Set 3": ["Item 9", "", ""]})
+    items_df = pd.DataFrame({"Item 1": ["Set 1", "Set 2", ""],
+                             "Item 2": ["Set 4", "Set 2", "Set 3"],
+                             "Item 3": ["Set 9", "", ""]})
+
+    binary_df = pd.DataFrame(data=np.random.randint(0, 2, (3, 3)),
+                             index=["Item 1", "Item 2", "Item 3"],
+                             columns=["Set 1", "Set 2", "Set 3"])
+
+    return {
+        'sets': sets_df,
+        'memberships': items_df,
+        'binary': binary_df
+    }
+
+
+@st.cache_data
+def upset_example_data():
+    return pd.read_csv(Path(__file__).parent / 'upset_example.csv', index_col=0)

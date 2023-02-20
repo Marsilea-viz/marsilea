@@ -35,8 +35,7 @@ load = st.button("Load Example")
 if load:
     s['data'] = simple_heatmap_example_data()
 if s['data'] is not None:
-    view_tab, trans_tab = st.tabs(["View", "Transform"])
-    with view_tab:
+    with st.expander('View'):
         st.dataframe(s['data'])
 
 if s['data'] is not None:

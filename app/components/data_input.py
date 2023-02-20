@@ -51,10 +51,8 @@ class FileUpload(InputBase):
     def __init__(self, key=None, header=False, index=False,
                  use_header=False, use_index=False):
         super().__init__(key=key)
-        self.header = False
-        self.index = False
-        self.use_header = use_header
-        self.use_index = use_index
+        self.header = use_header
+        self.index = use_index
 
         self.user_input = st.file_uploader("Choose a table file",
                                            key=f"table_reader-{self.key}",
@@ -89,12 +87,12 @@ class FileUpload(InputBase):
 
     def _header_checkbox(self):
         return st.checkbox("Use header?",
-                           value=self.use_header,
+                           value=self.header,
                            key=f"select-header-{self.key}")
 
     def _index_checkbox(self):
         return st.checkbox("Use row labels?",
-                           value=self.use_index,
+                           value=self.index,
                            key=f"select-index-{self.key}")
 
     def _parse_to_df(self):

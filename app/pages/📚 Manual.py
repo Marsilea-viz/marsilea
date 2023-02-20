@@ -22,9 +22,16 @@ st.markdown(
     "thus generate a more comprehensive representation of dataset. \n\n"
     "In the above picture, different features from the same dataset can be "
     "added as side plot to reveal unseen aspect of main feature. \n\n"
-    "It's not necessary a heatmap, "
-    "but heatmap is indeed the most widely use case."
+    "It's not necessary a heatmap, it can also used to create "
+    "upset plot, density plot, oncoprint etc. "
+    "But heatmap is indeed the most widely use case."
 )
+
+st.markdown("## How to export image?")
+
+st.markdown("After you render the plot, "
+            "an export panel will appear on the sidebar. "
+            "Select your desire format and DPI to export.")
 
 st.markdown("## How to report a bug?")
 

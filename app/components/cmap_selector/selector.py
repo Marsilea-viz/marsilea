@@ -146,7 +146,11 @@ class ColormapSelector:
                 with v3:
                     vmax = st.number_input(
                         "Max", value=vcenter+1, key=f'{key}-tsnorm-vmax')
-                self.norm = TwoSlopeNorm(vcenter=vcenter, vmin=vmin, vmax=vmax)
+                if not ((vmin < vcenter) and (vcenter < vmax)):
+                    st.error("Min, Center, Max must be ascending.")
+                else:
+                    self.norm = TwoSlopeNorm(vcenter=vcenter,
+                                             vmin=vmin, vmax=vmax)
 
     def get_cmap(self):
         return self.cmap
