@@ -31,6 +31,10 @@ st.caption("Header must be unique")
 file = FileUpload(key="main", header=True, index=True)
 user_data = file.parse_dataframe()
 if user_data is not None:
+    try:
+        user_data.to_numpy().astype(float)
+    except Exception:
+        st.error("Data must contain only numeric values", icon="🚨")
     s['data'] = user_data
 load = st.button("Load Example")
 if load:
