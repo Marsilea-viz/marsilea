@@ -22,6 +22,7 @@ s.init_state(
     norm=None,
     datasets=[],
     figure=None,
+    error=False,
 )
 
 st.title("Simple Heatmap")
@@ -30,11 +31,13 @@ st.header("Prepare Your Data")
 st.caption("Header must be unique")
 file = FileUpload(key="main", header=True, index=True)
 user_data = file.parse_dataframe()
+s['error'] = False
 if user_data is not None:
     try:
         user_data.to_numpy().astype(float)
     except Exception:
         st.error("Data must contain only numeric values", icon="🚨")
+        s['error'] = True
     s['data'] = user_data
 load = st.button("Load Example")
 if load:
@@ -148,7 +151,10 @@ if s['data'] is not None:
     _, render_button, _ = st.columns(3)
 
     with render_button:
-        render = st.button("Render", type="primary", use_container_width=True)
+        render = st.button("Render",
+                           type="primary",
+                           use_container_width=True,
+                           disabled=s['error'])
 
     if render:
         with mpl.rc_context(

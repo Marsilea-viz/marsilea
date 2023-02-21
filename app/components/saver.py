@@ -21,7 +21,7 @@ class ChartSaver:
             save = st.form_submit_button("Confirm")
         if save:
             if self.fig is None:
-                st.error("Please render first.")
+                st.error("Please render first.", icon="😿")
             else:
                 st.download_button(
                     label=f"Download Image",

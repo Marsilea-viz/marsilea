@@ -14,7 +14,7 @@ import heatgraphy as hg
 init_page("X-Layout Heatmap")
 
 s = State(key="x-layout-heatmap")
-s.init_state(figure=None, data_loaded=False)
+s.init_state(figure=None, data_loaded=False, error=False)
 ds = DataStorage(key="x-layout-heatmap")
 
 st.title("X-Layout Visualization Creator")
@@ -205,7 +205,9 @@ if s['data_loaded']:
 
     _, render_button_c, _ = st.columns(3)
     with render_button_c:
-        render = st.button("Render", type="primary", use_container_width=True)
+        render = st.button("Render",
+                           type="primary",
+                           use_container_width=True,)
     if render:
         with mpl.rc_context(
                 {"font.family": font_family, "font.size": font_size}):
