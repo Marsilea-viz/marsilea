@@ -32,14 +32,16 @@ class InputBase:
 @st.cache_data
 def parse_file(file, header=False, index=False,
                sheet_name=0):
-    header = None if not header else "infer"
+
     index_col = None if not index else 0
     suffix = file.name.split(".")[-1]
     if suffix in ["csv", "txt", "tsv"]:
+        header = None if not header else "infer"
         reader = pd.read_csv
         sep = "," if suffix == "csv" else "\t"
         kws = dict(sep=sep, header=header, index_col=index_col)
     else:
+        header = None if not header else 0
         reader = pd.read_excel
         kws = dict(header=header, index_col=index_col, sheet_name=sheet_name)
     data = reader(file, **kws)
