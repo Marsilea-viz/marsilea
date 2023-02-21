@@ -21,5 +21,17 @@ pip install heatgraphy
 ### Examples
 
 | ![stacked bar](https://heatgraphy.readthedocs.io/en/latest/_images/sphx_glr_plot_stacked_bar_thumb.png) | ![heatmap](https://heatgraphy.readthedocs.io/en/latest/_images/sphx_glr_plot_pbmc3k_thumb.png) | ![oncoprint](https://heatgraphy.readthedocs.io/en/latest/_images/sphx_glr_plot_oncoprint_thumb.png) |
-| :---:         |     :---:      |          :---: |
-| **Stacked Bar** | **Heatmap** | **Oncoprint** |
+|:-------------------------------------------------------------------------------------------------------:|:----------------------------------------------------------------------------------------------:|:---------------------------------------------------------------------------------------------------:|
+|                                             **Stacked Bar**                                             |                                          **Heatmap**                                           |                                            **Oncoprint**                                            |
+
+### Deploy yourself
+
+The web version of heatgraphy cannot handle large traffic,  
+if you want a more fluent experience,
+you can easily deploy it yourself or run it locally.
+
+You only need 3 steps:
+
+- Clone this repository: `git clone https://github.com/Heatgraphy/heatgraphy.git`
+- Install dependencies: `pip install -r app/requirements.txt`
+- Launch: `streamlit run app/Home.py`
