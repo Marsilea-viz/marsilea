@@ -32,6 +32,8 @@ st.markdown(
 
 st.header("Step1: Prepare Datasets")
 
+st.caption("Different datasets are used in different plots.")
+
 file = FileUpload(key="x-layout", header=False, index=False)
 
 data_name = st.text_input("Name", value=file.name)
@@ -77,10 +79,11 @@ if load_example:
 if len(ds.get_all_names()) == 0:
     st.warning("Please add at least one dataset to proceed", icon="🐣")
 
-used_datasets = st.multiselect("Added Datasets",
+used_datasets = st.multiselect("Select datasets to use",
                                options=ds.get_all_names(),
                                default=ds.get_all_names(),
-                               help="Select datasets for plotting"
+                               help=" Unselect the dataset that "
+                                    "you don't want to use"
                                )
 ds.set_visible_datasets(used_datasets)
 

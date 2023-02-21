@@ -33,6 +33,18 @@ st.markdown("After you render the plot, "
             "an export panel will appear on the sidebar. "
             "Select your desire format and DPI to export.")
 
+st.markdown("## I encounter an error!")
+
+st.markdown("If an error pop up when you render the plot, "
+            "try click render again. The current platform is low-resource, "
+            "the render may fail from time to time. "
+            "If re-render doesn't solve your problem, "
+            "consider report the bug to us")
+
 st.markdown("## How to report a bug?")
 
 st.markdown("Click the botton on the Top Right ➡️ **Report a bug**")
+
+st.markdown("## Can I host my own version of Heatgraphy?")
+
+st.markdown("Sure! Check our GitHub repository for detail instruction.")

@@ -41,33 +41,39 @@ class ExampleData:
 def xlayout_example_data():
     examples = []
 
-    name = "Ex: Main Data"
+    name = "Main Data (example)"
     fake_data = np.random.randint(0, 100, (10, 10))
     examples.append(ExampleData(name, fake_data))
 
-    name = "Ex: Main Mark Data"
+    name = "Main Mark Data (example)"
     fake_data = np.random.randint(0, 2, (10, 10))
     examples.append(ExampleData(name, fake_data))
 
-    name = "Ex: Unmatched Main Data"
-    fake_data = np.random.randint(0, 100, (9, 9))
-    examples.append(ExampleData(name, fake_data))
+    # name = "Ex: Unmatched Main Data"
+    # fake_data = np.random.randint(0, 100, (9, 9))
+    # examples.append(ExampleData(name, fake_data))
 
-    name = "Ex: Side 1d"
+    name = "Side 1d (example)"
     fake_data = np.random.randint(0, 100, 10)
     examples.append(ExampleData(name, fake_data))
 
-    name = "Ex: Side 2d"
+    name = "Side 2d (example)"
     fake_data = np.random.randint(0, 100, (5, 10))
     examples.append(ExampleData(name, fake_data))
 
-    name = "Ex: H-Split"
-    fake_data = np.random.choice(list("abc"), 10)
+    name = "Partition (example)"
+    fake_data = np.random.choice(["Chunk 1", "Chunk 2", "Chunk 3"], 10)
     examples.append(ExampleData(name, fake_data))
 
-    name = "Ex: Unmatched Side Data"
-    fake_data = np.random.randint(0, 100, 9)
+    name = "Labels (example)"
+    fake_data = np.random.choice(
+        ["Camel", "Walrus", "Horse", "Canary", "Hog",
+         "Lamb", "Mole", "Crocodile", "Gazelle", "Cat"], 10)
     examples.append(ExampleData(name, fake_data))
+
+    # name = "Ex: Unmatched Side Data"
+    # fake_data = np.random.randint(0, 100, 9)
+    # examples.append(ExampleData(name, fake_data))
 
     return examples
 

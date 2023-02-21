@@ -66,6 +66,7 @@ if load:
                                 names=example.columns,)
     s["parse_success"] = True
     s['format'] = "Binary Table"
+    st.experimental_rerun()
 
 
 @st.cache_data(show_spinner=False)
