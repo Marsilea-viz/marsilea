@@ -53,7 +53,6 @@ class FileUpload(InputBase):
         super().__init__(key=key)
         self.header = use_header
         self.index = use_index
-
         self.user_input = st.file_uploader("Choose a table file",
                                            key=f"table_reader-{self.key}",
                                            accept_multiple_files=False,
@@ -86,12 +85,12 @@ class FileUpload(InputBase):
                                      options=sheetnames)
 
     def _header_checkbox(self):
-        return st.checkbox("Use header?",
+        return st.checkbox("Use first row as header?",
                            value=self.header,
                            key=f"select-header-{self.key}")
 
     def _index_checkbox(self):
-        return st.checkbox("Use row labels?",
+        return st.checkbox("Use first column as row labels?",
                            value=self.index,
                            key=f"select-index-{self.key}")
 

@@ -40,13 +40,13 @@ data_name = st.text_input("Name", value=file.name)
 
 c1, c2 = st.columns(2)
 with c1:
-    extract_row_label = st.checkbox("Extract row labels")
+    extract_row_label = st.checkbox("Extract row labels as a dataset")
 with c2:
-    extract_col_label = st.checkbox("Extract column labels")
+    extract_col_label = st.checkbox("Extract column labels as a dataset")
 
 add = st.button("Add Dataset", type="primary")
 if add:
-    if file is not None:
+    if file.name != "":
         process = True
         if data_name == "":
             st.error("Please give a name to your dataset", icon="✍️")
@@ -69,6 +69,8 @@ if add:
             else:
                 data = file.parse()
                 ds.add_dataset(data_name, data)
+    else:
+        st.error("Please upload a file", icon="📂")
 
 load_example = st.button("Load Example")
 if load_example:
@@ -119,25 +121,26 @@ with st.expander("View Dataset"):
 
 if s['data_loaded']:
 
-    st.header("Step2: Main Plot")
-    st.caption("You can add multiple layer to main plot")
+    st.header("Step2: Draw on main canvas")
+    st.caption("You can add multiple layers to main canvas")
+
+    st.subheader("Step 2a: Select dataset for clustering")
+
+    st.caption("The clustering data is used to generate dendrogram")
 
     cluster_data_name = \
-        st.selectbox("Which dataset used for cluster",
+        st.selectbox("Please select dataset used for clustering",
+                     label_visibility="collapsed",
                      options=ds.get_names(subset="2d"))
     ds.set_main_data(cluster_data_name)
 
     cluster_data = ds.get_datasets(cluster_data_name)
     cluster_data_shape = cluster_data.shape
 
-    width_col, height_col = st.columns(2)
-    with width_col:
-        width = st.number_input("Width", min_value=1., value=5., step=.1)
-    with height_col:
-        height = st.number_input("Height", min_value=1., value=4., step=.1)
+    st.subheader("Step 2b: Add plots")
 
-    heat, sized_heat, mark, partition = st.tabs(["Heatmap", "Sized Heatmap",
-                                                 "Mark", "Partition"])
+    heat, sized_heat, mark = st.tabs(["Heatmap", "Sized Heatmap",
+                                                 "Mark"])
 
     with heat:
         heatmap = MainHeatmap(ds, key="main-heatmap")
@@ -148,8 +151,17 @@ if s['data_loaded']:
     with mark:
         mark_heatmap = MainMark(ds, key="main-mark-heatmap")
 
-    with partition:
-        st.subheader("Partition the heatmap")
+    st.text("")
+    st.text("")
+
+    st.subheader("Step 2c: Adjust main canvas")
+    width_col, height_col = st.columns(2)
+    with width_col:
+        width = st.number_input("Width", min_value=1., value=5., step=.1)
+    with height_col:
+        height = st.number_input("Height", min_value=1., value=4., step=.1)
+
+    with st.expander("Partitioning main plot"):
         s1, s2 = st.columns(2)
         with s1:
             st.markdown("**Horizontal**")
@@ -160,13 +172,15 @@ if s['data_loaded']:
 
     # ============================= STEP 3 ===================================
 
-    st.header("Step 3: Side Plots")
+    st.header("Step 3: Add side plots")
+    st.caption("Add plots on four sides to annotate the main plot")
 
     side_plotter = SidePlotAdder(ds, s)
 
     # ============================= STEP 4 ===================================
 
     st.header("Step 4: Result")
+    st.caption("Save figure is in the left panel")
 
     f1, f2 = st.columns(2)
     with f1:
@@ -216,5 +230,5 @@ if s['data_loaded']:
     if s['figure'] is not None:
         st.pyplot(s['figure'])
 
-        with st.sidebar:
-            ChartSaver(s['figure'])
+with st.sidebar:
+    ChartSaver(s['figure'])

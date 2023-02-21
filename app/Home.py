@@ -50,21 +50,19 @@ def tools(name, img, page, size=150):
 
 
 with t1:
-    tools("Simple Heatmap",
-          "https://heatgraphy.readthedocs.io/en/latest/_images/customized_render-1.png",
-          page="/Simple_Heatmap")
+    tools("Simple Heatmap", "https://heatgraphy.readthedocs.io/en/latest/"
+                            "_images/customized_render-1.png",
+          page="/Simple_Heatmap", size=130)
 
 with t2:
-    tools("Upset Plot",
-          "https://heatgraphy.readthedocs.io/en/latest/_images/sphx_glr_plot_upset_thumb.png",
-          page="/Upsetplot",
-          size=220)
+    tools("x-layout", "https://heatgraphy.readthedocs.io/en/latest/"
+                      "_images/sphx_glr_plot_pbmc3k_thumb.png",
+          page="X-Layout_Heatmap", size=200)
 
 with t3:
-    tools("x-layout",
-          "https://heatgraphy.readthedocs.io/en/latest/_images/sphx_glr_plot_pbmc3k_thumb.png",
-          page="X-Layout_Heatmap",
-          size=200)
+    tools("Upset Plot", "https://heatgraphy.readthedocs.io/en/latest/"
+                        "_images/sphx_glr_plot_upset_thumb.png",
+          page="/Upsetplot", size=220)
 
 st.markdown("---")
 

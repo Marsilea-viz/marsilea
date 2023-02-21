@@ -47,4 +47,6 @@ st.markdown("Click the botton on the Top Right ➡️ **Report a bug**")
 
 st.markdown("## Can I host my own version of Heatgraphy?")
 
-st.markdown("Sure! Check our GitHub repository for detail instruction.")
+st.markdown("Sure! Check our "
+            "[GitHub repository](https://github.com/heatgraphy/heatgraphy) "
+            "for detail instruction.")

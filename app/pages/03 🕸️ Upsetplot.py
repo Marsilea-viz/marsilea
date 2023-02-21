@@ -120,18 +120,22 @@ if s["parse_success"]:
 
     with styles:
         st.markdown("**General**")
-        g1, g2, g3, g4 = st.columns(4)
-
+        g1, g2 = st.columns(2)
         with g1:
             linewidth = st.number_input("Line Width", min_value=.5,
                                         value=1.5)
         with g2:
+            dot_size = st.number_input("Dot Size", min_value=0, value=50)
+
+        g1, g2, g3 = st.columns(3)
+
+        with g1:
             shading = st.number_input("Shading", min_value=0.,
                                       value=.3, max_value=1.)
-        with g3:
+        with g2:
             grid_background = st.number_input("Background", min_value=0.,
                                               value=.1, max_value=1.)
-        with g4:
+        with g3:
             color = st.color_picker("Main Color", value="#111111")
 
         st.markdown("**Font**")
@@ -149,7 +153,7 @@ if s["parse_success"]:
             fontcolor = st.color_picker("Font Color", value="#111111")
 
     with highlight:
-        pass
+        st.info("Coming Soon!", icon="👋")
 
     _, render_button, _ = st.columns(3)
 
@@ -170,7 +174,8 @@ if s["parse_success"]:
                        color=color,
                        linewidth=linewidth,
                        shading=shading,
-                       grid_background=grid_background
+                       grid_background=grid_background,
+                       radius=dot_size,
                        )
             up.render(fig)
             s['figure'] = fig
@@ -178,5 +183,5 @@ if s["parse_success"]:
     if s['figure'] is not None:
         st.pyplot(s['figure'])
 
-        with st.sidebar:
-            ChartSaver(s['figure'])
+with st.sidebar:
+    ChartSaver(s['figure'])

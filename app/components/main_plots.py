@@ -49,6 +49,7 @@ class MainPlotter:
             used_dataset = st.selectbox(
                 "Select Dataset",
                 key=f"{self.key}-data-select",
+                index=1,
                 options=[""] + self.datastorage.get_names(subset="2d"))
             if used_dataset != "":
                 data = self.datastorage.get_datasets(used_dataset)
@@ -73,15 +74,14 @@ class MainHeatmap(MainPlotter):
     example_image = "heatmap.png"
 
     def extra_options(self):
-        c1, c2, c3 = st.columns([1, 1, 2])
+        c1, c2 = st.columns([1, 2])
         with c1:
             st.markdown("**Display value**")
-        with c2:
             disabled = False
             if self.data is not None:
                 disabled = self.data.size > 1000
             self.annot = st.checkbox("Display", value=False, disabled=disabled)
-        with c3:
+        with c2:
             self.fontsize = st.number_input("Font size", min_value=1,
                                             step=1, value=6)
         self.linewidth = st.number_input("Grid line", min_value=0.)
@@ -169,12 +169,14 @@ class MainSizedHeatmap(MainPlotter):
             sized_dataset = st.selectbox(
                 "Select Sized Dataset",
                 key=f"{self.key}-data-select-size",
+                index=1,
                 options=[""] + self.datastorage.get_names(subset="2d"))
 
         with c2:
             color_dataset = st.selectbox(
                 "Select Color Dataset (Optional)",
                 key=f"{self.key}-data-select-color",
+                index=1,
                 options=[""] + self.datastorage.get_names(subset="2d"))
 
         if sized_dataset != "":

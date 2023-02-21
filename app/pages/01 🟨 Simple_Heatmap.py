@@ -27,6 +27,7 @@ s.init_state(
 st.title("Simple Heatmap")
 
 st.header("Prepare Your Data")
+st.caption("Header must be unique")
 file = FileUpload(key="main", header=True, index=True)
 user_data = file.parse_dataframe()
 if user_data is not None:
@@ -35,7 +36,7 @@ load = st.button("Load Example")
 if load:
     s['data'] = simple_heatmap_example_data()
 if s['data'] is not None:
-    with st.expander('View'):
+    with st.expander('View Data'):
         st.dataframe(s['data'])
 
 if s['data'] is not None:
@@ -138,6 +139,7 @@ if s['data'] is not None:
     st.markdown("---")
 
     st.header("Result")
+    st.caption("Save figure is in the left panel")
 
     _, render_button, _ = st.columns(3)
 
@@ -199,5 +201,5 @@ if s['data'] is not None:
     if s['figure'] is not None:
         st.pyplot(s['figure'])
 
-        with st.sidebar:
-            ChartSaver(s['figure'])
+with st.sidebar:
+    ChartSaver(s['figure'])

@@ -20,11 +20,14 @@ class ChartSaver:
             self.save_options()
             save = st.form_submit_button("Confirm")
         if save:
-            st.download_button(
-                label=f"Download Image",
-                data=self.serialize(),
-                file_name=f"result.{self.format}"
-            )
+            if self.fig is None:
+                st.error("Please render first.")
+            else:
+                st.download_button(
+                    label=f"Download Image",
+                    data=self.serialize(),
+                    file_name=f"result.{self.format}"
+                )
 
     def serialize(self):
         img = io.BytesIO()
