@@ -485,7 +485,7 @@ class ClusterBoard(WhiteBoard):
     def add_dendrogram(self, side, method=None, metric=None,
                        add_meta=True, add_base=True, add_divider=True,
                        meta_color=None, linewidth=None, colors=None,
-                       divider_style="--",
+                       divider_style="--", meta_ratio=.2,
                        show=True, name=None, size=0.5, pad=0.):
         """Run cluster and add dendrogram
 
@@ -517,6 +517,8 @@ class ClusterBoard(WhiteBoard):
             The line style of the divide line
         meta_color : color
             The color of the meta dendrogram
+        meta_ratio : float
+            The size of meta dendrogram relative to the base dendrogram
         linewidth : float
             The linewidth for every dendrogram and divide line
         colors : color, array of color
@@ -590,7 +592,7 @@ class ClusterBoard(WhiteBoard):
                            add_meta=add_meta, add_base=add_base,
                            add_divider=add_divider, meta_color=meta_color,
                            linewidth=linewidth, colors=colors,
-                           divider_style=divider_style)
+                           divider_style=divider_style, meta_ratio=meta_ratio)
 
         deform = self.get_deform()
         if side in ["right", "left"]:
