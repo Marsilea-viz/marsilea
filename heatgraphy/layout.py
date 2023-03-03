@@ -167,7 +167,36 @@ class GridCell(BaseCell):
             return self.size, self.attach.height
 
 
-class CrossLayout:
+@dataclass
+class Margin:
+    top: float
+    right: float
+    bottom: float
+    left: float
+
+
+class _MarginMixin:
+    margin = Margin(0, 0, 0, 0)
+
+    def set_margin(self, margin):
+        if isinstance(margin, Number):
+            self.margin = Margin(margin, margin, margin, margin)
+        else:
+            if len(margin) == 4:
+                self.margin = Margin(*margin)
+            else:
+                msg = "margin must be one number or a tuple with 4 numbers" \
+                      "(top, right, bottom, left)"
+                raise ValueError(msg)
+
+    def get_margin_w(self):
+        return self.margin.left + self.margin.right
+
+    def get_margin_h(self):
+        return self.margin.top + self.margin.bottom
+
+
+class CrossLayout(_MarginMixin):
     """The X-layout engine
 
     This class implements the x-layout. The axes are added
@@ -189,9 +218,17 @@ class CrossLayout:
     projection : str
         The projection of the main canvas
 
+    Attributes
+    ----------
+    is_composite : bool
+        Use to indicate the current position of CrossLayout.
+        Whether it's in a CompositeCrossLayout.
+
     """
 
-    def __init__(self, name, width, height, init_main=True, projection=None):
+    def __init__(self, name, width, height,
+                 init_main=True, projection=None,
+                 margin=0):
 
         self._legend_ax_name = None
         self.main_cell = MainCell(name, width, height, is_canvas=init_main,
@@ -200,11 +237,13 @@ class CrossLayout:
         self.cells: Dict[str, BaseCell] = {name: self.main_cell}
         self._pads = {}
 
-        self.is_composed = False
+        self.is_composite = False
         self.figure = None
         self.figsize = None
         # The left bottom anchor point of the layout
         self.anchor = None
+        # (top, right, bottom, left)
+        self.set_margin(margin)
 
     def _get_cell(self, name):
         cell = self.cells.get(name)
@@ -320,13 +359,13 @@ class CrossLayout:
         return np.sum([c.size for c in self._side_cells[side]])
 
     def get_bbox_width(self):
-        """Get the figure width in inches"""
+        """Get the bbox width in inches"""
         box_w = self.main_cell.width + self.get_side_size(
             'left') + self.get_side_size('right')
         return box_w
 
     def get_bbox_height(self):
-        """Get the figure height in inches"""
+        """Get the bbox height in inches"""
         box_h = self.main_cell.height + self.get_side_size(
             'top') + self.get_side_size('bottom')
         return box_h
@@ -338,18 +377,29 @@ class CrossLayout:
     def get_figure_size(self):
         """Get the figsize in inches (width, height)"""
         if self.anchor is None:
-            return self.get_bbox_size()
+            if self.is_composite:
+                return self.get_bbox_size()
+            w, h = self.get_bbox_size()
+            return (w + self.get_margin_w(),
+                    h + self.get_margin_h())
+
         else:
             ox, oy = self.anchor
             fig_w = ox + self.get_main_width() + self.get_side_size('right')
             fig_h = ox + self.get_main_height() + self.get_side_size('top')
-            return fig_w, fig_h
+            if self.is_composite:
+                return fig_w, fig_h
+            return fig_w + self.get_margin_w(), fig_h + self.get_margin_h()
 
     def get_main_anchor(self):
         """Get the main anchor point"""
         if self.anchor is None:
             x = self.get_side_size('left')
             y = self.get_side_size('bottom')
+            if self.is_composite:
+                return x, y
+            x += self.margin.bottom
+            y += self.margin.left
             return x, y
         else:
             return self.anchor
@@ -461,12 +511,12 @@ class CrossLayout:
 
         """
         # If not composed, update the figsize
-        if not self.is_composed:
+        if not self.is_composite:
             self.figsize = np.array(self.get_figure_size()) * scale
         if figure is None:
             figure = plt.figure(figsize=self.figsize)
         else:
-            if not self.is_composed:
+            if not self.is_composite:
                 figure.set_size_inches(*self.figsize)
 
         main_anchor = self.get_main_anchor()
@@ -536,7 +586,7 @@ class _LegendAxes:
         return self.size + self.pad
 
 
-class CompositeCrossLayout:
+class CompositeCrossLayout(_MarginMixin):
     """A class to layout multiple Cross Layouts
 
     .. warning::
@@ -550,7 +600,7 @@ class CompositeCrossLayout:
     """
     figure = None
 
-    def __init__(self, main_layout) -> None:
+    def __init__(self, main_layout, margin=0) -> None:
         self.main_layout = self._reset_layout(main_layout)
         self.main_cell_height = self.main_layout.get_main_height()
         self.main_cell_width = self.main_layout.get_main_width()
@@ -558,11 +608,12 @@ class CompositeCrossLayout:
             {"top": [], "bottom": [], "right": [], "left": []}
         self._legend_axes = None
         self.layouts = {self.main_layout.main_cell.name: self.main_layout}
+        self.set_margin(margin)
 
     @staticmethod
     def _reset_layout(layout):
         layout.set_anchor((0, 0))
-        layout.is_composed = True
+        layout.is_composite = True
         return layout
 
     def append(self, side, other):
@@ -579,7 +630,7 @@ class CompositeCrossLayout:
                                 width=width,
                                 height=height,
                                 init_main=False)
-            other.is_composed = True
+            other.is_composite = True
             self._side_layouts[side].append(other)
         elif isinstance(other, CrossLayout):
             adjust = "height" if side in ["left", "right"] else "width"
@@ -656,12 +707,14 @@ class CompositeCrossLayout:
         return self.get_bbox_width(), self.get_bbox_height()
 
     def get_figure_size(self):
-        """Figure size should be the same as bbox size"""
-        return self.get_bbox_size()
+        """Figure size is bbox size + margin"""
+        fig_w = self.get_bbox_width() + self.get_margin_w()
+        fig_h = self.get_bbox_height() + self.get_margin_h()
+        return fig_w, fig_h
 
     def get_main_anchor(self):
-        x = self.get_side_size('left')
-        y = self.get_side_size('bottom')
+        x = self.get_side_size('left') + self.margin.left
+        y = self.get_side_size('bottom') + self.margin.bottom
         return x, y
 
     def set_anchor(self, anchor):
@@ -733,16 +786,16 @@ class CompositeCrossLayout:
             size = self._legend_axes.size
 
             if side == 'right':
-                cx, cy = fig_w - size, ymin
+                cx, cy = fig_w - size - self.margin.right, ymin
                 cw, ch = size, legend_h
             elif side == 'left':
-                cx, cy = 0, ymin
+                cx, cy = self.margin.left, ymin
                 cw, ch = size, legend_h
             elif side == "top":
-                cx, cy = xmin, fig_h - size
+                cx, cy = xmin, fig_h - self.margin.top - size
                 cw, ch = legend_w, size
             elif side == "bottom":
-                cx, cy = xmin, 0
+                cx, cy = xmin, self.margin.bottom
                 cw, ch = legend_w, size
 
             rect = get_axes_rect((cx, cy, cw, ch), figsize)
