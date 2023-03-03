@@ -11,6 +11,8 @@
 Quick start in the browser without a line of code!
 [Open App](https://heatgraphy.streamlit.app)
 
+[Read Documentation](https://heatgraphy.readthedocs.io/en/stable)
+
 
 ### Installation
 
