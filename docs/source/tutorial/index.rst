@@ -12,7 +12,7 @@ Tutorial
 
         .. raw:: html
 
-            <img style="max-width: 240px;" src="/_images/intro-6.png"/>
+            <img style="max-width: 240px;" src="../_images/intro-6.png"/>
 
 
     .. grid-item-card::
@@ -24,7 +24,7 @@ Tutorial
 
         .. raw:: html
 
-            <img style="max-width: 240px;" src="/_images/heatmap_variants-2.png"/>
+            <img style="max-width: 240px;" src="../_images/heatmap_variants-2.png"/>
 
 .. grid::
 
@@ -37,7 +37,7 @@ Tutorial
 
         .. raw:: html
 
-            <img style="max-width: 240px;" src="/_images/upset-3.png"/>
+            <img style="max-width: 240px;" src="../_images/upset-3.png"/>
 
     .. grid-item-card::
 
@@ -48,7 +48,7 @@ Tutorial
 
         .. raw:: html
 
-            <img style="max-width: 240px;" src="/_images/customized_render-2.png"/>
+            <img style="max-width: 240px;" src="../_images/customized_render-2.png"/>
 
 
 .. grid::
@@ -62,4 +62,4 @@ Tutorial
 
         .. raw:: html
 
-            <img style="max-width: 480px;" src="/_images/concatenation-7.png"/>
+            <img style="max-width: 480px;" src="../_images/concatenation-7.png"/>
