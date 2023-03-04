@@ -265,6 +265,9 @@ class RenderPlan:
         loader = DataLoader(data, target=target, plotter=name)
         return loader.get_array()
 
+    def update_main_canvas_size(self):
+        pass
+
 
 class StatsBase(RenderPlan):
     axis_label: str = ""

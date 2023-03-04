@@ -16,7 +16,7 @@ from ._deform import Deformation
 from .dendrogram import Dendrogram
 from .exceptions import SplitTwice
 from .layout import CrossLayout, CompositeCrossLayout
-from .plotter import RenderPlan, Title
+from .plotter import RenderPlan, Title, SizedMesh
 from .utils import pairwise, batched, get_plot_name, _check_side
 
 
@@ -204,6 +204,7 @@ class WhiteBoard(LegendMaker):
 
     def __init__(self, width=None, height=None, name=None):
         self.main_name = get_plot_name(name, "main", "board")
+        self._main_size_updatable = (width is None) & (height is None)
         width = 4 if width is None else width
         height = 4 if height is None else height
         self.layout = CrossLayout(name=self.main_name,
@@ -287,6 +288,17 @@ class WhiteBoard(LegendMaker):
         plot.set(name=name)
         plot.set_side("main")
         self._layer_plan.append(plot)
+
+        # SizedMesh will update the main canvas size
+        if self._main_size_updatable:
+            if isinstance(plot, SizedMesh):
+                w, h = plot.update_main_canvas_size()
+                self.layout.set_main_width(w)
+                self.layout.set_main_height(h)
+                # only update once,
+                # if we have more plot in the future
+                # that will change canvas size
+                self._main_size_updatable = False
 
     def _get_layers_zorder(self):
         return sorted(self._layer_plan, key=lambda p: p.zorder)
@@ -691,6 +703,7 @@ class ClusterBoard(WhiteBoard):
                                  linewidth=den['linewidth'],
                                  divide=den['add_divider'],
                                  divide_style=den['divider_style'],
+                                 meta_ratio=den['meta_ratio']
                                  )
 
     def _render_plan(self):

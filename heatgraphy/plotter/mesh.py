@@ -1,4 +1,4 @@
-__all__ = ["ColorMesh", "Colors", "SizedMesh", "LayersMesh", "MarkerMesh",
+__all__ = ["ColorMesh", "Colors", "SizedMesh", "MarkerMesh",
            "TextMesh", "PatchMesh"]
 
 import warnings
@@ -15,7 +15,8 @@ from matplotlib.offsetbox import AnchoredText
 
 from .base import RenderPlan
 from ..layout import close_ticks
-from ..utils import relative_luminance, get_colormap, ECHARTS16
+from ..utils import relative_luminance, get_colormap, ECHARTS16, \
+    get_canvas_size_by_data
 
 default_label_props = {
     "left": dict(loc="center right", bbox_to_anchor=(0, 0.5)),
@@ -486,6 +487,9 @@ class SizedMesh(MeshBase):
         self.kwargs = kwargs
 
         self._collections = None
+
+    def update_main_canvas_size(self):
+        return get_canvas_size_by_data(self.orig_size.shape)
 
     def get_legends(self):
         if not self.legend:
