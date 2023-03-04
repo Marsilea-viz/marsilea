@@ -13,7 +13,7 @@ from matplotlib.patches import Rectangle
 from matplotlib.text import Text
 
 from .base import RenderPlan
-from ..utils import pairwise
+from ..utils import pairwise, relative_luminance
 
 
 class Segment:
@@ -281,6 +281,8 @@ class TextParams:
 
 class _LabelBase(RenderPlan):
     is_flex = True
+    texts_size = None
+    padding = 0
     text_pad = 0
     text_gap = 0
 
@@ -331,6 +333,10 @@ class _LabelBase(RenderPlan):
 
         ax.remove()
         return np.max(sizes) / figure.get_dpi()
+
+    def get_canvas_size(self, figure):
+        self.texts_size = self.silent_render(figure, expand=self.get_expand())
+        return self.texts_size + self.padding / 72
 
 
 @dataclass
@@ -386,7 +392,7 @@ class AnnoLabels(_LabelBase):
         If your labels is not a mask array, this will help you mark the labels
         that you want to draw
     side : str
-    label_pad : float
+    text_pad : float
         Add extra space and the start and end of the label
     text_gap : float
         Add extra spacing between the labels, relative to the fontsize
@@ -395,7 +401,8 @@ class AnnoLabels(_LabelBase):
     linewidth : float
         The linewidth of the pointer
     connectionstyle :
-    relpos :
+    relpos : 2-tuple
+    armA, armB : float
     options :
         Pass to :class:`matplotlib.text.Text`
 
@@ -535,8 +542,8 @@ class Labels(_LabelBase):
     labels : array of str
     align : str
         Which side of the text to align
-    pad : float
-        Add padding around text, unit in inches
+    padding : float
+        The buffer space between text and the adjcent plots, in points unit
     options : dict
         Pass to :class:`matplotlib.text.Text`
 
@@ -563,12 +570,13 @@ class Labels(_LabelBase):
     """
 
     def __init__(self, labels, align=None,
-                 text_pad=0,
+                 padding=2,
                  **options):
         self.data = self.data_validator(labels, target="1d")
-        self.text_pad = text_pad
+        self.text_pad = 0
         self.text_gap = 0
         self.align = align
+        self.padding = padding
 
         super().__init__()
         self._sort_params(**options)
@@ -596,22 +604,22 @@ class Labels(_LabelBase):
 
         return p
 
-    def get_canvas_size(self, figure):
-        # ic(self.get_expand())
-        canvas_size = self.silent_render(figure, expand=self.get_expand())
-        return canvas_size
-
     def render_ax(self, ax: Axes, data):
         coords = self.get_axes_coords(data)
         params = self.get_text_params()
+        if self.texts_size is not None:
+            offset_ratio = self.padding / 72 / self.texts_size
+        else:
+            offset_ratio = 0
+
         if self.is_flank:
             coords = coords[::-1]
         if self.align == "center":
             const = .5
         elif self.align in ["right", "top"]:
-            const = 1 - self.text_pad / 2
+            const = 1 - offset_ratio / 2
         else:
-            const = self.text_pad / (1 + self.text_pad) / 2
+            const = offset_ratio / 2  # self.text_pad / (1 + self.text_pad) / 2
 
         for s, c in zip(data, coords):
             x, y = (const, c) if self.is_flank else (c, const)
@@ -640,8 +648,8 @@ class Title(_LabelBase):
         The title text
     align : {'center', 'left', 'right', 'bottom', 'top'}
         Where the title is placed
-    text_pad : float
-        The space around the text, relative to the fontsize
+    padding : float
+        The buffer space between text and the adjcent plots, in points unit
     fontsize : int, default: 12
         The title font size
     rotation :
@@ -658,7 +666,7 @@ class Title(_LabelBase):
         >>> from heatgraphy.plotter import Title
         >>> matrix = np.random.randn(15, 10)
         >>> h = hg.Heatmap(matrix)
-        >>> title = Title('Heatmap', text_pad=0.4)
+        >>> title = Title('Heatmap')
         >>> h.add_top(title)
         >>> h.render()
 
@@ -666,16 +674,29 @@ class Title(_LabelBase):
     """
     no_split = True
 
-    def __init__(self, title, align="center", text_pad=.01,
-                 fontsize=None, **options):
+    def __init__(self, title, align="center",
+                 padding=10,
+                 fontsize=None,
+                 fill_color=None,
+                 bordercolor=None,
+                 borderwidth=None,
+                 borderstyle=None,
+                 **options):
         self.data = title
         self.align = align
         if fontsize is None:
             fontsize = 12
         self.fontsize = fontsize
-        self.text_pad = text_pad
+        self.text_pad = 0
         self.text_gap = 0
         self.rotation = 0
+        self.padding = padding
+        self.fill_color = fill_color
+        self.bordercolor = bordercolor
+        self.borderwidth = borderwidth
+        self.borderstyle = borderstyle
+        self._draw_bg = (self.fill_color is not None) \
+            or (self.bordercolor is not None)
 
         super().__init__()
         self._sort_params(**options)
@@ -717,23 +738,31 @@ class Title(_LabelBase):
     def get_render_data(self):
         return self.data
 
-    def get_canvas_size(self, figure):
-        canvas_size = self.silent_render(figure, expand=self.get_expand())
-        return canvas_size
-
     def render_ax(self, ax: Axes, title):
         params = self.get_text_params()
+        fontdict = params.to_dict()
+
+        if self._draw_bg:
+            bgcolor = "white" if self.fill_color is None else self.fill_color
+            ax.add_artist(Rectangle((0, 0), 1, 1,
+                                    facecolor=self.fill_color,
+                                    edgecolor=self.bordercolor,
+                                    linewidth=self.borderwidth,
+                                    linestyle=self.borderstyle,
+                                    transform=ax.transAxes
+                                    ))
+
+            lum = relative_luminance(bgcolor)
+            text_color = ".15" if lum > .408 else "w"
+            fontdict.setdefault('color', text_color)
 
         const = self.align_pos[self.align]
 
         pos = .5
         x, y = (const, pos) if self.is_body else (pos, const)
         ax.text(x, y, title, fontsize=self.fontsize,
-                transform=ax.transAxes, **params.to_dict())
+                transform=ax.transAxes, **fontdict)
         ax.set_axis_off()
-
-        # ax.add_artist(Rectangle((0, 0), 1, 1, edgecolor="r",
-        #                         transform=ax.transAxes))
 
 
 class Chunk(_LabelBase):
@@ -755,7 +784,8 @@ class Chunk(_LabelBase):
         See :class:`matplotlib.text.Text`
     rotation : float
         How many to rotate the text
-    text_pad : float
+    padding : float
+        The buffer space between text and the adjcent plots, in points unit
 
     Examples
     --------
@@ -767,7 +797,7 @@ class Chunk(_LabelBase):
         >>> from heatgraphy.plotter import Chunk
         >>> matrix = np.random.randn(15, 10)
         >>> h = hg.Heatmap(matrix)
-        >>> h.hsplit(cut=[4,10])
+        >>> h.hsplit(cut=[4, 10])
         >>> h.vsplit(cut=[5])
         >>> chunk_row = Chunk(['Top','Middle','Bottom'],rotation=True)
         >>> chunk_col = Chunk(['Left','Right'],rotation=True)
@@ -778,10 +808,13 @@ class Chunk(_LabelBase):
     """
 
     def __init__(self, texts,
-                 props=None, text_pad=0, fill_colors=None, bordercolor=None,
-                 borderwidth=None, borderstyle=None, **options):
+                 fill_colors=None,
+                 props=None, padding=2, bordercolor=None,
+                 borderwidth=None, borderstyle=None,
+                 **options):
 
-        self.data = texts
+        self.data = np.asarray(texts)
+        self.padding = padding
         self.props = props if props is not None else {}
         if is_color_like(fill_colors):
             fill_colors = [fill_colors for _ in range(len(self.data))]
@@ -789,17 +822,12 @@ class Chunk(_LabelBase):
         self.bordercolor = bordercolor
         self.borderwidth = borderwidth
         self.borderstyle = borderstyle
-        if self.fill_colors is not None:
-            self._draw_bg = True
-        else:
-            self._draw_bg = False
-        self.text_pad = text_pad
+        self._draw_bg = (self.fill_colors is not None) \
+            or (self.bordercolor is not None)
+        self.text_pad = 0
 
         super().__init__()
         self._sort_params(**options)
-
-    def get_canvas_size(self, figure):
-        return self.silent_render(figure, expand=self.get_expand())
 
     default_rotation = {
         "right": -90,
@@ -819,19 +847,35 @@ class Chunk(_LabelBase):
 
         params = self.get_text_params()
 
+        if self.has_deform:
+            if self.is_flank:
+                reindex = self.deform.row_chunk_index
+            else:
+                reindex = self.deform.col_chunk_index
+            if reindex is not None:
+                self.data = self.data[reindex]
+
         if isinstance(axes, Axes):
             axes = [axes]
 
         for i, ax in enumerate(axes):
             ax.set_axis_off()
+            fontdict = params.to_dict()
             if self._draw_bg:
+                bgcolor = "white"
+                if self.fill_colors is not None:
+                    bgcolor = self.fill_colors[i]
                 rect = Rectangle((0, 0), 1, 1,
-                                 facecolor=self.fill_colors[i],
+                                 facecolor=bgcolor,
                                  edgecolor=self.bordercolor,
                                  linewidth=self.borderwidth,
                                  linestyle=self.borderstyle,
                                  transform=ax.transAxes)
                 ax.add_artist(rect)
 
-            ax.text(0.5, 0.5, self.data[i], fontdict=params.to_dict(),
+                lum = relative_luminance(bgcolor)
+                text_color = ".15" if lum > .408 else "w"
+                fontdict.setdefault('color', text_color)
+
+            ax.text(0.5, 0.5, self.data[i], fontdict=fontdict,
                     transform=ax.transAxes)
