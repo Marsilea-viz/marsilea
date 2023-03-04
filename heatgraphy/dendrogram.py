@@ -24,7 +24,7 @@ class _DendrogramBase:
             # TODO: the y coords are heuristic value,
             #       need a better way to handle
             self.x_coords = np.array([[1., 1., 1., 1.]])
-            self.y_coords = np.array([[0., 3., 3., 0.]])
+            self.y_coords = np.array([[0., .75, .75, 0.]])
             self._reorder_index = np.array([0])
         else:
             self.Z = linkage(data, method=method, metric=metric)
@@ -343,7 +343,7 @@ class GroupDendrogram(_DendrogramBase):
         ).reshape(self.x_coords.shape)
         if add_base:
             if add_meta:
-                norm_y_coords = self.y_coords / np.max(self.y_coords)
+                norm_y_coords = self.y_coords  # / np.max(self.y_coords)
                 amplify = self.den_ylim * meta_ratio
                 self._render_y_coords = norm_y_coords * amplify + self.divider
             else:
