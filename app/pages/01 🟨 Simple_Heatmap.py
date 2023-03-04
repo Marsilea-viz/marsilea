@@ -82,9 +82,9 @@ if s['data'] is not None:
 
         s1, s2 = st.columns(2)
         with s1:
-            width = st.number_input("Heatmap Width", min_value=0, value=5)
+            width = st.number_input("Heatmap Width (inches)", min_value=0, value=5)
         with s2:
-            height = st.number_input("Heatmap Height", min_value=0, value=5)
+            height = st.number_input("Heatmap Height (inches)", min_value=0, value=5)
 
         fonts = get_font_list()
         font_family = st.selectbox("Font Family", options=fonts,
