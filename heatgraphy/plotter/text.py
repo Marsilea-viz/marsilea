@@ -858,6 +858,10 @@ class Chunk(_LabelBase):
         if isinstance(axes, Axes):
             axes = [axes]
 
+        if len(axes) != len(self.data):
+            raise ValueError(f"You have {len(axes)} axes "
+                             f"but you only provide {len(self.data)} texts.")
+
         for i, ax in enumerate(axes):
             ax.set_axis_off()
             fontdict = params.to_dict()

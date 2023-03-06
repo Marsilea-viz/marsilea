@@ -332,7 +332,8 @@ class CrossLayout(_MarginMixin):
         self.add_ax(side, self._legend_ax_name, size, pad=pad)
 
     def get_legend_ax(self):
-        return self.get_ax(self._legend_ax_name)
+        if self._legend_ax_name is not None:
+            return self.get_ax(self._legend_ax_name)
 
     def remove_legend_ax(self):
         self.remove_ax(self._legend_ax_name)
@@ -657,7 +658,8 @@ class CompositeCrossLayout(_MarginMixin):
         self._legend_axes = _LegendAxes(side=side, size=size, pad=pad)
 
     def get_legend_ax(self):
-        return self._legend_axes.ax
+        if self._legend_axes is not None:
+            return self._legend_axes.ax
 
     def set_legend_size(self, size):
         self._legend_axes.size = size

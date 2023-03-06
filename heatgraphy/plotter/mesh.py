@@ -580,7 +580,7 @@ class MarkerMesh(MeshBase):
     data : np.ndarray
         Must be bool matrix to indicate if a marker is drawn at specific cell
     color : color
-        The color of the marker
+        The color of the marker.
     marker : str
         See :mod:`matplotlib.markers`
     size : int
@@ -602,8 +602,8 @@ class MarkerMesh(MeshBase):
 
         >>> from heatgraphy.plotter import MarkerMesh
         >>> data = np.random.randn(10, 10) > 0
-        >>> _, ax = plt.subplots()
-        >>> MarkerMesh(data, color="darkgreen", marker="h").render(ax)
+        >>> _, ax = plt.subplots(figsize=(3, 3))
+        >>> MarkerMesh(data, color="darkgreen", marker="x", size=50).render(ax)
 
     """
     render_main = True

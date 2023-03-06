@@ -172,7 +172,8 @@ class LegendMaker:
 
     def _freeze_legend(self, figure):
         if self._draw_legend:
-            self.layout.add_legend_ax(**self._legend_grid_kws)
+            if self.layout.get_legend_ax() is None:
+                self.layout.add_legend_ax(**self._legend_grid_kws)
             renderer = figure.canvas.get_renderer()
             legend_ax = figure.add_axes([0, 0, 1, 1])
             legends_box = self._legends_drawer(legend_ax)
@@ -202,14 +203,15 @@ class WhiteBoard(LegendMaker):
     _col_plan: List[RenderPlan]
     _layer_plan: List[RenderPlan]
 
-    def __init__(self, width=None, height=None, name=None):
+    def __init__(self, width=None, height=None, name=None, margin=0):
         self.main_name = get_plot_name(name, "main", "board")
         self._main_size_updatable = (width is None) & (height is None)
         width = 4 if width is None else width
         height = 4 if height is None else height
         self.layout = CrossLayout(name=self.main_name,
                                   width=width,
-                                  height=height)
+                                  height=height,
+                                  margin=margin)
 
         # self._side_count = {"right": 0, "left": 0, "top": 0, "bottom": 0}
         self._col_plan = []
@@ -409,6 +411,9 @@ class WhiteBoard(LegendMaker):
         save_options.update(kwargs)
         self.figure.savefig(fname, **save_options)
 
+    def set_margin(self, margin):
+        self.layout.set_margin(margin)
+
 
 class CompositeBoard(LegendMaker):
     layout: CompositeCrossLayout
@@ -476,6 +481,9 @@ class CompositeBoard(LegendMaker):
     def get_ax(self, board_name, ax_name):
         return self.layout.get_ax(board_name, ax_name)
 
+    def set_margin(self, margin):
+        self.layout.set_margin(margin)
+
 
 class ClusterBoard(WhiteBoard):
     _row_reindex: List[int] = None
@@ -487,8 +495,9 @@ class ClusterBoard(WhiteBoard):
     _mesh = None
     square = False
 
-    def __init__(self, cluster_data, width=None, height=None, name=None):
-        super().__init__(width=width, height=height, name=name)
+    def __init__(self, cluster_data, width=None, height=None,
+                 name=None, margin=0):
+        super().__init__(width=width, height=height, name=name, margin=margin)
         self._row_den = []
         self._col_den = []
         self._cluster_data = cluster_data

@@ -9,7 +9,7 @@ from matplotlib.axes import Axes
 from seaborn import despine
 
 from .._deform import Deformation
-from ..exceptions import DataError
+from ..exceptions import DataError, SplitConflict
 
 
 class DataLoader:
@@ -64,11 +64,11 @@ class DataLoader:
     def _check_1d_compat(self, data: np.ndarray):
         if data.ndim == 2:
             row, col = data.shape
-            if (row == 1) or (col == 1):
+            if not (row == 1) or (col == 1):
                 if self.plotter is not None:
-                    msg = f"{self.plotter} require 1D data."
+                    msg = f"{self.plotter} requires 1D data as input."
                 else:
-                    msg = "Require 1D data."
+                    msg = "Require 1D data as input."
                 raise DataError(msg)
 
 
@@ -269,38 +269,97 @@ class RenderPlan:
         pass
 
 
+class AxisOption:
+    inverted: bool
+    label: str
+    visibility: bool
+    ticklabels: bool
+
+
 class StatsBase(RenderPlan):
+    """A base class for rendering statistics plot
+
+    """
+    data: np.ndarray
+    datasets: List[np.ndarray]
     axis_label: str = ""
     render_main = True
+    orient = None
+    axis_options = None
+
+    def get_orient(self):
+        if self.orient is None:
+            return "h" if self.is_flank else "v"
+        return self.orient
+
+    def get_deform_func(self):
+        if self.has_deform:
+            orient = self.get_orient()
+            if self.side == "main":
+
+                orient_mapper = {
+                    "h": "horizontally",
+                    "v": "vertically"
+                }
+
+                if (((orient == "v") & self.deform.is_row_split) or
+                        ((orient == "h") & self.deform.is_col_split)):
+                    plot_dir = orient_mapper[self.get_orient()]
+                    msg = f"{self.__class__.__name__} is oriented " \
+                          f"{plot_dir} should only be split {plot_dir}"
+                    raise SplitConflict(msg)
+
+            if self.get_orient() == "v":
+                return self.deform.transform_col
+            else:
+                return self.deform.transform_row
+
+    # def get_render_data(self):
+    #     main_flip = self.get_orient() == "h" and self.side == "main"
+    #     deform_func = self.get_deform_func()
+    #
+    #     if self.data is not None:
+    #         if deform_func is None:
+    #             return self.data
+    #         else:
+    #             return deform_func(self.data)
+    #     else:
+    #
+    #         if deform_func is None:
+    #             if main_flip:
+    #                 return [d.T for d in self.datasets]
+    #             else:
+    #                 return self.datasets
+    #         else:
+    #
+    #             if main_flip:
+    #                 datasets = [deform_func(d) for d in self.datasets]
+    #             else:
+    #                 datasets = [deform_func(d) for d in self.datasets]
+    #             if self.is_split:
+    #                 return [d for d in zip(*datasets)]
+    #             else:
+    #                 return datasets
+
+    def get_render_data(self):
+        if self.data is not None:
+            return super().get_render_data()
+        else:
+            return self.create_render_datasets(*self.datasets)
+
 
     def _setup_axis(self, ax):
-        if self.is_body:
-            despine(ax=ax, bottom=True)
-            ax.tick_params(left=True, labelleft=True,
-                           bottom=False, labelbottom=False)
-        else:
+        if self.get_orient() == "h":
             despine(ax=ax, left=True)
             ax.tick_params(left=False, labelleft=False,
                            bottom=True, labelbottom=True)
+        else:
+            despine(ax=ax, bottom=True)
+            ax.tick_params(left=True, labelleft=True,
+                           bottom=False, labelbottom=False)
 
     def align_lim(self, axes):
-        if self.is_body:
-            is_inverted = False
-            ylim_low = []
-            ylim_up = []
-            for ax in axes:
-                low, up = ax.get_ylim()
-                if ax.yaxis_inverted():
-                    is_inverted = True
-                    low, up = up, low
-                ylim_up.append(up)
-                ylim_low.append(low)
-            ylims = [np.min(ylim_low), np.max(ylim_up)]
-            if is_inverted:
-                ylims = ylims[::-1]
-            for ax in axes:
-                ax.set_ylim(*ylims)
-        else:
+        if self.get_orient() == "h":
             is_inverted = False
             xlim_low = []
             xlim_up = []
@@ -316,6 +375,22 @@ class StatsBase(RenderPlan):
                 xlims = xlims[::-1]
             for ax in axes:
                 ax.set_xlim(*xlims)
+        else:
+            is_inverted = False
+            ylim_low = []
+            ylim_up = []
+            for ax in axes:
+                low, up = ax.get_ylim()
+                if ax.yaxis_inverted():
+                    is_inverted = True
+                    low, up = up, low
+                ylim_up.append(up)
+                ylim_low.append(low)
+            ylims = [np.min(ylim_low), np.max(ylim_up)]
+            if is_inverted:
+                ylims = ylims[::-1]
+            for ax in axes:
+                ax.set_ylim(*ylims)
 
     def render(self, axes):
         if self.is_split:
@@ -323,11 +398,11 @@ class StatsBase(RenderPlan):
             self.align_lim(axes)
             for i, ax in enumerate(axes):
                 # leave axis for the first ax
-                if (i == 0) & self.is_body:
+                if (i == 0) & (self.get_orient() == "v"):
                     self._setup_axis(ax)
                     ax.set_ylabel(self.axis_label)
                 # leave axis for the last ax
-                elif (i == len(axes) - 1) & self.is_flank:
+                elif (i == len(axes) - 1) & (self.get_orient() == "h"):
                     self._setup_axis(ax)
                     ax.set_xlabel(self.axis_label)
                 else:
@@ -337,7 +412,7 @@ class StatsBase(RenderPlan):
             self.render_ax(axes, self.get_render_data())
             self._setup_axis(axes)
             if self.axis_label is not None:
-                if self.is_body:
+                if self.get_orient() == "v":
                     axes.set_ylabel(self.axis_label)
                 else:
                     axes.set_xlabel(self.axis_label)
