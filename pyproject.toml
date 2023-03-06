@@ -33,3 +33,6 @@ dev = [
     "pydata-sphinx-theme",
     "sphinx-copybutton",
 ]
+
+[tool.ruff.per-file-ignores]
+"__init__.py" = ["F401"]
