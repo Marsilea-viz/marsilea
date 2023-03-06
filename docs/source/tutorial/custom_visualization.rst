@@ -1,6 +1,8 @@
 Let's make new visualization for heatgraphy
 ============================================
 
+..
+
 Previously, this is how you add plots in Heatgraphy
 
 .. code-block:: python
@@ -24,7 +26,7 @@ Understand :class:`RenderPlan <heatgraphy.plotter.base.RenderPlan>`
 Everything render on the canvas in Heatgraphy is a :class:`RenderPlan <heatgraphy.plotter.base.RenderPlan>`,
 or inherited from it. To create a new visualization, we also need to inherit from this base class.
 
-Let's create a `RenderPlan` that can draw Lollipop plot:
+Let's create a :class:`RenderPlan <heatgraphy.plotter.base.RenderPlan>` that can draw Lollipop plot:
 
 .. code-block:: python
 
@@ -37,6 +39,8 @@ Let's create a `RenderPlan` that can draw Lollipop plot:
 The current `Lollipop` does nothing,
 it does not know how to draw a lollipop,
 we need to implement the `render` method.
+The `render` method takes one argument, which is the `Axes`
+where we do all the drawing.
 
 
 .. code-block:: python
@@ -84,7 +88,7 @@ Now lets create a heatmap and add it to the top
     >>> h.render()
 
 
-Congratulation! you just creat your `RenderPlan`.
+Congratulation! you just creat your :class:`RenderPlan <heatgraphy.plotter.base.RenderPlan>`.
 
 
 But what if I want to add it to other side.
@@ -96,7 +100,7 @@ But what if I want to add it to other side.
     >>> h.add_left(Lollipop(lol_data))
     >>> h.render()
 
-Oh no, it's broken! Let's try fix it by adopt it to more situation
+Oh no, it's broken! Let's try to fix it.
 
 .. code-block:: python
 
@@ -113,7 +117,16 @@ Oh no, it's broken! Let's try fix it by adopt it to more situation
             ax.set_axis_off()
             if self.side == "left":
                 ax.invert_xaxis()
+            if self.is_flank:
+                ax.invert_yaxis()
 
+Here we use the `is_body` attribute to query the side,
+here is a list of attributes that you can use to know
+which side that the :class:`RenderPlan <heatgraphy.plotter.base.RenderPlan>` is drawn.
+
+- :attr:`.side <heatgraphy.plotter.base.RenderPlan.side>`: Directly known the side
+- :attr:`.is_body <heatgraphy.plotter.base.RenderPlan.is_body>`: Top, Bottom or Main
+- :attr:`.is_flank <heatgraphy.plotter.base.RenderPlan.is_flank>`: Left or Right
 
 .. plot::
     :context: close-figs
@@ -128,10 +141,12 @@ Oh no, it's broken! Let's try fix it by adopt it to more situation
     ...        lim = len(self.data)
     ...        locs = np.arange(lim) + 0.5
     ...        orientation = "vertical" if self.is_body else "horizontal"
-    ...        ax.stem(locs, self.data, basefmt="none")
+    ...        ax.stem(locs, self.data, basefmt="none", orientation=orientation)
     ...        ax.set_axis_off()
     ...        if self.side == "left":
     ...           ax.invert_xaxis()
+    ...        if self.is_flank:
+    ...             ax.invert_yaxis()
     ...
 
 We make the orientation changed when the `Lollipop` is rendered on different
@@ -150,12 +165,13 @@ Now we try add it to the left again.
 Make a legend
 -------------
 
-If your `RenderPlan` need to have legends, you need to implement the
+If your :class:`RenderPlan <heatgraphy.plotter.base.RenderPlan>` need to have legends,
+you need to implement the
 :meth:`get_legends <heatgraphy.plotter.base.RenderPlan.get_legends>`.
 
 .. note::
 
-    We also develop another package called :mod:`legendkit` to help
+    We also develop another package called `legendkit <https://legendkit.readthedocs.io/en/latest/>`_ to help
     you handle legend easily. Consider using it.
 
 
@@ -163,7 +179,7 @@ If your `RenderPlan` need to have legends, you need to implement the
     :context: close-figs
 
     >>> from legendkit import CatLegend
-
+    >>>
     >>> class Lollipop(RenderPlan):
     ...
     ...    def __init__(self, data):
@@ -173,10 +189,12 @@ If your `RenderPlan` need to have legends, you need to implement the
     ...        lim = len(self.data)
     ...        locs = np.arange(lim) + 0.5
     ...        orientation = "vertical" if self.is_body else "horizontal"
-    ...        ax.stem(locs, self.data, basefmt="none")
+    ...        ax.stem(locs, self.data, basefmt="none", orientation=orientation)
     ...        ax.set_axis_off()
     ...        if self.side == "left":
     ...            ax.invert_xaxis()
+    ...        if self.is_flank:
+    ...             ax.invert_yaxis()
     ...
     ...    def get_legends(self):
     ...        return CatLegend(colors=["b"], labels=["Lollipop"], handle="circle")
@@ -187,23 +205,38 @@ If your `RenderPlan` need to have legends, you need to implement the
     >>> h.add_legends()
     >>> h.render()
 
+
+The Heatgraphy will automatically handle all the legends for you.
+
+
 Create Splittable `RenderPlan`
 ------------------------------
 
 Here we are going to dive into more advance topic,
-if you try to split heatmap, it didn't work.
-
-When the render plan gets render, the `ax` parameter is not
-guarantee to be single `Axes`, there will be multiple `Axes` when
-it gets split.
-
-The simply way to refactor our `Lollipop` is to implement a special
-method `render_ax`.
+if you try to split heatmap with the Lollipop, it didn't work.
 
 .. plot::
     :context: close-figs
 
-    >>> class Lollipop(RenderPlan):
+    >>> h = hg.Heatmap(data)
+    >>> h.vsplit(cut=[5])
+    >>> h.add_left(Lollipop(lol_data))
+    >>> h.render()
+
+When the render plan gets render, the `ax` parameter is not
+guarantee to be single :class:`Axes <matplotlib.axes.Axes>`, there will be multiple
+:class:`Axes <matplotlib.axes.Axes>` when it gets split.
+
+The simply way to refactor our `Lollipop` is to implement a method
+:meth:`render_ax <heatgraphy.plotter.base.RenderPlan.render_ax>`.
+It takes two paramters, an axes to be drawn and the data that are already split.
+
+.. plot::
+    :context: close-figs
+
+    >>> from heatgraphy.plotter.base import StatsBase
+    >>>
+    >>> class Lollipop(StatsBase):
     ...
     ...    def __init__(self, data):
     ...        self.data = data
@@ -216,25 +249,27 @@ method `render_ax`.
     ...        ax.set_axis_off()
     ...        if self.side == "left":
     ...            ax.invert_xaxis()
-    ...
+    ...        if self.is_flank:
+    ...             ax.invert_yaxis()
     ...        ax.set_xlim(0, locs[-1]+.5)
-    ...        ax.set_ylim(0, 12)
-
-
-.. plot::
-    :context: close-figs
+    ...
 
     >>> h = hg.Heatmap(data)
     >>> h.vsplit(cut=[5])
     >>> h.add_top(Lollipop(np.arange(10) + 2))
     >>> h.render()
 
-Here, the `render_ax` define the behavior on how to render on each `Axes` with each chunk of `data`.
-Heatgraphy will automatically handle the split and data for you. If you want to handle the splitting
-process, you can overwrite the `get_render_data` method.
+What's happening under the hood is clearly illustrated in the flowchart below.
 
-Noticed that the lim of the axis also gets adjusted, it's not applicable to all situation but
-you get the idea.
+Here, the :meth:`render_ax <heatgraphy.plotter.base.RenderPlan.render_ax>`
+define the behavior on how to render on each `Axes` with each chunk of `data`.
+Heatgraphy will automatically handle the split and data for you. If you want to handle the splitting
+process, you can overwrite the :meth:`get_render_data <heatgraphy.plotter.base.RenderPlan.get_render_data>`
+method.
+
+.. image:: ../img/heatgraphy-renderplan-logic.drawio.svg
+
+Great, hope you get the idea on how to implement your visualization.
 
 
 

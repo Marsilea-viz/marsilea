@@ -14,3 +14,7 @@ html[data-theme="light"] .highlight .hll {
 img.plot-directive {
     max-height: 450px;
 }
+
+.sd-card-body > .toctree-wrapper li[class^=toctree-l] {
+    text-align: center;
+}

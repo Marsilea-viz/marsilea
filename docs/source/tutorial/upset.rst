@@ -63,7 +63,7 @@ Alternatively, to have better control
     :context: close-figs
 
     >>> us = Upset(upset_data, min_size=15, add_labels=False, add_sets_size=False)
-    >>> us.add_sets_label(side="left", pad=0, align="center", text_pad=.1)
+    >>> us.add_sets_label(side="left", pad=0, align="center")
     >>> us.add_sets_size(side="left", pad=0)
     >>> us.render()
 
