@@ -78,7 +78,7 @@ op.canvas /= m
 # %%
 # Render
 
-
+op.canvas.set_margin(.2)
 op.canvas.add_legends(box_padding=2, stack_size=4)
 op.canvas.render()
 mut_ax = op.canvas.get_ax("main", "mutation_count")

@@ -32,7 +32,7 @@ zx = x_kernel(np.mgrid[xmin:xmax:100j])
 y_kernel = gaussian_kde(x)
 zy = y_kernel(np.mgrid[ymin:ymax:100j])
 
-wb = hg.WhiteBoard(name="main", width=3, height=3)
+wb = hg.WhiteBoard(name="main", width=3, height=3, margin=.2)
 wb.add_canvas("top", size=.4, pad=.1, name="x1")
 wb.add_canvas("bottom", size=.4, pad=.1, name="x2")
 
