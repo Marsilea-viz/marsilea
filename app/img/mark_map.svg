@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+  "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="144pt" height="144pt" viewBox="0 0 144 144" xmlns="http://www.w3.org/2000/svg" version="1.1">
+ <metadata>
+  <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+   <cc:Work>
+    <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
+    <dc:date>2023-02-10T09:29:23.673623</dc:date>
+    <dc:format>image/svg+xml</dc:format>
+    <dc:creator>
+     <cc:Agent>
+      <dc:title>Matplotlib v3.6.2, https://matplotlib.org/</dc:title>
+     </cc:Agent>
+    </dc:creator>
+   </cc:Work>
+  </rdf:RDF>
+ </metadata>
+ <defs>
+  <style type="text/css">*{stroke-linejoin: round; stroke-linecap: butt}</style>
+ </defs>
+ <g id="figure_1">
+  <g id="patch_1">
+   <path d="M 0 144 
+L 144 144 
+L 144 0 
+L 0 0 
+z
+" style="fill: #ffffff"/>
+  </g>
+  <g id="axes_1">
+   <g id="patch_2">
+    <path d="M 18 128.16 
+L 129.6 128.16 
+L 129.6 17.28 
+L 18 17.28 
+z
+" style="fill: #ffffff"/>
+   </g>
+   <g id="PathCollection_1">
+    <defs>
+     <path id="ma450f4d0f6" d="M 0 -2.95804 
+L -0.664121 -0.914085 
+L -2.813263 -0.914085 
+L -1.074571 0.349149 
+L -1.738692 2.393105 
+L -0 1.129871 
+L 1.738692 2.393105 
+L 1.074571 0.349149 
+L 2.813263 -0.914085 
+L 0.664121 -0.914085 
+z
+" style="stroke: #00ffff"/>
+    </defs>
+    <g clip-path="url(#p6358736a40)">
+     <use xlink:href="#ma450f4d0f6" x="73.8" y="28.368" style="fill: #00ffff; stroke: #00ffff"/>
+     <use xlink:href="#ma450f4d0f6" x="96.12" y="28.368" style="fill: #00ffff; stroke: #00ffff"/>
+     <use xlink:href="#ma450f4d0f6" x="73.8" y="50.544" style="fill: #00ffff; stroke: #00ffff"/>
+     <use xlink:href="#ma450f4d0f6" x="96.12" y="50.544" style="fill: #00ffff; stroke: #00ffff"/>
+     <use xlink:href="#ma450f4d0f6" x="29.16" y="72.72" style="fill: #00ffff; stroke: #00ffff"/>
+     <use xlink:href="#ma450f4d0f6" x="96.12" y="72.72" style="fill: #00ffff; stroke: #00ffff"/>
+     <use xlink:href="#ma450f4d0f6" x="29.16" y="94.896" style="fill: #00ffff; stroke: #00ffff"/>
+     <use xlink:href="#ma450f4d0f6" x="51.48" y="94.896" style="fill: #00ffff; stroke: #00ffff"/>
+     <use xlink:href="#ma450f4d0f6" x="73.8" y="94.896" style="fill: #00ffff; stroke: #00ffff"/>
+     <use xlink:href="#ma450f4d0f6" x="96.12" y="94.896" style="fill: #00ffff; stroke: #00ffff"/>
+     <use xlink:href="#ma450f4d0f6" x="118.44" y="94.896" style="fill: #00ffff; stroke: #00ffff"/>
+     <use xlink:href="#ma450f4d0f6" x="29.16" y="117.072" style="fill: #00ffff; stroke: #00ffff"/>
+     <use xlink:href="#ma450f4d0f6" x="73.8" y="117.072" style="fill: #00ffff; stroke: #00ffff"/>
+     <use xlink:href="#ma450f4d0f6" x="96.12" y="117.072" style="fill: #00ffff; stroke: #00ffff"/>
+    </g>
+   </g>
+   <g id="matplotlib.axis_1">
+    <g id="xtick_1"/>
+    <g id="xtick_2"/>
+    <g id="xtick_3"/>
+   </g>
+   <g id="matplotlib.axis_2">
+    <g id="ytick_1"/>
+    <g id="ytick_2"/>
+    <g id="ytick_3"/>
+    <g id="ytick_4"/>
+    <g id="ytick_5"/>
+    <g id="ytick_6"/>
+   </g>
+   <g id="patch_3">
+    <path d="M 18 128.16 
+L 18 17.28 
+" style="fill: none; stroke: #000000; stroke-width: 0.8; stroke-linejoin: miter; stroke-linecap: square"/>
+   </g>
+   <g id="patch_4">
+    <path d="M 129.6 128.16 
+L 129.6 17.28 
+" style="fill: none; stroke: #000000; stroke-width: 0.8; stroke-linejoin: miter; stroke-linecap: square"/>
+   </g>
+   <g id="patch_5">
+    <path d="M 18 128.16 
+L 129.6 128.16 
+" style="fill: none; stroke: #000000; stroke-width: 0.8; stroke-linejoin: miter; stroke-linecap: square"/>
+   </g>
+   <g id="patch_6">
+    <path d="M 18 17.28 
+L 129.6 17.28 
+" style="fill: none; stroke: #000000; stroke-width: 0.8; stroke-linejoin: miter; stroke-linecap: square"/>
+   </g>
+  </g>
+ </g>
+ <defs>
+  <clipPath id="p6358736a40">
+   <rect x="18" y="17.28" width="111.6" height="110.88"/>
+  </clipPath>
+ </defs>
+</svg>

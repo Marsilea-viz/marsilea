@@ -13,17 +13,21 @@ class ChartSaver:
     dpi: float
     format: str
 
-    def __init__(self):
-        self.fig = st.session_state["figure"]
+    def __init__(self, figure):
+        self.fig = figure
         with st.form("Export Options"):
+            st.header("Save Figure")
             self.save_options()
             save = st.form_submit_button("Confirm")
         if save:
-            st.download_button(
-                label=f"Download Image",
-                data=self.serialize(),
-                file_name=f"Heatmap.{self.format}"
-            )
+            if self.fig is None:
+                st.error("Please render first.", icon="😿")
+            else:
+                st.download_button(
+                    label=f"Download Image",
+                    data=self.serialize(),
+                    file_name=f"result.{self.format}"
+                )
 
     def serialize(self):
         img = io.BytesIO()
@@ -32,12 +36,9 @@ class ChartSaver:
         return img
 
     def save_options(self):
-        col1, col2, _ = st.columns([1, 1, 3])
-        with col1:
-            self.dpi = st.number_input("DPI", min_value=90, value=90,
-                                       max_value=600,
-                                       step=10)
-        with col2:
-            self.format = st.selectbox("Format",
-                                       options=["png", "svg", "pdf", "jpeg"],
-                                       format_func=lambda x: x.upper())
+        self.dpi = st.number_input("DPI", min_value=90, value=90,
+                                   max_value=600,
+                                   step=10)
+        self.format = st.selectbox("Format",
+                                   options=["png", "svg", "pdf", "jpeg"],
+                                   format_func=lambda x: x.upper())

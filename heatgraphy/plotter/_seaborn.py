@@ -16,6 +16,7 @@ class _SeabornBase(StatsBase):
     data = None
 
     def __init__(self, data, hue_order=None, palette=None,
+                 orient=None,
                  label=None, legend_kws=None, **kwargs):
 
         if isinstance(data, Mapping):
@@ -41,22 +42,19 @@ class _SeabornBase(StatsBase):
             kwargs.setdefault('color', 'C0')
             # if (palette is None) and ('color' not in kwargs):
             #     kwargs['palette'] = "dark:C0"
-            # if palette is not None:
-            #     kwargs['palette'] = palette
+            if palette is not None:
+                kwargs['palette'] = palette
+
         kwargs.pop("x", None)
         kwargs.pop("y", None)
         kwargs.pop("hue", None)
-        kwargs.pop("orient", None)
+        # kwargs.pop("orient", None)
         kwargs.pop("ax", None)
         self.kws = kwargs
+
+        self.orient = orient
         self.axis_label = label
         self.legend_kws = {} if legend_kws is None else legend_kws
-
-    def get_render_data(self):
-        if self.data is not None:
-            return super().get_render_data()
-        else:
-            return self.create_render_datasets(*self.datasets)
 
     def get_legends(self):
         if self.hue is not None:
@@ -83,19 +81,19 @@ class _SeabornBase(StatsBase):
             pdata = pd.concat(dfs)
             self.kws['hue'] = 'hue'
             self.kws['hue_order'] = self.hue
-            if self.is_flank:
+            if self.get_orient() == "h":
                 x, y = y, x
             self.kws['x'] = x
             self.kws['y'] = y
 
         else:
             pdata = pd.DataFrame(data)
-        orient = "h" if self.is_flank else "v"
+
+        orient = self.get_orient()
         if self.side == "left":
             ax.invert_xaxis()
         # barplot(data=data, orient=orient, ax=ax, **self.kws)
         plotter = getattr(seaborn, self._seaborn_plot)
-
         plotter(data=pdata, orient=orient, ax=ax, **self.kws)
         ax.set(xlabel=None, ylabel=None)
         leg = ax.get_legend()
@@ -106,7 +104,7 @@ class _SeabornBase(StatsBase):
 def _seaborn_doc(obj: _SeabornBase):
     cls_name = obj.__name__
     shape = (10, 10)
-    obj.__doc__ = f"""Wrapper for seaborn's {obj._seaborn_plot}
+    base_doc = f"""Wrapper for seaborn's {obj._seaborn_plot}
     
     .. note::
         .. rubric:: About data format
@@ -119,7 +117,8 @@ def _seaborn_doc(obj: _SeabornBase):
     Parameters
     ----------
     data : np.ndarray, pd.DataFrame
-        The wide-format data. To input 'hue' like data, you need to input a dict.
+        The wide-format data. To input 'hue' like data, 
+        you need to input a dict.
         eg: :code:`{{'hue1': data1, 'hue2': data2}}`.
     hue_order : array of str
         The order of hue
@@ -132,20 +131,65 @@ def _seaborn_doc(obj: _SeabornBase):
     Examples
     --------
     
+    To render seaborn plots as side plots
+    
     .. plot::
         :context: close-figs
         
         >>> import heatgraphy as hg
         >>> from heatgraphy.plotter import {cls_name}
         >>> data = np.random.randn(10, 10)
-        >>> plot = {cls_name}(np.random.randint(0, 10, {shape}))
+        >>> sdata = np.random.randint(0, 10, {shape})
+        >>> plot = {cls_name}(np.random.randint(0, 10, {shape}), color='#DB4D6D')
+        >>> h = hg.Heatmap(data)
+        >>> h.hsplit(cut=[3, 7])
+        >>> h.add_right(plot)
+        >>> h.render()
+    """
+
+    extend_examples = f"""
+    It's possible to add hue data
+    
+    .. plot::
+        :context: close-figs
+        
+        >>> plot = {cls_name}({{'a': sdata, 'b': sdata}}, color='#DB4D6D')
         >>> h = hg.Heatmap(data)
         >>> h.hsplit(cut=[3, 7])
         >>> h.add_right(plot)
         >>> h.render()
         
+    You can also draw it on the main canvas
     
+    .. plot::
+        :context: close-figs
+        
+        >>> plot = {cls_name}(np.random.randint(0, 10, {shape}), color='#DB4D6D')
+        >>> anno = hg.plotter.Chunk(['Chunk1', 'Chunk2', 'Chunk3'], 
+        ...                         ['#66327C', '#FFB11B', '#A8D8B9'], padding=10)
+        >>> cb = hg.ClusterBoard(data, margin=.2)
+        >>> cb.add_layer(plot)
+        >>> cb.vsplit(cut=[3, 7])
+        >>> cb.add_bottom(anno)
+        >>> cb.render()
+        
+    To layout in a different orient
+    
+    .. plot::
+        :context: close-figs
+        
+        >>> plot = {cls_name}(np.random.randint(0, 10, {shape}), orient='h', color='#DB4D6D')
+        >>> cb = hg.ClusterBoard(data.T)
+        >>> cb.add_layer(plot)
+        >>> cb.hsplit(cut=[3, 7])
+        >>> cb.add_left(anno)
+        >>> cb.render()
+        
     """
+    if cls_name == "Count":
+        obj.__doc__ = base_doc
+    else:
+        obj.__doc__ = base_doc + extend_examples
     return obj
 
 

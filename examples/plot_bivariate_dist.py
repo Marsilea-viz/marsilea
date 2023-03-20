@@ -6,10 +6,13 @@ Bivariate Distribution
 
 import numpy as np
 import seaborn as sns
+from matplotlib import pyplot as plt
 from scipy.stats import gaussian_kde
 
 import heatgraphy as hg
 
+
+np.random.seed(0)
 rs = np.random.RandomState(50)
 x, y = rs.normal(size=(2, 50))
 xmin, ymin, xmax, ymax = x.min(), y.min(), x.max(), y.max()
@@ -29,14 +32,15 @@ zx = x_kernel(np.mgrid[xmin:xmax:100j])
 y_kernel = gaussian_kde(x)
 zy = y_kernel(np.mgrid[ymin:ymax:100j])
 
-wb = hg.WhiteBoard(name="main", width=3, height=3)
+wb = hg.WhiteBoard(name="main", width=3, height=3, margin=.2)
 wb.add_canvas("top", size=.4, pad=.1, name="x1")
 wb.add_canvas("bottom", size=.4, pad=.1, name="x2")
 
 wb.add_canvas("left", size=.4, pad=.1, name="y1")
 wb.add_canvas("right", size=.4, pad=.1, name="y2")
 wb.add_title(left="Y-axis distribution", top="X-axis distribution")
-
+wb.add_pad("left", size=.3)
+wb.add_pad("right", size=.3)
 wb.render()
 
 main_ax = wb.get_ax("main")
@@ -68,3 +72,4 @@ y2_ax.tick_params(right=False, labelright=False)
 for tick in y2_ax.get_xticklabels():
     tick.set_rotation(90)
 y2_ax.invert_xaxis()
+plt.show()

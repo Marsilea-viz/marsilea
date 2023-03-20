@@ -16,7 +16,7 @@ from ._deform import Deformation
 from .dendrogram import Dendrogram
 from .exceptions import SplitTwice
 from .layout import CrossLayout, CompositeCrossLayout
-from .plotter import RenderPlan, Title
+from .plotter import RenderPlan, Title, SizedMesh
 from .utils import pairwise, batched, get_plot_name, _check_side
 
 
@@ -172,7 +172,8 @@ class LegendMaker:
 
     def _freeze_legend(self, figure):
         if self._draw_legend:
-            self.layout.add_legend_ax(**self._legend_grid_kws)
+            if self.layout.get_legend_ax() is None:
+                self.layout.add_legend_ax(**self._legend_grid_kws)
             renderer = figure.canvas.get_renderer()
             legend_ax = figure.add_axes([0, 0, 1, 1])
             legends_box = self._legends_drawer(legend_ax)
@@ -197,18 +198,20 @@ class WhiteBoard(LegendMaker):
 
     """
     layout: CrossLayout
-    figure: Figure
+    figure: Figure = None
     _row_plan: List[RenderPlan]
     _col_plan: List[RenderPlan]
     _layer_plan: List[RenderPlan]
 
-    def __init__(self, width=None, height=None, name=None):
+    def __init__(self, width=None, height=None, name=None, margin=0):
         self.main_name = get_plot_name(name, "main", "board")
+        self._main_size_updatable = (width is None) & (height is None)
         width = 4 if width is None else width
         height = 4 if height is None else height
         self.layout = CrossLayout(name=self.main_name,
                                   width=width,
-                                  height=height)
+                                  height=height,
+                                  margin=margin)
 
         # self._side_count = {"right": 0, "left": 0, "top": 0, "bottom": 0}
         self._col_plan = []
@@ -288,6 +291,17 @@ class WhiteBoard(LegendMaker):
         plot.set_side("main")
         self._layer_plan.append(plot)
 
+        # SizedMesh will update the main canvas size
+        if self._main_size_updatable:
+            if isinstance(plot, SizedMesh):
+                w, h = plot.update_main_canvas_size()
+                self.layout.set_main_width(w)
+                self.layout.set_main_height(h)
+                # only update once,
+                # if we have more plot in the future
+                # that will change canvas size
+                self._main_size_updatable = False
+
     def _get_layers_zorder(self):
         return sorted(self._layer_plan, key=lambda p: p.zorder)
 
@@ -298,7 +312,7 @@ class WhiteBoard(LegendMaker):
         self.layout.add_ax(side, name, size, pad=pad)
 
     def add_title(self, top=None, bottom=None, left=None, right=None,
-                  pad=.1, **props):
+                  pad=0, **props):
         if left is not None:
             self.add_plot("left", Title(left, **props), pad=pad)
         if right is not None:
@@ -392,13 +406,13 @@ class WhiteBoard(LegendMaker):
         self._render_legend()
 
     def save(self, fname, **kwargs):
-        if self.figure is not None:
-            save_options = dict(bbox_inches="tight")
-            save_options.update(kwargs)
-            self.figure.savefig(fname, **save_options)
-        else:
-            warnings.warn("Figure does not exist, "
-                          "please render it before saving as file.")
+        self.render()
+        save_options = dict(bbox_inches="tight")
+        save_options.update(kwargs)
+        self.figure.savefig(fname, **save_options)
+
+    def set_margin(self, margin):
+        self.layout.set_margin(margin)
 
 
 class CompositeBoard(LegendMaker):
@@ -428,10 +442,10 @@ class CompositeBoard(LegendMaker):
         return self.append("bottom", other)
 
     def append(self, side, other):
-        board = self.new_board(other)
-        if isinstance(board, Number):
-            self.layout.append(side, board)
+        if isinstance(other, Number):
+            self.layout.append(side, other)
         else:
+            board = self.new_board(other)
             self._board_list.append(board)
             self.layout.append(side, board.layout)
         return self
@@ -440,9 +454,10 @@ class CompositeBoard(LegendMaker):
         if figure is None:
             figure = plt.figure()
         self._freeze_legend(figure)
+        for board in self._board_list:
+            board._freeze_flex_plots(figure)
         self.layout.freeze(figure=figure, scale=scale)
-        self.figure = self.layout.figure
-
+        self.figure = figure
         for board in self._board_list:
             board.render(figure=self.figure)
 
@@ -466,6 +481,9 @@ class CompositeBoard(LegendMaker):
     def get_ax(self, board_name, ax_name):
         return self.layout.get_ax(board_name, ax_name)
 
+    def set_margin(self, margin):
+        self.layout.set_margin(margin)
+
 
 class ClusterBoard(WhiteBoard):
     _row_reindex: List[int] = None
@@ -477,8 +495,9 @@ class ClusterBoard(WhiteBoard):
     _mesh = None
     square = False
 
-    def __init__(self, cluster_data, width=None, height=None, name=None):
-        super().__init__(width=width, height=height, name=name)
+    def __init__(self, cluster_data, width=None, height=None,
+                 name=None, margin=0):
+        super().__init__(width=width, height=height, name=name, margin=margin)
         self._row_den = []
         self._col_den = []
         self._cluster_data = cluster_data
@@ -487,7 +506,7 @@ class ClusterBoard(WhiteBoard):
     def add_dendrogram(self, side, method=None, metric=None,
                        add_meta=True, add_base=True, add_divider=True,
                        meta_color=None, linewidth=None, colors=None,
-                       divider_style="--",
+                       divider_style="--", meta_ratio=.2,
                        show=True, name=None, size=0.5, pad=0.):
         """Run cluster and add dendrogram
 
@@ -519,6 +538,8 @@ class ClusterBoard(WhiteBoard):
             The line style of the divide line
         meta_color : color
             The color of the meta dendrogram
+        meta_ratio : float
+            The size of meta dendrogram relative to the base dendrogram
         linewidth : float
             The linewidth for every dendrogram and divide line
         colors : color, array of color
@@ -592,7 +613,7 @@ class ClusterBoard(WhiteBoard):
                            add_meta=add_meta, add_base=add_base,
                            add_divider=add_divider, meta_color=meta_color,
                            linewidth=linewidth, colors=colors,
-                           divider_style=divider_style)
+                           divider_style=divider_style, meta_ratio=meta_ratio)
 
         deform = self.get_deform()
         if side in ["right", "left"]:
@@ -691,6 +712,7 @@ class ClusterBoard(WhiteBoard):
                                  linewidth=den['linewidth'],
                                  divide=den['add_divider'],
                                  divide_style=den['divider_style'],
+                                 meta_ratio=den['meta_ratio']
                                  )
 
     def _render_plan(self):

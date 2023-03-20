@@ -28,7 +28,7 @@ def grouper(iterable, n):
 
 
 def batched(iterable, n):
-    "Batch data into lists of length n. The last batch may be shorter."
+    """Batch data into lists of length n. The last batch may be shorter."""
     # batched('ABCDEFG', 3) --> ABC DEF G
     if n < 1:
         raise ValueError('n must be at least one')
@@ -67,7 +67,7 @@ def get_colormap(cmap):
 
 
 def get_canvas_size_by_data(shape, width=None, height=None,
-                            scale=.3, aspect=1):
+                            scale=.3, aspect=1, max_side=15):
     h, w = shape
     no_w = width is None
     no_h = height is None
@@ -83,6 +83,10 @@ def get_canvas_size_by_data(shape, width=None, height=None,
     elif no_w:
         scale = height / h
         width = w * scale / aspect
+    size = np.array([width, height])
+    if size.max() > max_side:
+        size = size / size.max() * max_side
+    width, height = size
 
     return width, height
 

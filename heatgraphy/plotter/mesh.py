@@ -1,4 +1,4 @@
-__all__ = ["ColorMesh", "Colors", "SizedMesh", "LayersMesh", "MarkerMesh",
+__all__ = ["ColorMesh", "Colors", "SizedMesh", "MarkerMesh",
            "TextMesh", "PatchMesh"]
 
 import warnings
@@ -15,7 +15,8 @@ from matplotlib.offsetbox import AnchoredText
 
 from .base import RenderPlan
 from ..layout import close_ticks
-from ..utils import relative_luminance, get_colormap, ECHARTS16
+from ..utils import relative_luminance, get_colormap, ECHARTS16, \
+    get_canvas_size_by_data
 
 default_label_props = {
     "left": dict(loc="center right", bbox_to_anchor=(0, 0.5)),
@@ -441,6 +442,7 @@ class SizedMesh(MeshBase):
         if size_norm is None:
             size_norm = Normalize()
             size_norm.autoscale(size)
+        self.size_norm = size_norm
         self.orig_size = size
         self.size_matrix = size_norm(size) * (sizes[1] - sizes[0]) + sizes[0]
         self.color = None
@@ -450,6 +452,7 @@ class SizedMesh(MeshBase):
         self.legend = legend
         self.color_legend_kws = {} if color_legend_kws is None else color_legend_kws
         self.size_legend_kws = {} if size_legend_kws is None else size_legend_kws
+        self._has_colormesh = False
         # process color
         # By default, the circles colors are uniform
         if color is None:
@@ -473,6 +476,7 @@ class SizedMesh(MeshBase):
                     self._process_cmap(color, vmin, vmax, cmap,
                                        norm, center)
                     self.color2d = color
+                self._has_colormesh = True
         self.alpha = alpha
         self.frameon = frameon
         self.edgecolor = edgecolor
@@ -483,6 +487,9 @@ class SizedMesh(MeshBase):
         self.kwargs = kwargs
 
         self._collections = None
+
+    def update_main_canvas_size(self):
+        return get_canvas_size_by_data(self.orig_size.shape)
 
     def get_legends(self):
         if not self.legend:
@@ -505,7 +512,7 @@ class SizedMesh(MeshBase):
                                  **options
                                  )
 
-        if (self.color2d is not None) & (self.color != "none"):
+        if (self._has_colormesh) & (self.color != "none"):
             if self.palette is not None:
                 labels, colors = [], []
                 for label, c in self.palette.items():
@@ -573,7 +580,7 @@ class MarkerMesh(MeshBase):
     data : np.ndarray
         Must be bool matrix to indicate if a marker is drawn at specific cell
     color : color
-        The color of the marker
+        The color of the marker.
     marker : str
         See :mod:`matplotlib.markers`
     size : int
@@ -595,8 +602,8 @@ class MarkerMesh(MeshBase):
 
         >>> from heatgraphy.plotter import MarkerMesh
         >>> data = np.random.randn(10, 10) > 0
-        >>> _, ax = plt.subplots()
-        >>> MarkerMesh(data, color="darkgreen", marker="h").render(ax)
+        >>> _, ax = plt.subplots(figsize=(3, 3))
+        >>> MarkerMesh(data, color="darkgreen", marker="x", size=50).render(ax)
 
     """
     render_main = True

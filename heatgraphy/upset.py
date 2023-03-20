@@ -132,7 +132,7 @@ class UpsetData:
             d = [i in s for i in items]
             data.append(d)
         data = np.array(data, dtype=int).T
-        container = cls(data, names=names, items=items,
+        container = cls(data, names=new_names, items=items,
                         sets_attrs=sets_attrs,
                         items_attrs=items_attrs)
         return container
@@ -253,7 +253,9 @@ class Upset(WhiteBoard):
         :context: close-figs
 
         >>> from heatgraphy.upset import UpsetData, Upset
-        >>> data = UpsetData.from_sets([[1,2,3,4], [3,4,5,6]])
+        >>> data = UpsetData.from_sets([[1, 2, 3, 4],
+        >>>                             [3, 4, 5, 6],
+        >>>                             [1, 6, 10, 11]])
         >>> Upset(data).render()
     
 
@@ -502,22 +504,23 @@ class Upset(WhiteBoard):
 
             cy = np.nonzero(chunk)[0]
             cx = np.repeat(ix1, len(cy))
-            line_low, line_up = np.min(cy), np.max(cy)
-            if (self.linewidth > 0) & (line_up - line_low > 0):
-                line_style = {'color': self.color, 'lw': self.linewidth,
-                              **custom_line_style}
-                xs, ys = ix1, (line_low, line_up)
-                liner = ax.vlines
+            if len(cy) > 0:
+                line_low, line_up = np.min(cy), np.max(cy)
+                if (self.linewidth > 0) & (line_up - line_low > 0):
+                    line_style = {'color': self.color, 'lw': self.linewidth,
+                                  **custom_line_style}
+                    xs, ys = ix1, (line_low, line_up)
+                    liner = ax.vlines
+                    if self.orient == "v":
+                        xs, ys = ys, xs
+                        liner = ax.hlines
+                    liner(xs, *ys, **line_style)
+                scatter_colors = self.sets_color[cy]
                 if self.orient == "v":
-                    xs, ys = ys, xs
-                    liner = ax.hlines
-                liner(xs, *ys, **line_style)
-            scatter_colors = self.sets_color[cy]
-            if self.orient == "v":
-                cx, cy = cy, cx
-            current_style = {'facecolor': scatter_colors, 'zorder': 100,
-                             'alpha': 1, **custom_style}
-            ax.scatter(cx, cy, s=self.radius, **current_style)
+                    cx, cy = cy, cx
+                current_style = {'facecolor': scatter_colors, 'zorder': 100,
+                                 'alpha': 1, **custom_style}
+                ax.scatter(cx, cy, s=self.radius, **current_style)
 
         xlow, xup = 0 - 0.5, np.max(xv) + 0.5
         ylow, yup = np.max(yv) + 0.5, 0 - 0.5
@@ -568,17 +571,3 @@ class Upset(WhiteBoard):
                 if bar_style is not None:
                     rect.set(**bar_style)
 
-        # self._freeze_legend()
-        #
-        # if figure is None:
-        #     self.figure = plt.figure()
-        # else:
-        #     self.figure = figure
-        #
-        # if not self.layout.is_freeze:
-        #     self.layout.freeze(figure=self.figure, aspect=aspect, scale=scale)
-        # main_axes = self.get_main_ax()
-        # self._render_matrix(main_axes)
-        # self._render_plan()
-
-        # self._render_legend()

@@ -1,173 +1,86 @@
-import matplotlib as mpl
-import matplotlib.pyplot as plt
 import streamlit as st
 
-import heatgraphy as hg
-from components.example_download import ExampleDownloader
-from components.initialize import enable_nested_columns, inject_css
-from components.layer_data import HeatmapData, GlobalConfig, \
-    SizedHeatmapData, MarkerData
-from components.saver import ChartSaver
-from components.side_plots import side_plots_adder, split_plot
-from components.state import init_state
-from heatgraphy.plotter import ColorMesh, SizedMesh, MarkerMesh
+from components.initialize import init_page, inject_css
 
-# This make the nested columns available
-# import components.nested_columns
-
-# ===========SETUP THINGS=============
-
-enable_nested_columns()
-
-st.set_page_config(
-    page_title="Heatgraphy",
-    layout="centered",
-    page_icon=plt.imread("img/favicon.png"),
-    initial_sidebar_state="collapsed"
-)
-
+init_page("Heatgraphy")
 inject_css()
 
+banner, title = st.columns([1, 1.2])
+with banner:
+    st.markdown(
+        '<video controls width="250" autoplay="true" muted="true" '
+        'loop="true" playsinline style="pointer-events: none;">'
+        '<source src="https://raw.githubusercontent.com/Heatgraphy/'
+        'heatgraphy/main/app/img/V1.mp4" '
+        'type="video/mp4" /></video>', unsafe_allow_html=True)
 
-@st.experimental_memo
-def empty_figure():
-    return plt.figure()
+with title:
+    st.title("Heatgraphy")
+    st.subheader("Create :blue[x-layout] visualization")
+    st.text("")
+    st.markdown(
+        "*By [Mr.Milk](https://github.com/Mr-Milk) and "
+        "[Squirtle692](https://github.com/Squirtle692)*")
 
+st.markdown("---")
 
-init_state(data_ready=False,
-           main_data=None,
-           render_plan=dict(top={}, bottom={}, left={}, right={}),
-           dendrogram_row=None,
-           dendrogram_col=None,
-           figure=empty_figure(),
-           split_h=None,
-           split_v=None,
+st.subheader("About")
+st.markdown("Heatgraphy is a tool for you to create x-layout visualization. "
+            "x-layout is a way to visualize a multi-feature dataset. "
+            "Instead of creating one plot for each feature, x-layout groups "
+            "the plots of different features together "
+            "to make them annotate each other.")
 
-           heatmap_data=None,
-           heatmap_raw_data=None,
-           heatmap_transform=None,
-           size_data=None,
-           size_raw_data=None,
-           size_transform=None,
-           color_data=None,
-           color_raw_data=None,
-           color_transform=None,
-           mark_data=None,
-           )
+st.markdown("---")
 
-
-# @st.experimental_singleton
-def render_plot(global_options,
-                heatmap_options,
-                sizedheatmap_options,
-                mark_options, ):
-    fontsize = global_options['fontsize']
-    fontfamily = global_options['fontfamily']
-    add_legends = global_options['add_legends']
-    width = global_options['width']
-    height = global_options['height']
-
-    with mpl.rc_context({"font.size": fontsize, "font.family": fontfamily}):
-        fig = plt.figure()
-        cluster_data_name = global_options["cluster_data_name"]
-        cluster_data = st.session_state[cluster_data_name]
-        h = hg.ClusterBoard(cluster_data, width=width, height=height)
-
-        heatmap_data = st.session_state["heatmap_data"]
-        if heatmap_data is not None:
-            heatmap = ColorMesh(heatmap_data, **heatmap_options)
-            h.add_layer(heatmap, zorder=-100)
-
-        size_data = st.session_state["size_data"]
-        color_data = st.session_state["color_data"]
-        if color_data is not None:
-            sizedheatmap_options['color'] = color_data
-        if size_data is not None:
-            sized_heatmap = SizedMesh(
-                size_data, **sizedheatmap_options
-            )
-            h.add_layer(sized_heatmap, zorder=1)
-
-        mark_data = st.session_state["mark_data"]
-        if mark_data is not None:
-            marker = MarkerMesh(
-                mark_data, **mark_options,
-            )
-            h.add_layer(marker, zorder=100)
-
-        srow = st.session_state["split_h"]
-        scol = st.session_state["split_v"]
-        if srow is not None:
-            print(srow)
-            h.hsplit(cut=srow.cut, labels=srow.labels, order=srow.order)
-        if scol is not None:
-            h.vsplit(cut=scol.cut, labels=scol.labels, order=scol.order)
-
-        plans = st.session_state['render_plan']
-        for side, actions in plans.items():
-            actions = sorted(list(actions.values()), key=lambda x: x.key)
-            for action in actions:
-                action.apply(h)
-
-        if add_legends:
-            h.add_legends()
-
-        h.render(fig)
-        st.session_state["figure"] = fig
+st.subheader("Online Toolbox")
+st.text("")
+t1, t2, t3 = st.columns(3)
 
 
-# ===========UI PART=============
+def tools(name, img, page, size=150):
+    st.markdown(
+        f'<div style="display: flex; justify-content: center; '
+        f'align-items: center; flex-direction: column;">'
+        f'<p style="font-weight: 600;">{name}</p>'
+        f'<a target="_self" href="{page}">'
+        f'<img style="width: {size}px;" src="{img}"></a>'
+        f'</div>',
+        unsafe_allow_html=True)
 
-st.markdown("Try other tools: - [Upsetplot](/upset)")
 
-st.header("Powerful heatmap creator")
-ExampleDownloader()
+with t1:
+    tools("Simple Heatmap", "https://heatgraphy.readthedocs.io/en/latest/"
+                            "_images/customized_render-1.png",
+          page="/Simple_Heatmap", size=130)
 
-st.subheader("Data Input")
-st.info("Select one or more layer to draw. "
-        "Input data need to have same shape.", icon="🧐")
-heat, sheat, mar = st.tabs(["Heatmap", "Sized Heatmap", "Mark"])
+with t2:
+    tools("x-layout", "https://heatgraphy.readthedocs.io/en/latest/"
+                      "_images/sphx_glr_plot_pbmc3k_thumb.png",
+          page="X-Layout_Heatmap", size=200)
 
-with heat:
-    h_data = HeatmapData()
+with t3:
+    tools("Upset Plot", "https://heatgraphy.readthedocs.io/en/latest/"
+                        "_images/sphx_glr_plot_upset_thumb.png",
+          page="/Upsetplot", size=220)
 
-with sheat:
-    sh_data = SizedHeatmapData()
+st.markdown("---")
 
-with mar:
-    m_data = MarkerData()
 
-if st.session_state["data_ready"]:
+st.subheader("Python Package")
+s1, s2, s3 = st.columns([1, 4, 5])
+with s1:
+    st.image(
+        "https://cdn3.iconfinder.com/data/icons/logos-and-brands-adobe/512/267_Python-512.png",
+        width=50)
 
-    with st.expander("General Options"):
-        tabs = st.tabs(["Heatmap Partition", "Configuration", "Export"])
-        spliter, conf, saver = tabs
+with s2:
+    st.markdown("Familiar with Python? Try our Python package "
+                "that can be easily integrated into your data pipeline!")
+with s3:
 
-    _, render_button, _ = st.columns([2, 2, 2])
-    with render_button:
-        render_request = st.button("Apply changes & Render",
-                                   type="primary",
-                                   help="Apply changes to your heatmap.")
+    st.code("pip install heatgraphy", language="bash")
 
-    fig = st.session_state["figure"]
-    st.pyplot(fig)
+st.markdown("---")
 
-    with spliter:
-        split_plot()
-
-    with conf:
-
-        gconf = GlobalConfig()
-
-    st.subheader("Add Side Plots")
-    st.markdown("The side plots will add from inner to outer")
-    side_plots_adder()
-
-    if render_request:
-        render_plot(gconf.get_conf(), h_data.get_styles(),
-                    sh_data.get_styles(), m_data.get_styles())
-
-        st.experimental_rerun()
-
-    with saver:
-        ChartSaver()
+st.markdown("Copyright © 2023 [Heatgraphy](https://github.com/Heatgraphy)")

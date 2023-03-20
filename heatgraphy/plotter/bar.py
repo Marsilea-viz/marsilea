@@ -64,7 +64,7 @@ class Numbers(StatsBase):
     
     """
 
-    def __init__(self, data, width=.7, color="C0",
+    def __init__(self, data, width=.7, color="C0", orient=None,
                  show_value=True, fmt=None, label=None, label_pad=2.,
                  props=None, **kwargs):
         self.data = self.data_validator(data, target="1d")
@@ -77,14 +77,16 @@ class Numbers(StatsBase):
         self.props = props if props is not None else {}
         self.options = kwargs
         self.bars = None
+        self.orient = orient
 
     def render_ax(self, ax: Axes, data):
-        bar = ax.bar if self.is_body else ax.barh
-        if self.is_flank:
+        orient = self.get_orient()
+        bar = ax.bar if orient == "v" else ax.barh
+        if orient == "h":
             data = data[::-1]
         self.bars = bar(np.arange(0, len(data)) + 0.5, data,
                         self.width, color=self.color, **self.options)
-        if self.is_body:
+        if orient == "v":
             ax.set_xlim(0, len(data))
         else:
             ax.set_ylim(0, len(data))
@@ -143,12 +145,14 @@ class StackBar(StatsBase):
 
     def __init__(self, data,
                  items=None, colors=None,
+                 orient=None,
                  show_value=False,
                  value_loc="center",
                  width=.5,
                  value_size=6,
                  fmt=None,
                  props=None,
+                 label=None,
                  legend_kws=None,
                  **kwargs,
                  ):
@@ -190,26 +194,30 @@ class StackBar(StatsBase):
         self.value_size = value_size
         self.fmt = "%g" if fmt is None else fmt
         self.kwargs = kwargs
+        self.orient = orient
+        self.axis_label = label
 
         props = {} if props is None else props
         value_props = dict(label_type=value_loc)
         value_props.update(props)
         self.props = value_props
-        self.legend_kws = {} if legend_kws is None else legend_kws
+        self._legend_kws = dict(title=self.axis_label, size=1)
+        if legend_kws is not None:
+            self._legend_kws.update(legend_kws)
 
     ''''''
 
     def get_legends(self):
         if self.labels is not None:
             return CatLegend(colors=self.bar_colors, labels=self.labels,
-                             **self.legend_kws)
+                             **self._legend_kws)
 
     def render_ax(self, ax, data):
-        orient = "h" if self.is_flank else "v"
+        orient = self.get_orient()
         bar = ax.bar if orient == "v" else ax.barh
 
         lim = data.shape[1]
-        if self.is_flank:
+        if orient == "h":
             ax.set_ylim(0, lim)
         else:
             ax.set_xlim(0, lim)
@@ -220,7 +228,10 @@ class StackBar(StatsBase):
         bottom = np.zeros(lim)
 
         # reverse to make the order more visually intuitive
-        labels = self.labels[::-1]
+        if self.labels is not None:
+            labels = self.labels[::-1]
+        else:
+            labels = [None for _ in range(len(data))]
         colors = self.bar_colors[:len(data)][::-1]
         for ix, row in enumerate(data[::-1]):
             bars = bar(locs, row, self.width, bottom,

@@ -52,7 +52,7 @@ class ExampleDataGenerator:
         return base64.b64encode(zip_bytes.getvalue()).decode()
 
 
-@st.experimental_singleton
+@st.cache_resource
 def get_base64():
     g = ExampleDataGenerator(20, 20)
     return g.to_base64()

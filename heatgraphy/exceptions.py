@@ -16,6 +16,10 @@ class SplitTwice(Exception):
         return f"Split {self.axis} more than once is ambiguous."
 
 
+class SplitConflict(Exception):
+    pass
+
+
 class AppendLayoutError(Exception):
 
     def __str__(self):

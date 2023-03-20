@@ -24,7 +24,7 @@ class _DendrogramBase:
             # TODO: the y coords are heuristic value,
             #       need a better way to handle
             self.x_coords = np.array([[1., 1., 1., 1.]])
-            self.y_coords = np.array([[0., 3., 3., 0.]])
+            self.y_coords = np.array([[0., .75, .75, 0.]])
             self._reorder_index = np.array([0])
         else:
             self.Z = linkage(data, method=method, metric=metric)
@@ -33,6 +33,13 @@ class _DendrogramBase:
             self.x_coords = np.asarray(self._plot_data['icoord']) / 5
             self.y_coords = np.asarray(self._plot_data['dcoord'])
             self._reorder_index = self._plot_data['leaves']
+
+            ycoords = np.unique(self.y_coords)
+            offset = np.min(ycoords[np.nonzero(ycoords)]) - 0.5
+            for i, j in zip(*np.nonzero(self.y_coords)):
+                if self.y_coords[i, j] != 0.:
+                    self.y_coords[i, j] -= offset
+            # self.y_coords[np.nonzero(self.y_coords)] - offset
 
         self._render_x_coords = self.x_coords
         self._render_y_coords = self.y_coords
@@ -119,9 +126,9 @@ class Dendrogram(_DendrogramBase):
 
     data : np.ndarray
     method : str
-        Refer to :func:`scipy.cluster.hierachy.linkage`
+        Refer to :func:`scipy.cluster.hierarchy.linkage`
     metric : str
-        Refer to :func:`scipy.cluster.hierachy.linkage`
+        Refer to :func:`scipy.cluster.hierarchy.linkage`
     
     """
 
@@ -226,7 +233,7 @@ class GroupDendrogram(_DendrogramBase):
             x_coords.append(den.root[0])
         self.den_xlim = den_xlim
         self.den_ylim = ylim
-        self.divider = ylim * 1.2
+        self.divider = ylim * 1.05
 
     def draw(self,
              ax,
@@ -239,6 +246,7 @@ class GroupDendrogram(_DendrogramBase):
              linewidth=None,
              divide=True,
              divide_style="--",
+             meta_ratio=.2,
              ):
         """
 
@@ -262,6 +270,8 @@ class GroupDendrogram(_DendrogramBase):
             Draw a divide line the divides the meta and base dendrograms
         divide_style :
             The linestyle of the divide line
+        meta_ratio : float
+            The size of meta dendrogram relative to the base dendrogram
 
         """
 
@@ -281,7 +291,6 @@ class GroupDendrogram(_DendrogramBase):
         skeleton = np.sort(np.unique(self.x_coords[self.y_coords == 0]))
         ranger = [(skeleton[i], skeleton[i + 1]) \
                   for i in range(len(skeleton) - 1)]
-
         if add_base:
             x_start = 0
             for i, den in enumerate(self.dens):
@@ -334,7 +343,9 @@ class GroupDendrogram(_DendrogramBase):
         ).reshape(self.x_coords.shape)
         if add_base:
             if add_meta:
-                self._render_y_coords = self.y_coords / 5 + self.divider
+                norm_y_coords = self.y_coords  # / np.max(self.y_coords)
+                amplify = self.den_ylim * meta_ratio
+                self._render_y_coords = norm_y_coords * amplify + self.divider
             else:
                 self._render_y_coords = self.den_ylim / 5
         else:
