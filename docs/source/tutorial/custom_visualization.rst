@@ -1,32 +1,19 @@
-Let's make new visualization for heatgraphy
-============================================
+Introducing Custom Visualizations for Heatgraphy
+================================================
 
 ..
 
-Previously, this is how you add plots in Heatgraphy
+Unlock the full potential of Heatgraphy with custom visualizations!
+Don't be limited by the built-in options. Create your own dynamic visualizations, like Lollipop plots,
+by leveraging Python's class inheritance.
 
-.. code-block:: python
+Master the Art of Rendering with :class:`RenderPlan <heatgraphy.plotter.base.RenderPlan>`
+-----------------------------------------------------------------------------------------
 
-    import numpy as np
-    import heatgraphy as hg
+Every element on the Heatgraphy canvas is a :class:`RenderPlan <heatgraphy.plotter.base.RenderPlan>`,
+inherits from it. To create a new visualization, simply inherit from this base class.
 
-    h = hg.Heatmap(np.random.rand(10, 10))
-    h.add_left(hg.plotter.Colors(list("1122233344")))
-    h.render()
-
-However, the preset included in Heatgraphy may not fit your need.
-What if I want a Lollipop plot? It's not in Heatgraphy.
-
-We will show you how to make a new visualization to express your data more dynamically.
-You need to be familiar with Python's Class inheritance to understand how it works.
-
-Understand :class:`RenderPlan <heatgraphy.plotter.base.RenderPlan>`
--------------------------------------------------------------------
-
-Everything render on the canvas in Heatgraphy is a :class:`RenderPlan <heatgraphy.plotter.base.RenderPlan>`,
-or inherited from it. To create a new visualization, we also need to inherit from this base class.
-
-Let's create a :class:`RenderPlan <heatgraphy.plotter.base.RenderPlan>` that can draw Lollipop plot:
+For example, create a Lollipop plot RenderPlan as follows:
 
 .. code-block:: python
 
@@ -240,7 +227,7 @@ you need to implement the
 The Heatgraphy will automatically handle all the legends for you.
 
 
-Create Splittable `RenderPlan`
+Create splittable `RenderPlan`
 ------------------------------
 
 Here we are going to dive into more advance topic,
