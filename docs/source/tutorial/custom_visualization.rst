@@ -1,32 +1,19 @@
-Let's make new visualization for heatgraphy
-============================================
+Introducing Custom Visualizations for Heatgraphy
+================================================
 
 ..
 
-Previously, this is how you add plots in Heatgraphy
+Unlock the full potential of Heatgraphy with custom visualizations!
+Don't be limited by the built-in options. Create your own dynamic visualizations, like Lollipop plots,
+by leveraging Python's class inheritance.
 
-.. code-block:: python
+Master the Art of Rendering with :class:`RenderPlan <heatgraphy.plotter.base.RenderPlan>`
+-----------------------------------------------------------------------------------------
 
-    import numpy as np
-    import heatgraphy as hg
+Every element on the Heatgraphy canvas is a :class:`RenderPlan <heatgraphy.plotter.base.RenderPlan>`,
+inherits from it. To create a new visualization, simply inherit from this base class.
 
-    h = hg.Heatmap(np.random.rand(10, 10))
-    h.add_left(hg.plotter.Colors(list("1122233344")))
-    h.render()
-
-However, the preset included in Heatgraphy may not fit your need.
-What if I want a Lollipop plot? It's not in Heatgraphy.
-
-We will show you how to make a new visualization to express your data more dynamically.
-You need to be familiar with Python's Class inheritance to understand how it works.
-
-Understand :class:`RenderPlan <heatgraphy.plotter.base.RenderPlan>`
--------------------------------------------------------------------
-
-Everything render on the canvas in Heatgraphy is a :class:`RenderPlan <heatgraphy.plotter.base.RenderPlan>`,
-or inherited from it. To create a new visualization, we also need to inherit from this base class.
-
-Let's create a :class:`RenderPlan <heatgraphy.plotter.base.RenderPlan>` that can draw Lollipop plot:
+For example, create a Lollipop plot RenderPlan as follows:
 
 .. code-block:: python
 
@@ -171,12 +158,43 @@ you need to implement the
 
 .. note::
 
+.. code-block:: python
+    :emphasize-lines: 21, 22, 23, 24, 25
+
+    >>> class Lollipop(RenderPlan):
+    >>>     def __init__(self, data):
+    >>>         self.data = data
+    >>>
+    >>>     def get_legends(self):
+    >>>         return CatLegend(label=['Lollipop'], handle="circle")
+    >>>
+    >>>     def render_ax(self, ax, data):
+    >>>         orient = "horizontal" if self.is_flank else "vertical"
+    >>>         lim = len(data)
+    >>>         if self.is_flank:
+    >>>             ax.set_ylim(0, lim)
+    >>>             ax.set_xlim(0, None)
+    >>>         else:
+    >>>             ax.set_xlim(0, lim)
+    >>>             ax.set_ylim(0, None)
+    >>>         if self.side == "left":
+    >>>             ax.invert_xaxis()
+    >>>         for spine in ax.spines.values():
+    >>>             spine.set_visible(False)
+    >>>          # Plot on every .5 start from 0
+    >>>         locs = np.arange(0, lim) + 0.5
+    >>>         ax.set_yticks([])
+    >>>         ax.set_xticks([])
+    >>>         ax.stem(locs, data, orientation=orient, basefmt=" ")
+=======
     We also develop another package called `legendkit <https://legendkit.readthedocs.io/en/latest/>`_ to help
     you handle legend easily. Consider using it.
 
 
+
 .. plot::
     :context: close-figs
+    :include-source: false
 
     >>> from legendkit import CatLegend
     >>>
@@ -209,7 +227,7 @@ you need to implement the
 The Heatgraphy will automatically handle all the legends for you.
 
 
-Create Splittable `RenderPlan`
+Create splittable `RenderPlan`
 ------------------------------
 
 Here we are going to dive into more advance topic,

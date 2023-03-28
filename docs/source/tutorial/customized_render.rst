@@ -4,11 +4,11 @@ How to customize your visualization?
 Retrieve main axes
 ------------------
 
-To retrieve the main axes, you can call :meth:`get_main_ax() <heatgraphy.WhiteBoard.get_main_ax>` to get
-the main axes. Remember to retrieve the axes **after**
+Easily access the main axes by invoking the :meth:`get_main_ax() <heatgraphy.WhiteBoard.get_main_ax>` method after rendering your plot.
+Remember to retrieve the axes **after**
 you render the plot. If not render, the axes will not be created.
 
-Here we show an example of adding border for your heatmap.
+Check out the example below to learn how to create a beautiful heatmap with a custom border:
 
 .. code-block:: python
     :emphasize-lines: 7
@@ -38,7 +38,7 @@ Here we show an example of adding border for your heatmap.
     >>> border = Rectangle((0, 0), 1, 1, fill=False, ec=".1", lw=5, transform=hax.transAxes)
     >>> hax.add_artist(border)
 
-If the heatmap is split, there will be multiple axes. The return order starts from upper left to lower right.
+When working with split heatmaps, you'll receive multiple axes in return, ordered from the upper left to the lower right:
 
 .. plot::
     :context: close-figs
@@ -61,9 +61,8 @@ If the heatmap is split, there will be multiple axes. The return order starts fr
 Retrieve side axes
 ------------------
 
-To get a side axes is similar to retrieve main axes. You can get it by calling :meth:`get_ax() <heatgraphy.WhiteBoard.get_ax>`
-with the name of the target axes. Therefore, you need to explicitly assign a name to your target plot to get the axes
-that it renders on.
+To retrieve side axes, use the :meth:`get_ax() <heatgraphy.WhiteBoard.get_ax>`
+method and provide the name of your target plot. Remember to assign a name to your plot first:
 
 
 .. code-block:: python
