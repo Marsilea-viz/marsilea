@@ -18,39 +18,38 @@ from .plotter.mesh import MeshBase
 class LayersMesh(MeshBase):
     """The mesh that draw customized elements in multi-layers
 
-    You can specify layers in two ways.
+    LayersMesh is a powerful solution for drawing and visualizing customized elements in multi-layered formats.
+    It offers two flexible ways to specify layers:
 
-    #. One layer of data with different elements
-    #. Multiple layers of data, each layer is a customized element.
-        This will overlay elements on each other.
+    #. A single layer of data containing different elements.
+    #. Multiple layers of data, where each layer represents a customized element,
+    overlaying elements on top of one another
 
-    If multiple layers are supplied, the drawing order will be
-    the order of supplied array. This can be overrided by controling
-    `zorder` attribute in your :class:`Pieces`.
+    When supplying multiple layers, the drawing order follows the order of the input array.
+    Override this order by controlling the `zorder` attribute in your :class:`Pieces`.
 
     Parameters
     ----------
 
     data : np.ndarray, optional
-        If you only have one layer, use this
+        Use this parameter for a single layer
     layers : list of data
-        If you have multiple layer, use this.
-        Each layer must be a bool matrix to indicate if the element
-        is render at specific cell.
+        For multiple layers, use this parameter.
+        Each layer must be a boolean matrix indicating whether the element is rendered at a specific cell.
     pieces : dict or array
-        If you have one layer, use a dict to define how to render each element.
-        If you have multiple layer, use an array to define how to render each layer.
+        For a single layer, use a dict to define how to render each element.
+        For multiple layers, use an array to define the rendering of each layer.
     label : str
-        The label of the mesh, only show when added to the side plot
+        The mesh label, displayed only when added to the side plot.
     label_loc : str
-        The location of the label
+        The label location.
     props : dict
         See :class:`matplotlib.text.Text`
 
     Examples
     --------
 
-    Draw one layer
+    Drawing a single layer:
 
     .. plot::
         :context: close-figs
@@ -63,7 +62,7 @@ class LayersMesh(MeshBase):
         >>> _, ax = plt.subplots()
         >>> LayersMesh(data=data, pieces=pieces).render(ax)
 
-    Draw multiple layers
+    Drawing multiple layers:
 
     .. plot::
         :context: close-figs

@@ -1,9 +1,10 @@
-Let's make new visualization for marsilea
+Let's make custom visualization for marsilea
 ============================================
 
-..
 
-Previously, this is how you add plots in Heatgraphy
+Unlock the full potential of Marsilea with custom visualizations!
+Don't be limited by the built-in options. Create your own dynamic visualizations, like Lollipop plots,
+by leveraging Python's class inheritance.
 
 .. code-block:: python
 
@@ -14,19 +15,18 @@ Previously, this is how you add plots in Heatgraphy
     h.add_left(hg.plotter.Colors(list("1122233344")))
     h.render()
 
-However, the preset included in Heatgraphy may not fit your need.
-What if I want a Lollipop plot? It's not in Heatgraphy.
+However, the preset included in Marsilea may not fit your need.
+What if I want a Lollipop plot? It's not in Marsilea.
 
-We will show you how to make a new visualization to express your data more dynamically.
-You need to be familiar with Python's Class inheritance to understand how it works.
 
-Understand :class:`RenderPlan <marsilea.plotter.base.RenderPlan>`
--------------------------------------------------------------------
+Master the Art of Rendering with :class:`RenderPlan <heatgraphy.plotter.base.RenderPlan>`
+-----------------------------------------------------------------------------------------
 
-Everything render on the canvas in Heatgraphy is a :class:`RenderPlan <marsilea.plotter.base.RenderPlan>`,
+
+Everything render on the canvas in Marsilea is a :class:`RenderPlan <marsilea.plotter.base.RenderPlan>`,
 or inherited from it. To create a new visualization, we also need to inherit from this base class.
 
-Let's create a :class:`RenderPlan <marsilea.plotter.base.RenderPlan>` that can draw Lollipop plot:
+For example, create a Lollipop plot RenderPlan as follows:
 
 .. code-block:: python
 
@@ -219,12 +219,43 @@ you need to implement the
 
 .. note::
 
+.. code-block:: python
+    :emphasize-lines: 21, 22, 23, 24, 25
+
+    >>> class Lollipop(RenderPlan):
+    >>>     def __init__(self, data):
+    >>>         self.data = data
+    >>>
+    >>>     def get_legends(self):
+    >>>         return CatLegend(label=['Lollipop'], handle="circle")
+    >>>
+    >>>     def render_ax(self, ax, data):
+    >>>         orient = "horizontal" if self.is_flank else "vertical"
+    >>>         lim = len(data)
+    >>>         if self.is_flank:
+    >>>             ax.set_ylim(0, lim)
+    >>>             ax.set_xlim(0, None)
+    >>>         else:
+    >>>             ax.set_xlim(0, lim)
+    >>>             ax.set_ylim(0, None)
+    >>>         if self.side == "left":
+    >>>             ax.invert_xaxis()
+    >>>         for spine in ax.spines.values():
+    >>>             spine.set_visible(False)
+    >>>          # Plot on every .5 start from 0
+    >>>         locs = np.arange(0, lim) + 0.5
+    >>>         ax.set_yticks([])
+    >>>         ax.set_xticks([])
+    >>>         ax.stem(locs, data, orientation=orient, basefmt=" ")
+=======
     We also develop another package called `legendkit <https://legendkit.readthedocs.io/en/latest/>`_ to help
     you handle legend easily. Consider using it.
 
 
+
 .. plot::
     :context: close-figs
+    :include-source: false
 
     >>> from legendkit import CatLegend
     >>>
@@ -254,10 +285,10 @@ you need to implement the
     >>> h.render()
 
 
-The Heatgraphy will automatically handle all the legends for you.
+The Marsilea will automatically handle all the legends for you.
 
 
-Create Splittable `RenderPlan`
+Create splittable `RenderPlan`
 ------------------------------
 
 Here we are going to dive into more advance topic,
@@ -369,7 +400,7 @@ What's happening under the hood is clearly illustrated in the flowchart below.
 
 Here, the :meth:`render_ax <marsilea.plotter.base.RenderPlan.render_ax>`
 define the behavior on how to render on each `Axes` with each chunk of `data`.
-Heatgraphy will automatically handle the split and data for you. If you want to handle the splitting
+Marsilea will automatically handle the split and data for you. If you want to handle the splitting
 process, you can overwrite the :meth:`get_render_data <marsilea.plotter.base.RenderPlan.get_render_data>`
 method.
 

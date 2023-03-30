@@ -5,7 +5,8 @@ Create different types of heatmap
 Sized Heatmap
 -------------
 
-Besides colors, Sized heatmap enables you to encode another layer of information into the size of elements.
+Add an extra dimension to your heatmaps with the Sized Heatmap feature!
+Encode additional data layers into the size of heatmap elements for more informative visualizations.
 
 .. plot::
     :context: close-figs
@@ -29,7 +30,7 @@ Besides colors, Sized heatmap enables you to encode another layer of information
     >>> sh = hg.SizedHeatmap(size=size, color=color)
     >>> sh.render()
 
-You may also add an extra layer to the sized heatmap.
+Boost your Sized Heatmap by incorporating an extra layer.
 
 .. plot::
     :context: close-figs
@@ -56,8 +57,9 @@ You may also add an extra layer to the sized heatmap.
     >>> sh.add_layer(ColorMesh(data, cmap="BrBG"), zorder=-1)
     >>> sh.render()
 
+
 A real world example is `Hinton diagram <https://matplotlib.org/stable/gallery/specialty_plots/hinton_demo.html>`_.
-If your color is categorical, we can easily assign colors to each category.
+If your colors are categorical, you can easily assign colors to each category.
 
 
 .. plot::
@@ -71,9 +73,10 @@ If your color is categorical, we can easily assign colors to each category.
     >>> sh.add_legends()
     >>> sh.render()
 
-Other heatmap variants have no different than the :class:`Heatmap`, you can easily add other plots to it.
 
-Since we have multiple layers here, you can explicitly ask the cluster to perform on size data.
+Adding other plots to sized heatmap variants is as straightforward as it is with the basic :class:`Heatmap` class.
+Since multiple layers are present, you can explicitly request clustering to be performed on size data.
+
 
 .. plot::
     :context: close-figs
@@ -108,8 +111,7 @@ Since we have multiple layers here, you can explicitly ask the cluster to perfor
 Categorical Heatmap
 -------------------
 
-Another useful type of heatmap variants is categorical heatmap that used to
-visualize categorical data.
+Visualize categorical data with the Categorical Heatmap, a versatile type of heatmap variant.
 
 .. plot::
     :context: close-figs
@@ -122,9 +124,8 @@ visualize categorical data.
 Layers Heatmap
 --------------
 
-A more powerful version of categorical heatmap that allows you to defined your own elements.
-
-Heatgraphy provides you with predefined elements,
+Explore the Layers Heatmap, an even more powerful version of the categorical heatmap that enables you to define your own elements.
+Marsilea provides predefined elements for your convenience.
 
 .. plot::
     :context: close-figs

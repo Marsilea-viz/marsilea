@@ -1,22 +1,30 @@
-UpSet plot
-==========
+UpSet Plot: The Ultimate Venn Diagram Alternative for Multiple Sets
+===================================================================
 
-UpSet plot can be considered as venn plot for many sets.
+UpSet Plot offers a powerful alternative to Venn diagrams when dealing with multiple sets,
+making it easier to analyze and visualize complex data relationships.
 
 
-Data Input
-----------
 
-The data format of upset data is a bit complicated. Currently, Heatgraphy can handle following format.
+Data Input Made Easy
+--------------------
 
-- A list of sets and the items in each set.
-- A list of items and the sets that the item belongs to.
-- A binary table, columns are sets, rows are items. The value of 0 or 1 indicates if an item is in a set.
+Understanding the data format for UpSet plots is a breeze. Marsilea handles these formats effortlessly:
 
-Heatgraphy provides a utility class :class:`UpsetData <marsilea.upset.UpsetData>` to handle sets data.
-It contains helpful methods to query information about different sets.
+A list of sets and their respective items.
+A list of items and the sets they belong to.
+A binary table with columns representing sets,
+rows representing items, and values of 0 or 1 to indicate an item's presence in a set.
 
-Here we use the Top 1000 movies in IMDB database for illustration.
+
+
+The versatile :class:`UpsetData <heatgraphy.upset.UpsetData>` utility class from
+Marsilea simplifies working with set data,
+offering useful methods for querying information about various sets.
+
+To demonstrate, we'll use the Top 1000 movies from the IMDB database.
+
+
 
 .. plot::
     :context: close-figs
@@ -59,12 +67,12 @@ Here we use the Top 1000 movies in IMDB database for illustration.
     >>> rcParams['font.size'] = 8
 
 
-Create an UpSet plot
---------------------
+Creating an UpSet Plot in a Snap
+--------------------------------
 
-The :class:`Upset <marsilea.upset.Upset>` is here to help you create your first upset plot.
-Like other visualization in marsilea, remember to call :meth:`render()`
-to actually render your plot.
+The :class:`Upset <heatgraphy.upset.Upset>`  class in Marsilea makes it easy to create your first UpSet plot.
+Like other visualizations in Marsilea, simply call the :meth:`render()` method to bring your plot to life.
+>>>>>>> e86bad189545a898a222acaa5b40e03033dbed34
 
 .. plot::
     :context: close-figs
@@ -85,7 +93,7 @@ to actually render your plot.
     >>> us = Upset(upset_data, min_size=15)
     >>> us.render()
 
-You can also change the position of different components
+Customize component positions for a tailored look:
 
 .. plot::
     :context: close-figs
@@ -93,7 +101,7 @@ You can also change the position of different components
     >>> us = Upset(upset_data, min_size=15, add_labels="left", add_sets_size="right")
     >>> us.render()
 
-Alternatively, to have better control
+For even more control:
 
 .. plot::
     :context: close-figs
@@ -104,10 +112,11 @@ Alternatively, to have better control
     >>> us.render()
 
 
-Highlight Sets
---------------
+Highlighting Sets with Ease
+---------------------------
 
-To highlight specific sets, try :meth:`highlight_subsets() <marsilea.upset.Upset.highlight_subsets>`.
+To emphasize specific sets, use the :meth:`highlight_subsets() <heatgraphy.upset.Upset.highlight_subsets>` method.
+
 
 .. plot::
     :context: close-figs
@@ -119,10 +128,10 @@ To highlight specific sets, try :meth:`highlight_subsets() <marsilea.upset.Upset
     >>> us.render()
 
 
-Sets attributes and items attributes
-------------------------------------
+Visualizing Set and Item Attributes
+-----------------------------------
 
-UpSet plot can not only visualize the intersections, but also the distribution of different attributes.
+UpSet plots not only showcase intersections but also display the distribution of different attributes.
 
 .. plot::
     :context: close-figs
