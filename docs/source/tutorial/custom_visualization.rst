@@ -1,4 +1,4 @@
-Let's make new visualization for heatgraphy
+Let's make new visualization for marsilea
 ============================================
 
 ..
@@ -8,7 +8,7 @@ Previously, this is how you add plots in Heatgraphy
 .. code-block:: python
 
     import numpy as np
-    import heatgraphy as hg
+    import marsilea as hg
 
     h = hg.Heatmap(np.random.rand(10, 10))
     h.add_left(hg.plotter.Colors(list("1122233344")))
@@ -20,17 +20,17 @@ What if I want a Lollipop plot? It's not in Heatgraphy.
 We will show you how to make a new visualization to express your data more dynamically.
 You need to be familiar with Python's Class inheritance to understand how it works.
 
-Understand :class:`RenderPlan <heatgraphy.plotter.base.RenderPlan>`
+Understand :class:`RenderPlan <marsilea.plotter.base.RenderPlan>`
 -------------------------------------------------------------------
 
-Everything render on the canvas in Heatgraphy is a :class:`RenderPlan <heatgraphy.plotter.base.RenderPlan>`,
+Everything render on the canvas in Heatgraphy is a :class:`RenderPlan <marsilea.plotter.base.RenderPlan>`,
 or inherited from it. To create a new visualization, we also need to inherit from this base class.
 
-Let's create a :class:`RenderPlan <heatgraphy.plotter.base.RenderPlan>` that can draw Lollipop plot:
+Let's create a :class:`RenderPlan <marsilea.plotter.base.RenderPlan>` that can draw Lollipop plot:
 
 .. code-block:: python
 
-    from heatgraphy import RenderPlan
+    from marsilea import RenderPlan
 
     class Lollipop(RenderPlan):
         pass
@@ -62,7 +62,35 @@ Now lets create a heatmap and add it to the top
     :context: close-figs
     :include-source: false
 
-    >>> from heatgraphy.base import RenderPlan
+        >>> from marsilea.base import RenderPlan
+
+        >>> class Lollipop(RenderPlan):
+        ...
+        ...     def __init__(self, data):
+        ...         self.data = data
+        ...
+        ...     def render(self, ax):
+        ...         lim = len(self.data)
+        ...         locs = np.arange(lim) + 0.5
+        ...         ax.stem(locs, self.data, basefmt="none")
+        ...         ax.set_axis_off()
+        ...
+
+        >>> from marsilea.base import RenderPlan
+
+        >>> class Lollipop(RenderPlan):
+        ...
+        ...     def __init__(self, data):
+        ...         self.data = data
+        ...
+        ...     def render(self, ax):
+        ...         lim = len(self.data)
+        ...         locs = np.arange(lim) + 0.5
+        ...         ax.stem(locs, self.data, basefmt="none")
+        ...         ax.set_axis_off()
+        ...
+
+    >>> from marsilea.base import RenderPlan
 
     >>> class Lollipop(RenderPlan):
     ...
@@ -80,7 +108,27 @@ Now lets create a heatmap and add it to the top
 .. plot::
     :context: close-figs
 
-    >>> import heatgraphy as hg
+        >>> import marsilea as hg
+        >>> data = np.random.rand(10, 10)
+        >>> lol_data = np.arange(10) + 2
+        >>> h = hg.Heatmap(data)
+        >>> h.add_top(Lollipop(lol_data))
+        >>> h.render()
+
+
+    Congratulation! you just creat your
+
+        >>> import marsilea as hg
+        >>> data = np.random.rand(10, 10)
+        >>> lol_data = np.arange(10) + 2
+        >>> h = hg.Heatmap(data)
+        >>> h.add_top(Lollipop(lol_data))
+        >>> h.render()
+
+
+    Congratulation! you just creat your
+
+    >>> import marsilea as hg
     >>> data = np.random.rand(10, 10)
     >>> lol_data = np.arange(10) + 2
     >>> h = hg.Heatmap(data)
@@ -88,7 +136,7 @@ Now lets create a heatmap and add it to the top
     >>> h.render()
 
 
-Congratulation! you just creat your :class:`RenderPlan <heatgraphy.plotter.base.RenderPlan>`.
+Congratulation! you just creat your :class:`RenderPlan <marsilea.plotter.base.RenderPlan>`.
 
 
 But what if I want to add it to other side.
@@ -122,11 +170,11 @@ Oh no, it's broken! Let's try to fix it.
 
 Here we use the `is_body` attribute to query the side,
 here is a list of attributes that you can use to know
-which side that the :class:`RenderPlan <heatgraphy.plotter.base.RenderPlan>` is drawn.
+which side that the :class:`RenderPlan <marsilea.plotter.base.RenderPlan>` is drawn.
 
-- :attr:`.side <heatgraphy.plotter.base.RenderPlan.side>`: Directly known the side
-- :attr:`.is_body <heatgraphy.plotter.base.RenderPlan.is_body>`: Top, Bottom or Main
-- :attr:`.is_flank <heatgraphy.plotter.base.RenderPlan.is_flank>`: Left or Right
+- :attr:`.side <marsilea.plotter.base.RenderPlan.side>`: Directly known the side
+- :attr:`.is_body <marsilea.plotter.base.RenderPlan.is_body>`: Top, Bottom or Main
+- :attr:`.is_flank <marsilea.plotter.base.RenderPlan.is_flank>`: Left or Right
 
 .. plot::
     :context: close-figs
@@ -165,9 +213,9 @@ Now we try add it to the left again.
 Make a legend
 -------------
 
-If your :class:`RenderPlan <heatgraphy.plotter.base.RenderPlan>` need to have legends,
+If your :class:`RenderPlan <marsilea.plotter.base.RenderPlan>` need to have legends,
 you need to implement the
-:meth:`get_legends <heatgraphy.plotter.base.RenderPlan.get_legends>`.
+:meth:`get_legends <marsilea.plotter.base.RenderPlan.get_legends>`.
 
 .. note::
 
@@ -228,13 +276,71 @@ guarantee to be single :class:`Axes <matplotlib.axes.Axes>`, there will be multi
 :class:`Axes <matplotlib.axes.Axes>` when it gets split.
 
 The simply way to refactor our `Lollipop` is to implement a method
-:meth:`render_ax <heatgraphy.plotter.base.RenderPlan.render_ax>`.
+:meth:`render_ax <marsilea.plotter.base.RenderPlan.render_ax>`.
 It takes two paramters, an axes to be drawn and the data that are already split.
 
 .. plot::
     :context: close-figs
 
-    >>> from heatgraphy.plotter.base import StatsBase
+        >>> from marsilea.plotter.base import StatsBase
+        >>>
+        >>> class Lollipop(StatsBase):
+        ...
+        ...    def __init__(self, data):
+        ...        self.data = data
+        ...
+        ...    def render_ax(self, ax, data):
+        ...        lim = len(data)
+        ...        locs = np.arange(lim) + 0.5
+        ...        orientation = "vertical" if self.is_body else "horizontal"
+        ...        ax.stem(locs, data, basefmt="none")
+        ...        ax.set_axis_off()
+        ...        if self.side == "left":
+        ...            ax.invert_xaxis()
+        ...        if self.is_flank:
+        ...             ax.invert_yaxis()
+        ...        ax.set_xlim(0, locs[-1]+.5)
+        ...
+
+        >>> h = hg.Heatmap(data)
+        >>> h.vsplit(cut=[5])
+        >>> h.add_top(Lollipop(np.arange(10) + 2))
+        >>> h.render()
+
+    What's happening under the hood is clearly illustrated in the flowchart below.
+
+    Here, the
+
+        >>> from marsilea.plotter.base import StatsBase
+        >>>
+        >>> class Lollipop(StatsBase):
+        ...
+        ...    def __init__(self, data):
+        ...        self.data = data
+        ...
+        ...    def render_ax(self, ax, data):
+        ...        lim = len(data)
+        ...        locs = np.arange(lim) + 0.5
+        ...        orientation = "vertical" if self.is_body else "horizontal"
+        ...        ax.stem(locs, data, basefmt="none")
+        ...        ax.set_axis_off()
+        ...        if self.side == "left":
+        ...            ax.invert_xaxis()
+        ...        if self.is_flank:
+        ...             ax.invert_yaxis()
+        ...        ax.set_xlim(0, locs[-1]+.5)
+        ...
+
+        >>> h = hg.Heatmap(data)
+        >>> h.vsplit(cut=[5])
+        >>> h.add_top(Lollipop(np.arange(10) + 2))
+        >>> h.render()
+
+    What's happening under the hood is clearly illustrated in the flowchart below.
+
+    Here, the
+
+    >>> from marsilea.plotter.base import StatsBase
     >>>
     >>> class Lollipop(StatsBase):
     ...
@@ -261,13 +367,13 @@ It takes two paramters, an axes to be drawn and the data that are already split.
 
 What's happening under the hood is clearly illustrated in the flowchart below.
 
-Here, the :meth:`render_ax <heatgraphy.plotter.base.RenderPlan.render_ax>`
+Here, the :meth:`render_ax <marsilea.plotter.base.RenderPlan.render_ax>`
 define the behavior on how to render on each `Axes` with each chunk of `data`.
 Heatgraphy will automatically handle the split and data for you. If you want to handle the splitting
-process, you can overwrite the :meth:`get_render_data <heatgraphy.plotter.base.RenderPlan.get_render_data>`
+process, you can overwrite the :meth:`get_render_data <marsilea.plotter.base.RenderPlan.get_render_data>`
 method.
 
-.. image:: ../img/heatgraphy-renderplan-logic.drawio.svg
+.. image:: ../img/marsilea-renderplan-logic.drawio.svg
 
 Great, hope you get the idea on how to implement your visualization.
 

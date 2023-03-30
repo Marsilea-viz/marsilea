@@ -10,7 +10,21 @@ Besides colors, Sized heatmap enables you to encode another layer of information
 .. plot::
     :context: close-figs
 
-    >>> import heatgraphy as hg
+        >>> import marsilea as hg
+        >>> size, color = np.random.randn(11, 12), np.random.randn(11, 12)
+        >>> sh = hg.SizedHeatmap(size=size, color=color)
+        >>> sh.render()
+
+    You may also add an extra layer to the sized heatmap.
+
+        >>> import marsilea as hg
+        >>> size, color = np.random.randn(11, 12), np.random.randn(11, 12)
+        >>> sh = hg.SizedHeatmap(size=size, color=color)
+        >>> sh.render()
+
+    You may also add an extra layer to the sized heatmap.
+
+    >>> import marsilea as hg
     >>> size, color = np.random.randn(11, 12), np.random.randn(11, 12)
     >>> sh = hg.SizedHeatmap(size=size, color=color)
     >>> sh.render()
@@ -20,7 +34,23 @@ You may also add an extra layer to the sized heatmap.
 .. plot::
     :context: close-figs
 
-    >>> from heatgraphy.plotter import ColorMesh
+        >>> from marsilea.plotter import ColorMesh
+        >>> sh = hg.SizedHeatmap(size=size, color=color)
+        >>> data = np.random.randn(11, 12)
+        >>> sh.add_layer(ColorMesh(data, cmap="BrBG"), zorder=-1)
+        >>> sh.render()
+
+    A real world example is
+
+        >>> from marsilea.plotter import ColorMesh
+        >>> sh = hg.SizedHeatmap(size=size, color=color)
+        >>> data = np.random.randn(11, 12)
+        >>> sh.add_layer(ColorMesh(data, cmap="BrBG"), zorder=-1)
+        >>> sh.render()
+
+    A real world example is
+
+    >>> from marsilea.plotter import ColorMesh
     >>> sh = hg.SizedHeatmap(size=size, color=color)
     >>> data = np.random.randn(11, 12)
     >>> sh.add_layer(ColorMesh(data, cmap="BrBG"), zorder=-1)
@@ -48,7 +78,25 @@ Since we have multiple layers here, you can explicitly ask the cluster to perfor
 .. plot::
     :context: close-figs
 
-    >>> from heatgraphy.plotter import Violin
+        >>> from marsilea.plotter import Violin
+        >>> sh = hg.SizedHeatmap(size=size, color=color, marker="s", cluster_data=size,
+        ...                      palette={True: "#E87A90", False: "#BEC23F"})
+        >>> sh.hsplit(cut=[5])
+        >>> sh.add_dendrogram("left")
+        >>> sh.add_top(Violin(np.random.randint(10, 100, (10, 10)), color="pink", inner="stick"), pad=.1)
+        >>> sh.add_legends()
+        >>> sh.render()
+
+        >>> from marsilea.plotter import Violin
+        >>> sh = hg.SizedHeatmap(size=size, color=color, marker="s", cluster_data=size,
+        ...                      palette={True: "#E87A90", False: "#BEC23F"})
+        >>> sh.hsplit(cut=[5])
+        >>> sh.add_dendrogram("left")
+        >>> sh.add_top(Violin(np.random.randint(10, 100, (10, 10)), color="pink", inner="stick"), pad=.1)
+        >>> sh.add_legends()
+        >>> sh.render()
+
+    >>> from marsilea.plotter import Violin
     >>> sh = hg.SizedHeatmap(size=size, color=color, marker="s", cluster_data=size,
     ...                      palette={True: "#E87A90", False: "#BEC23F"})
     >>> sh.hsplit(cut=[5])
@@ -81,7 +129,29 @@ Heatgraphy provides you with predefined elements,
 .. plot::
     :context: close-figs
 
-    >>> from heatgraphy.layers import Layers, Rect, FrameRect, FracRect
+        >>> from marsilea.layers import Layers, Rect, FrameRect, FracRect
+        >>> mapper = {0: Rect(color="red"), 1: Rect(color="purple"),
+        ...           2: FrameRect(color="yellow"), 3: FracRect(color="blue"),
+        ...           4: Rect(color="orange"), 5: FracRect(color="cyan")}
+        >>> data = np.random.choice([0, 1, 2, 3, 4, 5], (10, 10))
+        >>> l = Layers(data=data, pieces=mapper)
+        >>> l.render()
+
+    Here we only render one layer of data, the layers heatmap allows you to render multiple layers of
+    custom elements.
+
+        >>> from marsilea.layers import Layers, Rect, FrameRect, FracRect
+        >>> mapper = {0: Rect(color="red"), 1: Rect(color="purple"),
+        ...           2: FrameRect(color="yellow"), 3: FracRect(color="blue"),
+        ...           4: Rect(color="orange"), 5: FracRect(color="cyan")}
+        >>> data = np.random.choice([0, 1, 2, 3, 4, 5], (10, 10))
+        >>> l = Layers(data=data, pieces=mapper)
+        >>> l.render()
+
+    Here we only render one layer of data, the layers heatmap allows you to render multiple layers of
+    custom elements.
+
+    >>> from marsilea.layers import Layers, Rect, FrameRect, FracRect
     >>> mapper = {0: Rect(color="red"), 1: Rect(color="purple"),
     ...           2: FrameRect(color="yellow"), 3: FracRect(color="blue"),
     ...           4: Rect(color="orange"), 5: FracRect(color="cyan")}
@@ -117,7 +187,29 @@ You can easily define a custom element to render, here we shows how to render a 
 .. plot::
     :context: close-figs
 
-    >>> from heatgraphy.layers import Piece, preview
+        >>> from marsilea.layers import Piece, preview
+        >>> from matplotlib.patches import Circle
+        >>> class MyCircle(Piece):
+        ...     def __init__(self, color="C0", label=None):
+        ...         self.color = color
+        ...         self.label = label
+        ...
+        ...     def draw(self, x, y, w, h, ax):
+        ...         return Circle((x + 0.5, y + 0.5), radius=min(w, h)/2, lw=1, facecolor=self.color)
+        >>> preview(MyCircle())
+
+        >>> from marsilea.layers import Piece, preview
+        >>> from matplotlib.patches import Circle
+        >>> class MyCircle(Piece):
+        ...     def __init__(self, color="C0", label=None):
+        ...         self.color = color
+        ...         self.label = label
+        ...
+        ...     def draw(self, x, y, w, h, ax):
+        ...         return Circle((x + 0.5, y + 0.5), radius=min(w, h)/2, lw=1, facecolor=self.color)
+        >>> preview(MyCircle())
+
+    >>> from marsilea.layers import Piece, preview
     >>> from matplotlib.patches import Circle
     >>> class MyCircle(Piece):
     ...     def __init__(self, color="C0", label=None):

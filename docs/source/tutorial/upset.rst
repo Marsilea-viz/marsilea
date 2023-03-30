@@ -13,7 +13,7 @@ The data format of upset data is a bit complicated. Currently, Heatgraphy can ha
 - A list of items and the sets that the item belongs to.
 - A binary table, columns are sets, rows are items. The value of 0 or 1 indicates if an item is in a set.
 
-Heatgraphy provides a utility class :class:`UpsetData <heatgraphy.upset.UpsetData>` to handle sets data.
+Heatgraphy provides a utility class :class:`UpsetData <marsilea.upset.UpsetData>` to handle sets data.
 It contains helpful methods to query information about different sets.
 
 Here we use the Top 1000 movies in IMDB database for illustration.
@@ -21,8 +21,32 @@ Here we use the Top 1000 movies in IMDB database for illustration.
 .. plot::
     :context: close-figs
 
-    >>> from heatgraphy import load_data
-    >>> from heatgraphy.upset import UpsetData
+        >>> from marsilea import load_data
+        >>> from marsilea.upset import UpsetData
+        >>> imdb = load_data('imdb')
+        >>> imdb = imdb.drop_duplicates('Title')
+        >>> upset_data = UpsetData.from_memberships(imdb.Genre.str.split(','))
+
+        >>> from marsilea import load_data
+        >>> from marsilea.upset import UpsetData
+        >>> imdb = load_data('imdb')
+        >>> imdb = imdb.drop_duplicates('Title')
+        >>> upset_data = UpsetData.from_memberships(imdb.Genre.str.split(','))
+
+        >>> from marsilea import load_data
+        >>> from marsilea.upset import UpsetData
+        >>> imdb = load_data('imdb')
+        >>> imdb = imdb.drop_duplicates('Title')
+        >>> upset_data = UpsetData.from_memberships(imdb.Genre.str.split(','))
+
+        >>> from marsilea import load_data
+        >>> from marsilea.upset import UpsetData
+        >>> imdb = load_data('imdb')
+        >>> imdb = imdb.drop_duplicates('Title')
+        >>> upset_data = UpsetData.from_memberships(imdb.Genre.str.split(','))
+
+    >>> from marsilea import load_data
+    >>> from marsilea.upset import UpsetData
     >>> imdb = load_data('imdb')
     >>> imdb = imdb.drop_duplicates('Title')
     >>> upset_data = UpsetData.from_memberships(imdb.Genre.str.split(','))
@@ -38,14 +62,26 @@ Here we use the Top 1000 movies in IMDB database for illustration.
 Create an UpSet plot
 --------------------
 
-The :class:`Upset <heatgraphy.upset.Upset>` is here to help you create your first upset plot.
-Like other visualization in heatgraphy, remember to call :meth:`render()`
+The :class:`Upset <marsilea.upset.Upset>` is here to help you create your first upset plot.
+Like other visualization in marsilea, remember to call :meth:`render()`
 to actually render your plot.
 
 .. plot::
     :context: close-figs
 
-    >>> from heatgraphy.upset import Upset
+        >>> from marsilea.upset import Upset
+        >>> us = Upset(upset_data, min_size=15)
+        >>> us.render()
+
+    You can also change the position of different components
+
+        >>> from marsilea.upset import Upset
+        >>> us = Upset(upset_data, min_size=15)
+        >>> us.render()
+
+    You can also change the position of different components
+
+    >>> from marsilea.upset import Upset
     >>> us = Upset(upset_data, min_size=15)
     >>> us.render()
 
@@ -71,7 +107,7 @@ Alternatively, to have better control
 Highlight Sets
 --------------
 
-To highlight specific sets, try :meth:`highlight_subsets() <heatgraphy.upset.Upset.highlight_subsets>`.
+To highlight specific sets, try :meth:`highlight_subsets() <marsilea.upset.Upset.highlight_subsets>`.
 
 .. plot::
     :context: close-figs
@@ -91,7 +127,29 @@ UpSet plot can not only visualize the intersections, but also the distribution o
 .. plot::
     :context: close-figs
 
-    >>> from heatgraphy.plotter import Box, Strip
+        >>> from marsilea.plotter import Box, Strip
+        >>> items_attrs = imdb[['Title', 'Rating', 'Revenue (Millions)']].set_index('Title')
+        >>> imdb_data = UpsetData.from_memberships(imdb.Genre.str.split(','),
+        >>>                                        items_names=imdb['Title'], items_attrs=items_attrs)
+        >>> us = Upset(imdb_data, min_size=15)
+        >>> us.add_items_attrs("top", "Rating", Box, pad=.2, plot_kws=dict(color="orange", linewidth=1, fliersize=1))
+        >>> us.add_title(top="Rating")
+        >>> us.add_items_attrs("bottom", "Revenue (Millions)", Strip, pad=.2, plot_kws=dict(size=1, color="#24936E"))
+        >>> us.add_title(bottom="Revenue (Millions)")
+        >>> us.render()
+
+        >>> from marsilea.plotter import Box, Strip
+        >>> items_attrs = imdb[['Title', 'Rating', 'Revenue (Millions)']].set_index('Title')
+        >>> imdb_data = UpsetData.from_memberships(imdb.Genre.str.split(','),
+        >>>                                        items_names=imdb['Title'], items_attrs=items_attrs)
+        >>> us = Upset(imdb_data, min_size=15)
+        >>> us.add_items_attrs("top", "Rating", Box, pad=.2, plot_kws=dict(color="orange", linewidth=1, fliersize=1))
+        >>> us.add_title(top="Rating")
+        >>> us.add_items_attrs("bottom", "Revenue (Millions)", Strip, pad=.2, plot_kws=dict(size=1, color="#24936E"))
+        >>> us.add_title(bottom="Revenue (Millions)")
+        >>> us.render()
+
+    >>> from marsilea.plotter import Box, Strip
     >>> items_attrs = imdb[['Title', 'Rating', 'Revenue (Millions)']].set_index('Title')
     >>> imdb_data = UpsetData.from_memberships(imdb.Genre.str.split(','),
     >>>                                        items_names=imdb['Title'], items_attrs=items_attrs)

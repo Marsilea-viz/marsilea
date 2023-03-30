@@ -4,7 +4,7 @@ How to customize your visualization?
 Retrieve main axes
 ------------------
 
-To retrieve the main axes, you can call :meth:`get_main_ax() <heatgraphy.WhiteBoard.get_main_ax>` to get
+To retrieve the main axes, you can call :meth:`get_main_ax() <marsilea.WhiteBoard.get_main_ax>` to get
 the main axes. Remember to retrieve the axes **after**
 you render the plot. If not render, the axes will not be created.
 
@@ -13,7 +13,7 @@ Here we show an example of adding border for your heatmap.
 .. code-block:: python
     :emphasize-lines: 7
 
-    >>> import heatgraphy as hg
+    >>> import marsilea as hg
     >>> from matplotlib.patches import Rectangle
     >>> data = np.random.rand(10, 10)
     >>> h = hg.Heatmap(data)
@@ -28,7 +28,31 @@ Here we show an example of adding border for your heatmap.
     :context: close-figs
     :include-source: False
 
-    >>> import heatgraphy as hg
+        >>> import marsilea as hg
+        >>> from matplotlib.patches import Rectangle
+        >>> data = np.random.rand(10, 10)
+        >>> h = hg.Heatmap(data)
+        >>> h.render()
+        >>> # Get the ax after render()
+        >>> hax = h.get_main_ax()
+        >>> border = Rectangle((0, 0), 1, 1, fill=False, ec=".1", lw=5, transform=hax.transAxes)
+        >>> hax.add_artist(border)
+
+    If the heatmap is split, there will be multiple axes. The return order starts from upper left to lower right.
+
+        >>> import marsilea as hg
+        >>> from matplotlib.patches import Rectangle
+        >>> data = np.random.rand(10, 10)
+        >>> h = hg.Heatmap(data)
+        >>> h.render()
+        >>> # Get the ax after render()
+        >>> hax = h.get_main_ax()
+        >>> border = Rectangle((0, 0), 1, 1, fill=False, ec=".1", lw=5, transform=hax.transAxes)
+        >>> hax.add_artist(border)
+
+    If the heatmap is split, there will be multiple axes. The return order starts from upper left to lower right.
+
+    >>> import marsilea as hg
     >>> from matplotlib.patches import Rectangle
     >>> data = np.random.rand(10, 10)
     >>> h = hg.Heatmap(data)
@@ -61,7 +85,7 @@ If the heatmap is split, there will be multiple axes. The return order starts fr
 Retrieve side axes
 ------------------
 
-To get a side axes is similar to retrieve main axes. You can get it by calling :meth:`get_ax() <heatgraphy.WhiteBoard.get_ax>`
+To get a side axes is similar to retrieve main axes. You can get it by calling :meth:`get_ax() <marsilea.WhiteBoard.get_ax>`
 with the name of the target axes. Therefore, you need to explicitly assign a name to your target plot to get the axes
 that it renders on.
 

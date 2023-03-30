@@ -1,7 +1,7 @@
 Side Annotation Plots
 =====================
 
-.. currentmodule:: heatgraphy.plotter
+.. currentmodule:: marsilea.plotter
 
 Mesh
 ----

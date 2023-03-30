@@ -2,7 +2,7 @@ Base Class
 ==========
 
 
-.. currentmodule:: heatgraphy.base
+.. currentmodule:: marsilea.base
 .. autosummary::
     :toctree: APIs/
     :template: autosummary.rst
@@ -15,7 +15,7 @@ Base Class
 Layout Engine
 -------------
 
-.. currentmodule:: heatgraphy.layout
+.. currentmodule:: marsilea.layout
 .. autosummary::
     :toctree: APIs/
     :template: autosummary.rst
@@ -28,7 +28,7 @@ Layout Engine
 Data Manipulation
 -----------------
 
-.. currentmodule:: heatgraphy
+.. currentmodule:: marsilea
 .. autosummary::
     :toctree: APIs/
     :template: autosummary.rst
@@ -39,7 +39,7 @@ Data Manipulation
 Render plan
 -----------
 
-.. currentmodule:: heatgraphy.plotter.base
+.. currentmodule:: marsilea.plotter.base
 .. autosummary::
     :toctree: APIs/
     :template: autosummary.rst

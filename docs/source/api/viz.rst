@@ -4,7 +4,7 @@ High-Level Visualizations
 Heatmap Variants
 ----------------
 
-.. currentmodule:: heatgraphy
+.. currentmodule:: marsilea
 .. autosummary::
     :toctree: APIs/
     :template: autosummary.rst
@@ -17,7 +17,7 @@ Heatmap Variants
 Layers Heatmap
 --------------
 
-.. currentmodule:: heatgraphy.layers
+.. currentmodule:: marsilea.layers
 .. autosummary::
     :toctree: APIs/
     :template: autosummary.rst
@@ -33,7 +33,7 @@ Layers Heatmap
 UpSet plots
 -----------
 
-.. currentmodule:: heatgraphy.upset
+.. currentmodule:: marsilea.upset
 .. autosummary::
     :toctree: APIs/
     :template: autosummary.rst
@@ -45,7 +45,7 @@ UpSet plots
 Customized elements
 -------------------
 
-.. currentmodule:: heatgraphy.layers
+.. currentmodule:: marsilea.layers
 .. autosummary::
     :toctree: APIs/
     :template: autosummary.rst

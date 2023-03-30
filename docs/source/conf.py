@@ -15,11 +15,11 @@
 # sys.path.insert(0, os.path.abspath('.'))
 from sphinx_gallery.sorting import FileNameSortKey
 from sphinx_gallery.scrapers import matplotlib_scraper
-import heatgraphy as hg
+import marsilea as hg
 
 # -- Project information -----------------------------------------------------
 
-project = 'heatgraphy'
+project = 'marsilea'
 copyright = '2023, Mr-Milk'
 author = 'Mr-Milk'
 

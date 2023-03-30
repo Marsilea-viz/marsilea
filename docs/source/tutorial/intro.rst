@@ -14,16 +14,38 @@ to be used.
 .. plot::
     :context: close-figs
 
+        >>> # load the dataset
+        >>> from sklearn.datasets import load_iris
+        >>> iris = load_iris()
+
+        >>> import marsilea as hg
+        >>> h = hg.Heatmap(iris.data)
+        >>> h.render()
+
+
+    Now a minimum heatmap is created, remember to call
+
+        >>> # load the dataset
+        >>> from sklearn.datasets import load_iris
+        >>> iris = load_iris()
+
+        >>> import marsilea as hg
+        >>> h = hg.Heatmap(iris.data)
+        >>> h.render()
+
+
+    Now a minimum heatmap is created, remember to call
+
     >>> # load the dataset
     >>> from sklearn.datasets import load_iris
     >>> iris = load_iris()
 
-    >>> import heatgraphy as hg
+    >>> import marsilea as hg
     >>> h = hg.Heatmap(iris.data)
     >>> h.render()
 
 
-Now a minimum heatmap is created, remember to call :meth:`render() <heatgraphy.WhiteBoard.render>` to actually render your
+Now a minimum heatmap is created, remember to call :meth:`render() <marsilea.WhiteBoard.render>` to actually render your
 plot. Otherwise, no plot will be generated.
 
 Add side plots
@@ -34,7 +56,7 @@ Usually, we want to add components like labels, dendrogram and other plots when 
 .. code-block:: python
     :emphasize-lines: 3,4
 
-    >>> from heatgraphy.plotter import Colors
+    >>> from marsilea.plotter import Colors
     >>> h = hg.Heatmap(iris.data)
     >>> h.add_dendrogram("right")
     >>> h.add_left(Colors(iris.target), size=.2, pad=.1)
@@ -45,7 +67,25 @@ Usually, we want to add components like labels, dendrogram and other plots when 
     :context: close-figs
     :include-source: False
 
-    >>> from heatgraphy.plotter import Colors
+        >>> from marsilea.plotter import Colors
+        >>> h = hg.Heatmap(iris.data)
+        >>> h.add_dendrogram("right")
+        >>> h.add_left(Colors(iris.target), size=.2, pad=.1)
+        >>> h.render()
+
+
+    To add a dendrogram on the dataset, simply call
+
+        >>> from marsilea.plotter import Colors
+        >>> h = hg.Heatmap(iris.data)
+        >>> h.add_dendrogram("right")
+        >>> h.add_left(Colors(iris.target), size=.2, pad=.1)
+        >>> h.render()
+
+
+    To add a dendrogram on the dataset, simply call
+
+    >>> from marsilea.plotter import Colors
     >>> h = hg.Heatmap(iris.data)
     >>> h.add_dendrogram("right")
     >>> h.add_left(Colors(iris.target), size=.2, pad=.1)
@@ -53,7 +93,7 @@ Usually, we want to add components like labels, dendrogram and other plots when 
 
 
 To add a dendrogram on the dataset, simply call
-:meth:`add_dendrogram() <heatgraphy.ClusterBoard.add_dendrogram>`, and it
+:meth:`add_dendrogram() <marsilea.ClusterBoard.add_dendrogram>`, and it
 will add the dendrogram for you. Here we add the dendrogram on the right side.
 You can also add it to the top or bottom to perform column-wise cluster.
 
@@ -61,8 +101,8 @@ Split heatmap
 -------------
 
 We also use colors to label the names of iris. What if I want the same color to be together? You can
-split the heatmap by labeling them. Use the :meth:`hsplit() <heatgraphy.ClusterBoard.hsplit>`
-or :meth:`vsplit() <heatgraphy.ClusterBoard.vsplit>` to split the heatmap.
+split the heatmap by labeling them. Use the :meth:`hsplit() <marsilea.ClusterBoard.hsplit>`
+or :meth:`vsplit() <marsilea.ClusterBoard.vsplit>` to split the heatmap.
 
 .. code-block:: python
     :emphasize-lines: 4
@@ -97,7 +137,7 @@ You can also add labels and title to the heatmap.
 .. code-block:: python
     :emphasize-lines: 6,7
 
-    >>> from heatgraphy.plotter import Labels
+    >>> from marsilea.plotter import Labels
     >>> h = hg.Heatmap(iris.data)
     >>> h.add_dendrogram("right")
     >>> h.add_left(Colors(iris.target), size=.2, pad=.1)
@@ -110,7 +150,25 @@ You can also add labels and title to the heatmap.
     :context: close-figs
     :include-source: False
 
-    >>> from heatgraphy.plotter import Labels
+        >>> from marsilea.plotter import Labels
+        >>> h = hg.Heatmap(iris.data)
+        >>> h.add_dendrogram("right")
+        >>> h.add_left(Colors(iris.target), size=.2, pad=.1)
+        >>> h.hsplit(labels=iris.target)
+        >>> h.add_bottom(Labels(iris.feature_names, rotation=0, fontsize=6), pad=.1)
+        >>> h.add_title("Iris Dataset")
+        >>> h.render()
+
+        >>> from marsilea.plotter import Labels
+        >>> h = hg.Heatmap(iris.data)
+        >>> h.add_dendrogram("right")
+        >>> h.add_left(Colors(iris.target), size=.2, pad=.1)
+        >>> h.hsplit(labels=iris.target)
+        >>> h.add_bottom(Labels(iris.feature_names, rotation=0, fontsize=6), pad=.1)
+        >>> h.add_title("Iris Dataset")
+        >>> h.render()
+
+    >>> from marsilea.plotter import Labels
     >>> h = hg.Heatmap(iris.data)
     >>> h.add_dendrogram("right")
     >>> h.add_left(Colors(iris.target), size=.2, pad=.1)
@@ -232,7 +290,17 @@ the size of the side plots by :obj:`size` and add spacing by :obj:`pad`.
 .. plot::
     :context: close-figs
 
-    >>> from heatgraphy.plotter import Colors
+        >>> from marsilea.plotter import Colors
+        >>> h = hg.Heatmap(iris.data)
+        >>> h.add_left(Colors(iris.target), size=.2, pad=.1)
+        >>> h.render()
+
+        >>> from marsilea.plotter import Colors
+        >>> h = hg.Heatmap(iris.data)
+        >>> h.add_left(Colors(iris.target), size=.2, pad=.1)
+        >>> h.render()
+
+    >>> from marsilea.plotter import Colors
     >>> h = hg.Heatmap(iris.data)
     >>> h.add_left(Colors(iris.target), size=.2, pad=.1)
     >>> h.render()
@@ -241,7 +309,17 @@ the size of the side plots by :obj:`size` and add spacing by :obj:`pad`.
 .. plot::
     :context: close-figs
 
-    >>> from heatgraphy.plotter import Colors
+        >>> from marsilea.plotter import Colors
+        >>> h = hg.Heatmap(iris.data)
+        >>> h.add_left(Colors(iris.target), size=.5, pad=.2)
+        >>> h.render()
+
+        >>> from marsilea.plotter import Colors
+        >>> h = hg.Heatmap(iris.data)
+        >>> h.add_left(Colors(iris.target), size=.5, pad=.2)
+        >>> h.render()
+
+    >>> from marsilea.plotter import Colors
     >>> h = hg.Heatmap(iris.data)
     >>> h.add_left(Colors(iris.target), size=.5, pad=.2)
     >>> h.render()

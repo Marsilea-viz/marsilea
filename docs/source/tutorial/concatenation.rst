@@ -2,7 +2,7 @@ Concatenate multiple x-layout
 =============================
 
 You may want to visualize two or more heatmaps side by side. Although, this can be done simply
-by merging images, heatgraphy provides a concatenation feature that can easily concatenate
+by merging images, marsilea provides a concatenation feature that can easily concatenate
 multiple heatmaps together with ease.
 
 Here we have one blue heatmap and a green heatmap.
@@ -10,7 +10,19 @@ Here we have one blue heatmap and a green heatmap.
 .. plot::
     :context: close-figs
 
-    >>> import heatgraphy as hg
+        >>> import marsilea as hg
+        >>> data1 = np.random.rand(10,12)
+        >>> h1 = hg.Heatmap(data1, cmap="Blues", width=5, name="h1")
+        >>> h1.add_title(top="Blue", align="left")
+        >>> h1.render()
+
+        >>> import marsilea as hg
+        >>> data1 = np.random.rand(10,12)
+        >>> h1 = hg.Heatmap(data1, cmap="Blues", width=5, name="h1")
+        >>> h1.add_title(top="Blue", align="left")
+        >>> h1.render()
+
+    >>> import marsilea as hg
     >>> data1 = np.random.rand(10,12)
     >>> h1 = hg.Heatmap(data1, cmap="Blues", width=5, name="h1")
     >>> h1.add_title(top="Blue", align="left")
@@ -56,7 +68,7 @@ Legends
 -------
 
 It is important to remember that legends should be added after concatenations.
-So that heatgraphy can layout legends from all your heatmaps.
+So that marsilea can layout legends from all your heatmaps.
 
 
 .. plot::
@@ -74,7 +86,39 @@ heatmaps concatenated to.
 .. plot::
     :context: close-figs
 
-    >>> from heatgraphy.plotter import MarkerMesh
+        >>> from marsilea.plotter import MarkerMesh
+        >>> h1.add_dendrogram("left")
+        >>> h2.add_dendrogram("right")
+        >>> layer1 = MarkerMesh(data1 > 0.8, color='red', marker='o', label="> 0.8")
+        >>> layer2 = MarkerMesh(data2 > 0.5, color='orange', label="> 0.5")
+        >>> h1.add_layer(layer1, name='marker1')
+        >>> h2.add_layer(layer2, name='marker2')
+        >>> c = h1 + .2 + h2
+        >>> c.add_legends(side="right", order=["h1", "marker1", "h2", "marker2"],
+        ...               stack_by='row', stack_size=2, align_legends='center')
+        >>> c.render()
+
+
+    The concatenation result has legends added to the left side
+    using the
+
+        >>> from marsilea.plotter import MarkerMesh
+        >>> h1.add_dendrogram("left")
+        >>> h2.add_dendrogram("right")
+        >>> layer1 = MarkerMesh(data1 > 0.8, color='red', marker='o', label="> 0.8")
+        >>> layer2 = MarkerMesh(data2 > 0.5, color='orange', label="> 0.5")
+        >>> h1.add_layer(layer1, name='marker1')
+        >>> h2.add_layer(layer2, name='marker2')
+        >>> c = h1 + .2 + h2
+        >>> c.add_legends(side="right", order=["h1", "marker1", "h2", "marker2"],
+        ...               stack_by='row', stack_size=2, align_legends='center')
+        >>> c.render()
+
+
+    The concatenation result has legends added to the left side
+    using the
+
+    >>> from marsilea.plotter import MarkerMesh
     >>> h1.add_dendrogram("left")
     >>> h2.add_dendrogram("right")
     >>> layer1 = MarkerMesh(data1 > 0.8, color='red', marker='o', label="> 0.8")
@@ -88,7 +132,7 @@ heatmaps concatenated to.
 
 
 The concatenation result has legends added to the left side
-using the :meth:`add_legend() <heatgraphy.base.LegendMaker.add_legends>` method.
+using the :meth:`add_legend() <marsilea.base.LegendMaker.add_legends>` method.
 
 Here we also shows how to layout multiple legends.
 The legends are stacked by row and have a padding of 1, and they are aligned to the center.

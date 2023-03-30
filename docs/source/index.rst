@@ -1,19 +1,19 @@
-.. heatgraphy documentation master file, created by
+.. marsilea documentation master file, created by
    sphinx-quickstart on Tue Oct 25 15:51:41 2022.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to heatgraphy's documentation!
+Welcome to marsilea's documentation!
 ======================================
 
 Installation
 ------------
 
-To install heatgraphy
+To install marsilea
 
 .. code-block:: shell
 
-   pip install heatgraphy
+   pip install marsilea
 
 .. toctree::
    :maxdepth: 1
