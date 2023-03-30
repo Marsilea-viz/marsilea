@@ -136,7 +136,7 @@ def _seaborn_doc(obj: _SeabornBase):
     .. plot::
         :context: close-figs
         
-        >>> import heatgraphy as hg
+        >>> import marsilea as ma
         >>> from heatgraphy.plotter import {cls_name}
         >>> data = np.random.randn(10, 10)
         >>> sdata = np.random.randint(0, 10, {shape})

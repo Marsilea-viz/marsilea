@@ -10,8 +10,8 @@ import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
 
-from heatgraphy.exceptions import AppendLayoutError, DuplicateName
-from heatgraphy.utils import _check_side
+from .exceptions import AppendLayoutError, DuplicateName
+from .utils import _check_side
 
 
 # If not specify, we have few default setting
@@ -22,6 +22,9 @@ from heatgraphy.utils import _check_side
 # and width and height. When other axes is added, the anchor point is aligned
 # to either x-axis or y-axis, we could easily compute the final anchor point
 # if we know the size of added axes
+
+# It's unlikely to return axes right after being added, the split operation
+# is unknown, this will create more than one axes.
 
 def _split(chunk_ratios, spacing=.05):
     """Return the relative anchor point, in ratio"""

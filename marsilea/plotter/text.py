@@ -415,8 +415,8 @@ class AnnoLabels(_LabelBase):
 
         >>> labels = np.arange(100)
 
-        >>> import heatgraphy as hg
-        >>> from heatgraphy.plotter import AnnoLabels
+        >>> import marsilea as hg
+        >>> from marsilea.plotter import AnnoLabels
         >>> matrix = np.random.randn(100, 10)
         >>> h = hg.Heatmap(matrix)
         >>> marks = AnnoLabels(labels, mark=[3, 4, 5])
@@ -557,8 +557,8 @@ class Labels(_LabelBase):
         >>> row = [str(i) for i in range(15)]
         >>> col = [str(i) for i in range(10)]
 
-        >>> import heatgraphy as hg
-        >>> from heatgraphy.plotter import Labels
+        >>> import marsilea as hg
+        >>> from marsilea.plotter import Labels
         >>> matrix = np.random.randn(15, 10)
         >>> h = hg.Heatmap(matrix)
         >>> label_row = Labels(row)
@@ -662,8 +662,8 @@ class Title(_LabelBase):
     .. plot::
         :context: close-figs
 
-        >>> import heatgraphy as hg
-        >>> from heatgraphy.plotter import Title
+        >>> import marsilea as hg
+        >>> from marsilea.plotter import Title
         >>> matrix = np.random.randn(15, 10)
         >>> h = hg.Heatmap(matrix)
         >>> title = Title('Heatmap')
@@ -793,8 +793,8 @@ class Chunk(_LabelBase):
     .. plot::
         :context: close-figs
 
-        >>> import heatgraphy as hg
-        >>> from heatgraphy.plotter import Chunk
+        >>> import marsilea as hg
+        >>> from marsilea.plotter import Chunk
         >>> matrix = np.random.randn(15, 10)
         >>> h = hg.Heatmap(matrix)
         >>> h.hsplit(cut=[4, 10])
@@ -818,7 +818,14 @@ class Chunk(_LabelBase):
         self.props = props if props is not None else {}
         if is_color_like(fill_colors):
             fill_colors = [fill_colors for _ in range(len(self.data))]
+        if fill_colors is not None:
+            fill_colors = np.asarray(fill_colors)
         self.fill_colors = fill_colors
+
+        if is_color_like(bordercolor):
+            bordercolor = [bordercolor for _ in range(len(self.data))]
+        if bordercolor is not None:
+            bordercolor = np.asarray(bordercolor)
         self.bordercolor = bordercolor
         self.borderwidth = borderwidth
         self.borderstyle = borderstyle
@@ -847,13 +854,20 @@ class Chunk(_LabelBase):
 
         params = self.get_text_params()
 
+        text = self.data
+        bg_colors = self.fill_colors
+        border_colors = self.bordercolor
         if self.has_deform:
             if self.is_flank:
                 reindex = self.deform.row_chunk_index
             else:
                 reindex = self.deform.col_chunk_index
             if reindex is not None:
-                self.data = self.data[reindex]
+                text = text[reindex]
+                if bg_colors is not None:
+                    bg_colors = bg_colors[reindex]
+                if border_colors is not None:
+                    border_colors = border_colors[reindex]
 
         if isinstance(axes, Axes):
             axes = [axes]
@@ -867,11 +881,14 @@ class Chunk(_LabelBase):
             fontdict = params.to_dict()
             if self._draw_bg:
                 bgcolor = "white"
-                if self.fill_colors is not None:
-                    bgcolor = self.fill_colors[i]
+                border_color = None
+                if bg_colors is not None:
+                    bgcolor = bg_colors[i]
+                if border_colors is not None:
+                    border_color = border_colors[i]
                 rect = Rectangle((0, 0), 1, 1,
                                  facecolor=bgcolor,
-                                 edgecolor=self.bordercolor,
+                                 edgecolor=border_color,
                                  linewidth=self.borderwidth,
                                  linestyle=self.borderstyle,
                                  transform=ax.transAxes)
@@ -881,5 +898,5 @@ class Chunk(_LabelBase):
                 text_color = ".15" if lum > .408 else "w"
                 fontdict.setdefault('color', text_color)
 
-            ax.text(0.5, 0.5, self.data[i], fontdict=fontdict,
+            ax.text(0.5, 0.5, text[i], fontdict=fontdict,
                     transform=ax.transAxes)

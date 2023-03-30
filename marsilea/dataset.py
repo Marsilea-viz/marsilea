@@ -3,12 +3,12 @@ from urllib.request import urlretrieve
 import pandas as pd
 from platformdirs import user_cache_path
 
-NAME = "Heatgraphy"
-BASE_URL = "https://raw.githubusercontent.com/heatgraphy/heatgraphy-data/main"
+NAME = "Marsilea"
+BASE_URL = "https://raw.githubusercontent.com/marsilea-viz/marsilea-data/main"
 
 
 def load_data(name, cache=True):
-    """To load heatgraphy dataset
+    """To load marsilea dataset
 
     - 'imdb': The IMDB Top 100 Movies
     - 'pbmc3k': single-cell RNA-seq dataset from 10X Genomics

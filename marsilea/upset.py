@@ -52,7 +52,7 @@ class UpsetData:
     .. plot::
         :context: close-figs
 
-        from heatgraphy.upset import UpsetData
+        from marsilea.upset import UpsetData
         sets = [[1,2,3,4], [3,4,5,6]]
         data = UpsetData.from_sets(sets)
 
@@ -252,7 +252,7 @@ class Upset(WhiteBoard):
     .. plot::
         :context: close-figs
 
-        >>> from heatgraphy.upset import UpsetData, Upset
+        >>> from marsilea.upset import UpsetData, Upset
         >>> data = UpsetData.from_sets([[1, 2, 3, 4],
         >>>                             [3, 4, 5, 6],
         >>>                             [1, 6, 10, 11]])

@@ -34,6 +34,8 @@ class Deformation:
 
     row_chunk_index = None
     col_chunk_index = None
+    _use_col_meta = True
+    _use_row_meta = True
 
     # just for storage
     wspace = 0
@@ -71,15 +73,17 @@ class Deformation:
         self.data_col_reindex = reindex
         self._col_clustered = False
 
-    def set_cluster(self, col=None, row=None, **kwargs):
+    def set_cluster(self, col=None, row=None, use_meta=True, **kwargs):
         if col is not None:
             self.is_col_cluster = col
             self.col_cluster_kws = kwargs
             self._col_clustered = False
+            self._use_col_meta = use_meta
         if row is not None:
             self.is_row_cluster = row
             self.row_cluster_kws = kwargs
             self._row_clustered = False
+            self._use_row_meta = use_meta
 
     def get_data(self):
         data = self.data
@@ -171,7 +175,10 @@ class Deformation:
             dens = [Dendrogram(
                 chunk, **self.row_cluster_kws) for chunk in row_data]
             dg = GroupDendrogram(dens, **self.row_cluster_kws)
-            self.row_chunk_index = dg.reorder_index
+            if self._use_row_meta:
+                self.row_chunk_index = dg.reorder_index
+            else:
+                self.row_chunk_index = np.arange(len(dens))
             self.row_reorder_index = [d.reorder_index for d in dens]
         else:
             dg = Dendrogram(row_data, **self.row_cluster_kws)
@@ -184,7 +191,10 @@ class Deformation:
             dens = [Dendrogram(
                 chunk.T, **self.col_cluster_kws) for chunk in col_data]
             dg = GroupDendrogram(dens, **self.col_cluster_kws)
-            self.col_chunk_index = dg.reorder_index
+            if self._use_col_meta:
+                self.col_chunk_index = dg.reorder_index
+            else:
+                self.col_chunk_index = np.arange(len(dens))
             self.col_reorder_index = [d.reorder_index for d in dens]
         else:
             dg = Dendrogram(col_data.T, **self.col_cluster_kws)

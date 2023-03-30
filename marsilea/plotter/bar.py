@@ -70,6 +70,16 @@ class Numbers(StatsBase):
         self.data = self.data_validator(data, target="1d")
         self.width = width
         self.color = color
+
+        fmt_func = None
+        if isinstance(show_value, Callable):
+            fmt_func = show_value
+            show_value = True
+        else:
+            if show_value:
+                fmt_func = _fmt_func
+
+        self.fmt_func = fmt_func
         self.show_value = show_value
         self.axis_label = label
         self.fmt = fmt
@@ -86,15 +96,21 @@ class Numbers(StatsBase):
             data = data[::-1]
         self.bars = bar(np.arange(0, len(data)) + 0.5, data,
                         self.width, color=self.color, **self.options)
+
         if orient == "v":
             ax.set_xlim(0, len(data))
         else:
             ax.set_ylim(0, len(data))
+
         if self.side == "left":
             ax.invert_xaxis()
 
+        display_value = data
+        if self.fmt_func is not None:
+            display_value = [self.fmt_func(i) for i in data]
+
         if self.show_value:
-            ax.bar_label(self.bars, data, fmt=self.fmt,
+            ax.bar_label(self.bars, display_value, fmt=self.fmt,
                          padding=self.label_pad,
                          **self.props)
 
@@ -124,7 +140,7 @@ class StackBar(StatsBase):
     .. plot::
         :context: close-figs
 
-        >>> from heatgraphy.plotter import StackBar
+        >>> from marsilea.plotter import StackBar
         >>> stack_data = pd.DataFrame(data=np.random.randint(0, 10, (5, 3)),
         ...                           index=list("abcde"))
         >>> _, ax = plt.subplots()

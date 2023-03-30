@@ -8,13 +8,13 @@ from .base import ClusterBoard
 from .plotter import ColorMesh, SizedMesh, Colors
 from .utils import get_plot_name
 
-log = logging.getLogger("heatgraphy")
+log = logging.getLogger("marsilea")
 
 
 class Heatmap(ClusterBoard):
     """Heatmap
 
-    See :class:`ColorMesh <heatgraphy.plotter.ColorMesh>` for details
+    See :class:`ColorMesh <marsilea.plotter.ColorMesh>` for details
 
     Other Parameters
     ----------------
@@ -52,7 +52,7 @@ class Heatmap(ClusterBoard):
 class CatHeatmap(ClusterBoard):
     """Categorical Heatmap
 
-    See :class:`Colors <heatgraphy.plotter.Colors>` for details
+    See :class:`Colors <marsilea.plotter.Colors>` for details
 
     Other Parameters
     ----------------
@@ -80,7 +80,7 @@ class CatHeatmap(ClusterBoard):
 class SizedHeatmap(ClusterBoard):
     """Sized Heatmap
 
-    See :class:`SizedMesh <heatgraphy.plotter.SizedMesh>` for details
+    See :class:`SizedMesh <marsilea.plotter.SizedMesh>` for details
 
     Other Parameters
     ----------------

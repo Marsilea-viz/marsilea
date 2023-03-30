@@ -563,7 +563,7 @@ class ClusterBoard(WhiteBoard):
             :context: close-figs
 
             >>> data = np.random.rand(10, 11)
-            >>> import heatgraphy as hg
+            >>> import marsilea as hg
             >>> h = hg.Heatmap(data)
             >>> h.add_dendrogram("left", method="ward", colors="green")
             >>> h.render()
@@ -619,11 +619,13 @@ class ClusterBoard(WhiteBoard):
         if side in ["right", "left"]:
             den_options['pos'] = "row"
             self._row_den.append(den_options)
-            deform.set_cluster(row=True, method=method, metric=metric)
+            deform.set_cluster(row=True, method=method, metric=metric,
+                               use_meta=add_meta)
         else:
             den_options['pos'] = "col"
             self._col_den.append(den_options)
-            deform.set_cluster(col=True, method=method, metric=metric)
+            deform.set_cluster(col=True, method=method, metric=metric,
+                               use_meta=add_meta)
 
     def hsplit(self, cut=None, labels=None, order=None, spacing=0.01):
         if self._split_row:

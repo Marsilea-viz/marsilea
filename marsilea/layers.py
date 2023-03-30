@@ -55,7 +55,7 @@ class LayersMesh(MeshBase):
     .. plot::
         :context: close-figs
 
-        >>> from heatgraphy.layers import LayersMesh, Rect, FrameRect
+        >>> from marsilea.layers import LayersMesh, Rect, FrameRect
         >>> data = np.random.choice([1, 2, 3], (10, 10))
         >>> pieces = {1: Rect(color="r", label="1"),
         ...           2: FrameRect(color="g", label="2"),

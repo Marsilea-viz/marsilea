@@ -10,6 +10,8 @@ from scipy.cluster.hierarchy import linkage, dendrogram
 
 class _DendrogramBase:
 
+    is_singleton = False
+
     def __init__(self,
                  data,
                  method=None,
@@ -26,6 +28,7 @@ class _DendrogramBase:
             self.x_coords = np.array([[1., 1., 1., 1.]])
             self.y_coords = np.array([[0., .75, .75, 0.]])
             self._reorder_index = np.array([0])
+            self.is_singleton = True
         else:
             self.Z = linkage(data, method=method, metric=metric)
             self._plot_data = dendrogram(self.Z, no_plot=True)
@@ -33,12 +36,15 @@ class _DendrogramBase:
             self.x_coords = np.asarray(self._plot_data['icoord']) / 5
             self.y_coords = np.asarray(self._plot_data['dcoord'])
             self._reorder_index = self._plot_data['leaves']
-
             ycoords = np.unique(self.y_coords)
-            offset = np.min(ycoords[np.nonzero(ycoords)]) - 0.5
+            ycoords = ycoords[np.nonzero(ycoords)]
+            y_min, y_max = np.min(ycoords), np.max(ycoords)
+            interval = y_max - y_min
             for i, j in zip(*np.nonzero(self.y_coords)):
                 if self.y_coords[i, j] != 0.:
-                    self.y_coords[i, j] -= offset
+                    v = self.y_coords[i, j]
+                    self.y_coords[i, j] = (v - y_min) / interval + .2
+                    # self.y_coords[i, j] -= offset
             # self.y_coords[np.nonzero(self.y_coords)] - offset
 
         self._render_x_coords = self.x_coords
@@ -219,6 +225,7 @@ class GroupDendrogram(_DendrogramBase):
                  ):
         data = np.asarray([d.center for d in dens])
         super().__init__(data, method=method, metric=metric)
+        self.orig_dens = np.asarray(dens)
         self.dens = np.asarray(dens)[self.reorder_index]
         self.n = len(self.dens)
 
@@ -262,7 +269,7 @@ class GroupDendrogram(_DendrogramBase):
             Draw the base dendrograms
         base_colors : color, array of colors
             The color of base dendrograms, if array is passed,
-            will be applied sequentially.
+            will be applied by group order.
         meta_color : color
             The color of meta dendrogram
         linewidth
@@ -281,6 +288,10 @@ class GroupDendrogram(_DendrogramBase):
             base_colors = cycle([None])
         elif is_color_like(base_colors):
             base_colors = cycle([base_colors])
+        else:
+            base_colors = np.asarray(base_colors)
+            if add_meta:
+                base_colors = base_colors[self.reorder_index]
 
         if spacing is None:
             spacing = [0 for _ in range(self.n - 1)]
@@ -291,9 +302,12 @@ class GroupDendrogram(_DendrogramBase):
         skeleton = np.sort(np.unique(self.x_coords[self.y_coords == 0]))
         ranger = [(skeleton[i], skeleton[i + 1]) \
                   for i in range(len(skeleton) - 1)]
+
+        draw_dens = self.dens if add_meta else self.orig_dens
+
         if add_base:
             x_start = 0
-            for i, den in enumerate(self.dens):
+            for i, den in enumerate(draw_dens):
                 if x_start != 0:
                     den.set_lim(x_start=x_start, y_end=self.divider)
                 else:
@@ -302,12 +316,12 @@ class GroupDendrogram(_DendrogramBase):
                     x_start = x_start + den.xrange + spacing[i] * render_xlim
             # get render x
             # orient ?
-            skeleton_x = [den.render_root[0] for den in self.dens]
+            skeleton_x = [den.render_root[0] for den in draw_dens]
 
         else:
             xstart = 0
             skeleton_x = []
-            for i, den in enumerate(self.dens):
+            for i, den in enumerate(draw_dens):
                 if i == 0:
                     xstart += den.xrange / 2
                 else:
@@ -347,7 +361,7 @@ class GroupDendrogram(_DendrogramBase):
                 amplify = self.den_ylim * meta_ratio
                 self._render_y_coords = norm_y_coords * amplify + self.divider
             else:
-                self._render_y_coords = self.den_ylim / 5
+                self._render_y_coords = self.den_ylim
         else:
             self._render_y_coords = self.y_coords / 5
 
@@ -357,8 +371,8 @@ class GroupDendrogram(_DendrogramBase):
                                   color=meta_color, linewidth=linewidth)
 
         if divide & add_base & add_meta:
-            xmin = np.min(self.dens[0].x_coords)
-            xmax = np.max(self.dens[-1]._render_x_coords)
+            xmin = np.min(draw_dens[0].x_coords)
+            xmax = np.max(draw_dens[-1]._render_x_coords)
             if orient in ["top", "bottom"]:
                 ax.hlines(self.divider, xmin, xmax,  # 0, xlim,
                           linestyles=divide_style, color=meta_color,
@@ -369,10 +383,12 @@ class GroupDendrogram(_DendrogramBase):
                           linewidth=linewidth)
 
         if add_base:
-            for den, color in zip(self.dens, base_colors):
-                den.draw(ax, orient=orient, add_root=add_meta, color=color,
-                         linewidth=linewidth,
-                         root_color=meta_color, control_ax=False)
+            for den, color in zip(draw_dens, base_colors):
+                # The singleton dendrogram will only be drawn if meta is drawn
+                if not den.is_singleton or add_meta:
+                    den.draw(ax, orient=orient, add_root=add_meta, color=color,
+                             linewidth=linewidth,
+                             root_color=meta_color, control_ax=False)
 
         xlim = render_xlim
         # reserve room to avoid clipping of the top

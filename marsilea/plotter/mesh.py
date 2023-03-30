@@ -152,7 +152,7 @@ class ColorMesh(MeshBase):
 
     .. plot::
 
-        >>> from heatgraphy.plotter import ColorMesh
+        >>> from marsilea.plotter import ColorMesh
         >>> _, ax = plt.subplots(figsize=(5, .5))
         >>> data = np.arange(10)
         >>> ColorMesh(data, cmap="Blues", label="ColorMesh").render(ax)
@@ -160,8 +160,8 @@ class ColorMesh(MeshBase):
     .. plot::
         :context: close-figs
 
-        >>> import heatgraphy as hg
-        >>> from heatgraphy.plotter import ColorMesh
+        >>> import marsilea as hg
+        >>> from marsilea.plotter import ColorMesh
         >>> data = np.random.randn(10, 8)
         >>> h = hg.Heatmap(data)
         >>> h.hsplit(cut=[5])
@@ -321,9 +321,10 @@ class Colors(MeshBase):
             if isinstance(palette, Mapping):
                 self.palette = palette
             else:
-                self.palette = dict(zip(data.flat, palette.flat))
+                palette = np.asarray(palette)
+                self.palette = dict(zip(np.unique(data), palette.flat))
 
-            for i, (label, color) in enumerate(palette.items()):
+            for i, (label, color) in enumerate(self.palette.items()):
                 encoder[label] = i
                 render_colors.append(color)
 
@@ -337,7 +338,6 @@ class Colors(MeshBase):
             cats = np.unique(data)
             _enough_colors(len(colors), len(cats))
             palette = {}
-            encoder = {}
             render_colors = []
             for i, (label, color) in enumerate(zip(cats, cycle(colors))):
                 encoder[label] = i
@@ -600,7 +600,7 @@ class MarkerMesh(MeshBase):
     .. plot::
         :context: close-figs
 
-        >>> from heatgraphy.plotter import MarkerMesh
+        >>> from marsilea.plotter import MarkerMesh
         >>> data = np.random.randn(10, 10) > 0
         >>> _, ax = plt.subplots(figsize=(3, 3))
         >>> MarkerMesh(data, color="darkgreen", marker="x", size=50).render(ax)
