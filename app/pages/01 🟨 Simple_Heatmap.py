@@ -8,8 +8,8 @@ from components.resource import simple_heatmap_example_data, get_font_list
 from components.saver import ChartSaver
 from components.state import State
 
-import heatgraphy as hg
-from heatgraphy.plotter import Labels, Title, AnnoLabels
+import marsilea as hg
+from marsilea.plotter import Labels, Title, AnnoLabels
 
 init_page("Simple Heatmap")
 

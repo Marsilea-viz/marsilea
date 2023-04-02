@@ -3,12 +3,12 @@ from typing import Any
 import numpy as np
 import streamlit as st
 
-from heatgraphy import ClusterBoard
-from heatgraphy.plotter import ColorMesh, SizedMesh, MarkerMesh
+from marsilea import ClusterBoard
+from marsilea.plotter import ColorMesh, SizedMesh, MarkerMesh
 from .cmap_selector import ColormapSelector
 
 IMG_ROOT = "https://raw.githubusercontent.com/" \
-           "Heatgraphy/heatgraphy/main/app/img/"
+           "Heatgraphy/marsilea/main/app/img/"
 
 
 class MainPlotter:

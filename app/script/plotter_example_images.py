@@ -5,10 +5,10 @@ from matplotlib import rcParams
 import numpy as np
 import seaborn as sns
 
-from heatgraphy.plotter import (Bar, Box, Boxen, StackBar, Strip, Count, Point,
-                                Violin, AnnoLabels, Labels, ColorMesh,
-                                Colors, Swarm, )
-from heatgraphy.dendrogram import Dendrogram
+from marsilea.plotter import (Bar, Box, Boxen, StackBar, Strip, Count, Point,
+                              Violin, AnnoLabels, Labels, ColorMesh,
+                              Colors, Swarm, )
+from marsilea.dendrogram import Dendrogram
 
 
 def close_ticks(ax):

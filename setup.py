@@ -1,3 +1,3 @@
 import setuptools
 
-setuptools.setup(name="heatgraphy")
+setuptools.setup(name="marsilea")

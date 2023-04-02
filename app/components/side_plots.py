@@ -5,16 +5,16 @@ from typing import Any, List
 import numpy as np
 import streamlit as st
 
-from heatgraphy.base import ClusterBoard
-from heatgraphy.plotter import (Bar, Box, Boxen, Colors, Count, Chunk, Strip,
-                                Violin,
-                                Point, Swarm, AnnoLabels, Labels,
-                                Title)
-from heatgraphy.plotter import RenderPlan
+from marsilea.base import ClusterBoard
+from marsilea.plotter import (Bar, Box, Boxen, Colors, Count, Chunk, Strip,
+                              Violin,
+                              Point, Swarm, AnnoLabels, Labels,
+                              Title)
+from marsilea.plotter import RenderPlan
 from .cmap_selector import ColormapSelector
 
 IMG_ROOT = "https://raw.githubusercontent.com/" \
-           "Heatgraphy/heatgraphy/main/app/img/"
+           "Marsilea-viz/marsilea/main/app/img/"
 
 
 class PlotAdder:

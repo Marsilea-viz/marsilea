@@ -4,13 +4,13 @@ on:
   push:
     paths:
       - '.github/**'
-      - 'heatgraphy/**'
+      - 'marsilea/**'
       - 'tests/**'
       - 'pyproject.toml'
   pull_request:
     paths:
       - '.github/**'
-      - 'heatgraphy/**'
+      - 'marsilea/**'
       - 'tests/**'
       - 'pyproject.toml'
 

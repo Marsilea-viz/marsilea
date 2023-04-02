@@ -2,8 +2,8 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
-import heatgraphy as hg
-from heatgraphy.plotter import MarkerMesh
+import marsilea as hg
+from marsilea.plotter import MarkerMesh
 
 
 if __name__ == "__main__":

@@ -11,7 +11,7 @@ with banner:
         '<video controls width="250" autoplay="true" muted="true" '
         'loop="true" playsinline style="pointer-events: none;">'
         '<source src="https://raw.githubusercontent.com/Heatgraphy/'
-        'heatgraphy/main/app/img/V1.mp4" '
+        'marsilea/main/app/img/V1.mp4" '
         'type="video/mp4" /></video>', unsafe_allow_html=True)
 
 with title:
@@ -79,7 +79,7 @@ with s2:
                 "that can be easily integrated into your data pipeline!")
 with s3:
 
-    st.code("pip install heatgraphy", language="bash")
+    st.code("pip install marsilea", language="bash")
 
 st.markdown("---")
 

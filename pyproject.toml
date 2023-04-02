@@ -3,14 +3,17 @@ requires = ["flit_core >=3.2,<4"]
 build-backend = "flit_core.buildapi"
 
 [project]
-name = "heatgraphy"
-authors = [{name = "Mr-Milk", email = "yb97643@um.edu.mo"}]
+name = "marsilea"
+authors = [
+    {name = "Mr-Milk", email = "yb97643@um.edu.mo"},
+    {name = "Zhihang Zheng"}
+]
 license = {file = "LICENSE"}
 readme = "README.md"
 classifiers = ["License :: OSI Approved :: MIT License"]
 dynamic = ["version", "description"]
 requires-python = ">=3.8"
-urls = {Home="https://github.com/Heatgraphy/heatgraphy"}
+urls = {Home="https://github.com/marsilea/marsilea"}
 dependencies = [
     "numpy",
     "pandas",

@@ -11,7 +11,7 @@ from components.resource import get_font_list, upset_showcase_data,\
 from components.saver import ChartSaver
 from components.state import State
 
-from heatgraphy import UpsetData, Upset
+from marsilea import UpsetData, Upset
 
 init_page("Upsetplot")
 inject_css()

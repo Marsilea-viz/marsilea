@@ -9,7 +9,7 @@ from components.saver import ChartSaver
 from components.side_plots import Splitter, SidePlotAdder
 from components.state import State, DataStorage
 
-import heatgraphy as hg
+import marsilea as hg
 
 init_page("X-Layout Heatmap")
 
@@ -27,7 +27,7 @@ st.markdown(
     '<video controls width="250" autoplay="true" muted="true" loop="true" '
     'playsinline style="pointer-events: none;">'
     '<source src="https://raw.githubusercontent.com/Heatgraphy'
-    '/heatgraphy/main/app/img/V2.mp4" '
+    '/marsilea/main/app/img/V2.mp4" '
     'type="video/mp4" /></video>', unsafe_allow_html=True)
 
 st.header("Step1: Prepare Datasets")

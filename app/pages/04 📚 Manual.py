@@ -5,7 +5,7 @@ from components.initialize import init_page
 init_page("Manual")
 
 IMG_ROOT = "https://raw.githubusercontent.com/" \
-           "Heatgraphy/heatgraphy/main/app/img"
+           "Heatgraphy/marsilea/main/app/img"
 
 st.header("Manual")
 
