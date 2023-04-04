@@ -10,7 +10,7 @@ import pandas as pd
 from legendkit import ColorArt, CatLegend, SizeLegend
 from matplotlib.cm import ScalarMappable
 from matplotlib.colors import ListedColormap, TwoSlopeNorm, Normalize, \
-    is_color_like
+    is_color_like, to_hex
 from matplotlib.offsetbox import AnchoredText
 
 from .base import RenderPlan
@@ -51,9 +51,6 @@ class MeshBase(RenderPlan):
     norm = None
     cmap = None
     render_main = True
-    label: str = ""
-    label_loc = None
-    props = None
     _legend_kws = {}
 
     def _process_cmap(self, data, vmin, vmax,
@@ -502,9 +499,9 @@ class SizedMesh(MeshBase):
                           linewidth=self.linewidth)
         options = dict(
             colors=size_color,
-            dtype=self.orig_size.dtype,
             handle=self.marker,
             show_at=(.1, .25, .5, .75, 1.),
+            spacing="uniform",
             handler_kw=handler_kw)
         options.update(self.size_legend_kws)
         size_legend = SizeLegend(self.size_matrix,
@@ -641,3 +638,28 @@ class MarkerMesh(MeshBase):
 # TODO: Maybe a text mesh
 class TextMesh(MeshBase):
     render_main = True
+
+    def __init__(self, texts, color="black",
+                 label=None, label_loc=None, props=None, **kwargs):
+        self.data = np.asarray(texts)
+        self.color = color
+        self.label = label
+        self.label_loc = label_loc
+        self.props = props
+        self.kwargs = kwargs
+
+    def render_ax(self, ax, data):
+        Y, X = data.shape
+        xticks = np.arange(X) + 0.5
+        yticks = np.arange(Y) + 0.5
+
+        text_options = {"ha": "center", "va": "center",
+                        "color": self.color, **self.kwargs}
+        for x in range(X):
+            for y in range(Y):
+                ax.text(x + .5, y + .5, data[y, x], **text_options)
+
+        close_ticks(ax)
+        ax.set_xlim(0, xticks[-1] + 0.5)
+        ax.set_ylim(0, yticks[-1] + 0.5)
+        ax.invert_yaxis()

@@ -199,6 +199,7 @@ class AdjustableText:
                              rotation=rotation,
                              transform=self.ax.transAxes,
                              **kwargs)
+        self.text_options = kwargs
         ax.add_artist(self.text_obj)
         self._bbox = self.text_obj.get_window_extent(self.renderer) \
             .expanded(*expand)
@@ -247,6 +248,7 @@ class AdjustableText:
                 connectionstyle=self.connectionstyle,
                 linewidth=self.linewidth,
                 relpos=self.relpos),
+            **self.text_options
         )
 
 
@@ -488,6 +490,7 @@ class AnnoLabels(_LabelBase):
                             relpos=self.relpos,
                             connectionstyle=self.connectionstyle,
                             **params.to_dict())
+
         texts = []
         segments = []
         if self.is_body:

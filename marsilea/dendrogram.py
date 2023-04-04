@@ -56,7 +56,6 @@ class _DendrogramBase:
         self.ylim = np.array([0, self.max_dependent_coord * 1.05])
         self._render_xlim = self.xlim
         self._render_ylim = self.ylim
-
         # Should be lazy eval
         self._center = np.mean(data, axis=0)
 
@@ -223,7 +222,7 @@ class GroupDendrogram(_DendrogramBase):
                  method=None,
                  metric=None
                  ):
-        data = np.asarray([d.center for d in dens])
+        data = np.vstack([d.center for d in dens])
         super().__init__(data, method=method, metric=metric)
         self.orig_dens = np.asarray(dens)
         self.dens = np.asarray(dens)[self.reorder_index]

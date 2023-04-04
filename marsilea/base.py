@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from uuid import uuid4
+
 import warnings
 from copy import deepcopy
 from numbers import Number
@@ -52,6 +54,7 @@ class LegendMaker:
     def __init__(self) -> None:
         self._legend_grid_kws: Dict = {}
         self._legend_draw_kws: Dict = {}
+        self._user_legends = {}
         self._draw_legend: bool = False
 
     def get_legends(self) -> Dict:
@@ -63,6 +66,22 @@ class LegendMaker:
 
         """
         raise NotImplementedError("Should be implemented in derived class")
+
+    def custom_legends(self, legends, name=None):
+        """Add custom legends
+
+        Parameters
+        ----------
+
+        legends : `Artist <matplotlib.artist.Artists>`
+            A legend object
+        name : str, optional
+            The name of the legend
+
+        """
+        if name is None:
+            name = str(uuid4())
+        self._user_legends[name] = legends
 
     def add_legends(self, side="right", pad=0, order=None,
                     stack_by=None, stack_size=3,
@@ -121,7 +140,7 @@ class LegendMaker:
         self.layout.remove_legend_ax()
 
     def _legends_drawer(self, ax):
-        legends = self.get_legends()
+        legends = {**self.get_legends(), **self._user_legends}
 
         # force to remove all legends before drawing
         # In case some legends are added implicitly

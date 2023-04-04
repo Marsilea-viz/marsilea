@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from matplotlib.offsetbox import AnchoredText
 from typing import Any, List, Iterable
 
 import numpy as np
@@ -72,6 +73,23 @@ class DataLoader:
                 raise DataError(msg)
 
 
+default_label_props = {
+    "left": dict(loc="center right", bbox_to_anchor=(0, 0.5)),
+    "right": dict(loc="center left", bbox_to_anchor=(1, 0.5)),
+    "top": dict(loc="lower center", bbox_to_anchor=(0.5, 1),
+                prop=dict(rotation=90)),
+    "bottom": dict(loc="upper center", bbox_to_anchor=(0.5, 0),
+                   prop=dict(rotation=90)),
+}
+
+default_label_loc = {
+    "top": "right",
+    "bottom": "right",
+    "left": "bottom",
+    "right": "bottom",
+}
+
+
 class RenderPlan:
     """The base class for every plot in Heatgraphy
 
@@ -105,6 +123,10 @@ class RenderPlan:
     deform: Deformation = None
     # If True, this RenderPlan can be rendered on main ax
     render_main = False
+
+    label: str = ""
+    label_loc = None
+    props = None
 
     def __repr__(self):
         side_str = f"side='{self.side}'"
@@ -222,6 +244,15 @@ class RenderPlan:
         else:
             self.render_ax(axes, self.get_render_data())
 
+        if self.is_split:
+            if self.label_loc in ["top", "left"]:
+                label_ax = axes[0]
+            else:
+                label_ax = axes[-1]
+        else:
+            label_ax = axes
+        self._add_label(label_ax)
+
     def get_canvas_size(self, figure) -> float:
         """
         If the size is unknown before rendering, this function must be
@@ -267,6 +298,23 @@ class RenderPlan:
 
     def update_main_canvas_size(self):
         pass
+
+    def _add_label(self, ax):
+        if self.side != "main":
+            if self.label_loc is None:
+                self.label_loc = default_label_loc[self.side]
+            label_props = default_label_props[self.label_loc]
+            loc = label_props["loc"]
+            bbox_to_anchor = label_props['bbox_to_anchor']
+            prop = label_props.get('prop')
+            if self.props is not None:
+                prop.update(self.props)
+
+            title = AnchoredText(self.label, loc=loc,
+                                 bbox_to_anchor=bbox_to_anchor,
+                                 prop=prop, pad=0.3, borderpad=0,
+                                 bbox_transform=ax.transAxes, frameon=False)
+            ax.add_artist(title)
 
 
 class AxisOption:
@@ -346,7 +394,6 @@ class StatsBase(RenderPlan):
             return super().get_render_data()
         else:
             return self.create_render_datasets(*self.datasets)
-
 
     def _setup_axis(self, ax):
         if self.get_orient() == "h":
