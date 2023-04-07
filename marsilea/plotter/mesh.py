@@ -18,22 +18,6 @@ from ..layout import close_ticks
 from ..utils import relative_luminance, get_colormap, ECHARTS16, \
     get_canvas_size_by_data
 
-default_label_props = {
-    "left": dict(loc="center right", bbox_to_anchor=(0, 0.5)),
-    "right": dict(loc="center left", bbox_to_anchor=(1, 0.5)),
-    "top": dict(loc="lower center", bbox_to_anchor=(0.5, 1),
-                prop=dict(rotation=90)),
-    "bottom": dict(loc="upper center", bbox_to_anchor=(0.5, 0),
-                   prop=dict(rotation=90)),
-}
-
-default_label_loc = {
-    "top": "right",
-    "bottom": "right",
-    "left": "bottom",
-    "right": "bottom",
-}
-
 
 def _mask_data(data, mask=None):
     if isinstance(data, pd.DataFrame):
@@ -66,38 +50,6 @@ class MeshBase(RenderPlan):
 
         if center is not None:
             self.norm = TwoSlopeNorm(center, vmin=vmin, vmax=vmax)
-
-    def _add_label(self, ax):
-        if self.side != "main":
-            if self.label_loc is None:
-                self.label_loc = default_label_loc[self.side]
-            label_props = default_label_props[self.label_loc]
-            loc = label_props["loc"]
-            bbox_to_anchor = label_props['bbox_to_anchor']
-            prop = label_props.get('prop')
-            if self.props is not None:
-                prop.update(self.props)
-
-            title = AnchoredText(self.label, loc=loc,
-                                 bbox_to_anchor=bbox_to_anchor,
-                                 prop=prop, pad=0.3, borderpad=0,
-                                 bbox_transform=ax.transAxes, frameon=False)
-            ax.add_artist(title)
-
-    def render(self, axes):
-        render_data = self.get_render_data()
-        if self.is_split:
-            for hax, arr in zip(axes, render_data):
-                self.render_ax(hax, arr)
-
-            if self.label_loc in ["top", "left"]:
-                label_ax = axes[0]
-            else:
-                label_ax = axes[-1]
-        else:
-            self.render_ax(axes, render_data)
-            label_ax = axes
-        self._add_label(label_ax)
 
     def set_legends(self, **kwargs):
         self._legend_kws.update(kwargs)
@@ -195,9 +147,7 @@ class ColorMesh(MeshBase):
         self.annot_kws = {} if annot_kws is None else annot_kws
         self._process_cmap(data, vmin, vmax, cmap, norm, center)
 
-        self.label = label
-        self.label_loc = label_loc
-        self.props = props
+        self.set_label(label, label_loc, props)
         self._legend_kws = dict(title=self.label)
         if cbar_kws is not None:
             self.set_legends(**cbar_kws)
@@ -326,13 +276,17 @@ class Colors(MeshBase):
                 render_colors.append(color)
 
         else:
+            cats = np.unique(data)
             if cmap is not None:
                 cmap = get_colormap(cmap)
-                colors = cmap(np.arange(cmap.N))
+                colors = cmap(np.linspace(0, 1, len(cats)))
             else:
-                colors = ECHARTS16
+                colors = []
+                for i, c in enumerate(cycle(ECHARTS16)):
+                    colors.append(c)
+                    if i == len(cats):
+                        break
 
-            cats = np.unique(data)
             _enough_colors(len(colors), len(cats))
             palette = {}
             render_colors = []
@@ -421,7 +375,7 @@ class SizedMesh(MeshBase):
     size_legend_kws : dict
         Control the size legend, See :func:`legendkit.size_legend`
     color_legend_kws : dict
-        Control the color legend, See :func:`legendkit.legend`
+        Control the color legend, See :func:`legendkit.colorart`
     kwargs :
 
     """

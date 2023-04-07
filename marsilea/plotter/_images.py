@@ -1,3 +1,7 @@
+# The implementation of Image in matplotlib may suffer from compatibility
+# issues across different rendering backend at different DPI. Currently
+# not a public API.
+
 import numpy as np
 from matplotlib.image import imread, BboxImage
 from matplotlib.transforms import Bbox, TransformedBbox
@@ -50,14 +54,12 @@ class Emoji(RenderPlan):
     def render_ax(self, ax, data):
 
         locs = np.linspace(0, 1, len(data)+2)[1:-1]
-        print(locs)
         for loc, d in zip(locs, data):
             img = self.emoji_caches[d]
             width, height = img.shape[:2]
 
             def get_emoji_bbox(renderer):
                 x0, y0 = ax.transData.transform((loc, 0))
-                print(x0, y0)
                 return Bbox.from_bounds(x0, y0, width, height)
 
             i1 = BboxImage(get_emoji_bbox,

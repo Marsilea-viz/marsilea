@@ -118,7 +118,6 @@ class SeqLogo(StatsBase):
         flip = self.side != "top"
         mirror = self.side == "left"
         lim = np.max(data.sum(axis=0))
-        ic(self.side, flip, mirror)
         for i, col in enumerate(data.T):
             letters = self.letters
             if self.stack != "normal":

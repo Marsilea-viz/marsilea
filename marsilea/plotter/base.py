@@ -125,8 +125,8 @@ class RenderPlan:
     render_main = False
 
     label: str = ""
-    label_loc = None
-    props = None
+    _label_loc = None
+    _label_props = None
 
     def __repr__(self):
         side_str = f"side='{self.side}'"
@@ -151,6 +151,13 @@ class RenderPlan:
 
     def set_size(self, size):
         self.size = size
+
+    def set_label(self, label, loc=None, props=None):
+        self.label = label
+        if loc is not None:
+            self._label_loc = loc
+        if props is not None:
+            self._label_props = props
 
     def get_deform_func(self):
         if self.has_deform:
@@ -244,14 +251,7 @@ class RenderPlan:
         else:
             self.render_ax(axes, self.get_render_data())
 
-        if self.is_split:
-            if self.label_loc in ["top", "left"]:
-                label_ax = axes[0]
-            else:
-                label_ax = axes[-1]
-        else:
-            label_ax = axes
-        self._add_label(label_ax)
+        self._add_label(axes)
 
     def get_canvas_size(self, figure) -> float:
         """
@@ -299,22 +299,32 @@ class RenderPlan:
     def update_main_canvas_size(self):
         pass
 
-    def _add_label(self, ax):
+    def _add_label(self, axes):
         if self.side != "main":
-            if self.label_loc is None:
+
+            if self.is_split:
+                if self._label_loc in ["top", "left"]:
+                    label_ax = axes[0]
+                else:
+                    label_ax = axes[-1]
+            else:
+                label_ax = axes
+
+            if self._label_loc is None:
                 self.label_loc = default_label_loc[self.side]
             label_props = default_label_props[self.label_loc]
             loc = label_props["loc"]
             bbox_to_anchor = label_props['bbox_to_anchor']
             prop = label_props.get('prop')
-            if self.props is not None:
-                prop.update(self.props)
+            if self._label_props is not None:
+                prop.update(self._label_props)
 
             title = AnchoredText(self.label, loc=loc,
                                  bbox_to_anchor=bbox_to_anchor,
                                  prop=prop, pad=0.3, borderpad=0,
-                                 bbox_transform=ax.transAxes, frameon=False)
-            ax.add_artist(title)
+                                 bbox_transform=label_ax.transAxes,
+                                 frameon=False)
+            label_ax.add_artist(title)
 
 
 class AxisOption:
@@ -330,7 +340,6 @@ class StatsBase(RenderPlan):
     """
     data: np.ndarray
     datasets: List[np.ndarray]
-    axis_label: str = ""
     render_main = True
     orient = None
     axis_options = None
@@ -362,33 +371,6 @@ class StatsBase(RenderPlan):
             else:
                 return self.deform.transform_row
 
-    # def get_render_data(self):
-    #     main_flip = self.get_orient() == "h" and self.side == "main"
-    #     deform_func = self.get_deform_func()
-    #
-    #     if self.data is not None:
-    #         if deform_func is None:
-    #             return self.data
-    #         else:
-    #             return deform_func(self.data)
-    #     else:
-    #
-    #         if deform_func is None:
-    #             if main_flip:
-    #                 return [d.T for d in self.datasets]
-    #             else:
-    #                 return self.datasets
-    #         else:
-    #
-    #             if main_flip:
-    #                 datasets = [deform_func(d) for d in self.datasets]
-    #             else:
-    #                 datasets = [deform_func(d) for d in self.datasets]
-    #             if self.is_split:
-    #                 return [d for d in zip(*datasets)]
-    #             else:
-    #                 return datasets
-
     def get_render_data(self):
         if self.data is not None:
             return super().get_render_data()
@@ -406,60 +388,54 @@ class StatsBase(RenderPlan):
                            bottom=False, labelbottom=False)
 
     def align_lim(self, axes):
-        if self.get_orient() == "h":
-            is_inverted = False
-            xlim_low = []
-            xlim_up = []
-            for ax in axes:
+        is_inverted = False
+        lim_low = []
+        lim_up = []
+
+        is_h = self.get_orient() == "h"
+        for ax in axes:
+            if is_h:
                 low, up = ax.get_xlim()
                 if ax.xaxis_inverted():
                     is_inverted = True
                     low, up = up, low
-                xlim_up.append(up)
-                xlim_low.append(low)
-            xlims = [np.min(xlim_low), np.max(xlim_up)]
-            if is_inverted:
-                xlims = xlims[::-1]
-            for ax in axes:
-                ax.set_xlim(*xlims)
-        else:
-            is_inverted = False
-            ylim_low = []
-            ylim_up = []
-            for ax in axes:
+            else:
                 low, up = ax.get_ylim()
                 if ax.yaxis_inverted():
                     is_inverted = True
                     low, up = up, low
-                ylim_up.append(up)
-                ylim_low.append(low)
-            ylims = [np.min(ylim_low), np.max(ylim_up)]
-            if is_inverted:
-                ylims = ylims[::-1]
-            for ax in axes:
-                ax.set_ylim(*ylims)
+            lim_up.append(up)
+            lim_low.append(low)
+        lims = [np.min(lim_low), np.max(lim_up)]
+        if is_inverted:
+            lims = lims[::-1]
+        for ax in axes:
+            ax.set_xlim(*lims) if is_h else ax.set_ylim(*lims)
 
     def render(self, axes):
+
         if self.is_split:
+
             self.render_axes(axes)
             self.align_lim(axes)
+
             for i, ax in enumerate(axes):
                 # leave axis for the first ax
                 if (i == 0) & (self.get_orient() == "v"):
                     self._setup_axis(ax)
-                    ax.set_ylabel(self.axis_label)
+                    ax.set_ylabel(self.label)
                 # leave axis for the last ax
                 elif (i == len(axes) - 1) & (self.get_orient() == "h"):
                     self._setup_axis(ax)
-                    ax.set_xlabel(self.axis_label)
+                    ax.set_xlabel(self.label)
                 else:
                     ax.set_axis_off()
         else:
             # axes.set_axis_off()
             self.render_ax(axes, self.get_render_data())
             self._setup_axis(axes)
-            if self.axis_label is not None:
+            if self.label is not None:
                 if self.get_orient() == "v":
-                    axes.set_ylabel(self.axis_label)
+                    axes.set_ylabel(self.label)
                 else:
-                    axes.set_xlabel(self.axis_label)
+                    axes.set_xlabel(self.label)

@@ -81,7 +81,7 @@ class Numbers(StatsBase):
 
         self.fmt_func = fmt_func
         self.show_value = show_value
-        self.axis_label = label
+        self.label = label
         self.fmt = fmt
         self.label_pad = label_pad
         self.props = props if props is not None else {}
@@ -211,13 +211,13 @@ class StackBar(StatsBase):
         self.fmt = "%g" if fmt is None else fmt
         self.kwargs = kwargs
         self.orient = orient
-        self.axis_label = label
+        self.label = label
 
         props = {} if props is None else props
         value_props = dict(label_type=value_loc)
         value_props.update(props)
         self.props = value_props
-        self._legend_kws = dict(title=self.axis_label, size=1)
+        self._legend_kws = dict(title=self.label, size=1)
         if legend_kws is not None:
             self._legend_kws.update(legend_kws)
 

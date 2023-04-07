@@ -53,7 +53,7 @@ class _SeabornBase(StatsBase):
         self.kws = kwargs
 
         self.orient = orient
-        self.axis_label = label
+        self.label = label
         self.legend_kws = {} if legend_kws is None else legend_kws
 
     def get_legends(self):

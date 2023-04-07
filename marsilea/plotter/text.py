@@ -112,6 +112,9 @@ def adjust_segments(lim: Segment, segments: List[Segment]):
         warnings.warn("No enough space to place all labels, "
                       "try reducing the fontsize.")
 
+    segments_length_r = segments_length
+    space_r = space
+
     for ix, (s1, s2) in enumerate(pairwise(segments)):
         if ix == 0:
             distance = s1.low - lim.low
@@ -124,7 +127,7 @@ def adjust_segments(lim: Segment, segments: List[Segment]):
 
         space -= s1.length
         segments_length -= s1.length
-        if s1.overlap(s2):
+        if s1.overlap(s2) or s2.up < s1.low:
             # if overlapped, make s2 next to s1
             s2.set_low(s1.up)
         else:
@@ -141,6 +144,36 @@ def adjust_segments(lim: Segment, segments: List[Segment]):
                     s2.set_low(s1.up)
                 else:
                     s2.move_down(offset)
+
+    for ix, (s1, s2) in enumerate(pairwise(segments[::-1])):
+        if ix == 0:
+            distance = s1.up - lim.up
+            offset = segments_length_r - (space_r - distance)
+            if offset > 0:
+                if offset > distance:
+                    s1.set_up(lim.up)
+                else:
+                    s1.move_up(offset)
+
+        space_r -= s1.length
+        segments_length_r -= s1.length
+        if s1.overlap(s2) or s2.low > s1.up:
+            # if overlapped, make s2 next to s1
+            s2.set_up(s1.low)
+        else:
+            # space between s1 and s2
+            distance = s2.low - s1.up
+
+            offset = segments_length_r - (space_r - distance)
+            # if what's left is not enough to place remaining
+            # The total segments is longer than remain space
+            if offset > 0:
+                # This means no enough space
+                # We could only overlay them
+                if offset > distance:
+                    s2.set_up(s1.low)
+                else:
+                    s2.move_up(offset)
 
 
 # For debug purpose
@@ -515,7 +548,6 @@ class AnnoLabels(_LabelBase):
                                        **text_options)
                     texts.append(t)
                     segments.append(t.get_segment_y())
-
             lim = Segment(ax_bbox.ymin, ax_bbox.ymax)
             adjust_segments(lim, segments)
             for t, s in zip(texts, segments):

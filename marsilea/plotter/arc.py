@@ -105,7 +105,7 @@ class Arc(StatsBase):
                  **kwargs):
         if len(np.unique(anchors)) != len(anchors):
             raise ValueError("`anchors` must be unique")
-        self.data = np.asarray(anchors)
+        self.data = self.data_validator(anchors, target="1d")
         self.links = Links(links, weights=weights, width=width,
                            colors=colors, labels=labels)
         self.options = kwargs
@@ -151,26 +151,22 @@ class Arc(StatsBase):
                         if self.side == "left":
                             xy = (1, arc_mid)
                             angle = 90
-                            sizes.append(arc_width)
                         elif self.side == "right":
                             xy = (0, arc_mid)
                             angle = -90
-                            sizes.append(arc_width)
                         elif self.side == "bottom":
                             xy = (arc_mid, 1)
                             angle = 180
-                            sizes.append(arc_width * 2)
                         else:
                             xy = (arc_mid, 0)
                             angle = 0
-                            sizes.append(arc_width * 2)
-
+                        sizes.append(arc_width)
                         arc = mArc(xy, arc_width, arc_width * 2, angle,
                                    **options)
 
                         ax.add_patch(arc)
 
-        lim = np.max(sizes)
+        lim = np.max(sizes) * 1.1
         if self.is_flank:
             ax.set_xlim(0, lim)
             ax.set_ylim(0, 1)
