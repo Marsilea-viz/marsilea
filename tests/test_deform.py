@@ -2,7 +2,7 @@ from itertools import product
 
 import pytest
 import numpy as np
-from heatgraphy import Deformation
+from marsilea import Deformation
 
 matrix = np.random.randn(7, 5)
 

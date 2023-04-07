@@ -1,8 +1,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-import heatgraphy as hg
-from heatgraphy.plotter.mesh import MarkerMesh
+import marsilea as ma
+from marsilea.plotter.mesh import MarkerMesh
 
 COLUMN = 21
 ROW = 20
@@ -12,26 +12,26 @@ cat_data = np.random.choice([1, 2, 3, 4], (ROW, COLUMN))
 
 
 def test_colormesh():
-    h = hg.Heatmap(main_data)
+    h = ma.Heatmap(main_data)
     h.render()
     plt.close()
 
 
 def test_colors():
-    h = hg.CatHeatmap(cat_data)
+    h = ma.CatHeatmap(cat_data)
     h.render()
     plt.close()
 
 
 def test_sizedmesh():
-    h = hg.SizedHeatmap(main_data, main_data)
+    h = ma.SizedHeatmap(main_data, main_data)
     h.render()
     plt.close()
 
 
 def test_markermesh():
     data = main_data > 0
-    h = hg.WhiteBoard()
+    h = ma.WhiteBoard()
     h.add_layer(MarkerMesh(data))
     h.render()
     plt.close()
@@ -40,11 +40,11 @@ def test_markermesh():
 def test_layersmesh_one_layer():
     one_layer = np.random.choice([1, 2, 3], (3, 5))
     pieces = {
-        1: hg.layers.Rect(),
-        2: hg.layers.FracRect(),
-        3: hg.layers.FrameRect()
+        1: ma.layers.Rect(),
+        2: ma.layers.FracRect(),
+        3: ma.layers.FrameRect()
     }
-    h = hg.layers.Layers(data=one_layer, pieces=pieces)
+    h = ma.layers.Layers(data=one_layer, pieces=pieces)
     h.render()
 
 
@@ -54,10 +54,10 @@ def test_layersmesh_multiple_layer():
     d3 = np.random.rand(3, 5) > 0
 
     pieces = [
-        hg.layers.Rect(),
-        hg.layers.FracRect(),
-        hg.layers.FrameRect(),
+        ma.layers.Rect(),
+        ma.layers.FracRect(),
+        ma.layers.FrameRect(),
     ]
-    h = hg.layers.Layers(layers=[d1, d2, d3], pieces=pieces)
+    h = ma.layers.Layers(layers=[d1, d2, d3], pieces=pieces)
     h.render()
 

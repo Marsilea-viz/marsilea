@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 from matplotlib import pyplot as plt
 
-from heatgraphy.plotter.mesh import ColorMesh, Colors, \
+from marsilea.plotter.mesh import ColorMesh, Colors, \
     TextMesh, SizedMesh, MarkerMesh
 
 COLUMN = 20
