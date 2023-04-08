@@ -6,7 +6,6 @@ from typing import List, Dict
 from uuid import uuid4
 
 import numpy as np
-# from icecream import ic
 from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
 
@@ -26,26 +25,60 @@ from .utils import _check_side
 # It's unlikely to return axes right after being added, the split operation
 # is unknown, this will create more than one axes.
 
-def _split(chunk_ratios, spacing=.05):
+def _split(chunk_ratios, spacing=.05, group_ratios=None):
     """Return the relative anchor point, in ratio"""
+
     ratios = np.asarray(chunk_ratios) / np.sum(chunk_ratios)
     count = len(ratios)
     if isinstance(spacing, Number):
         spacing = [spacing for _ in range(count - 1)]
+    spacing = np.asarray(spacing)
 
     canvas_size = 1 - np.sum(spacing)
     ratios = ratios * canvas_size
+    assert np.sum(spacing) + np.sum(ratios) - 1 <= 0.00001
 
-    start = 0
-    anchors = []
-    for ix, i in enumerate(ratios):
-        anchors.append(start)
-        start += i
-        # If not the last one
-        # Add space
-        if ix != count - 1:
-            start += spacing[ix - 1]
-    return ratios, np.array(anchors)
+    if group_ratios is not None:
+        c = np.asarray(group_ratios)
+        groups = (c / c.sum() * count).astype(int)
+        if np.sum(groups) != count:
+            raise ValueError(f"Cannot group the split with ratios of {group_ratios}")
+
+        regroup_ratios = []
+        anchors = [0]
+
+        start_anchor = 0
+        start_ix = 0
+        last_ix = len(groups) - 1
+        for i, g in enumerate(groups):
+            if g == 1:
+                gratio = ratios[start_ix]
+            else:
+                mr = ratios[start_ix:start_ix+g].sum()
+                ms = spacing[start_ix:start_ix+g-1].sum()
+                gratio = mr + ms
+
+            if i < last_ix:
+                gspacing = spacing[start_ix+g-1]
+                start_anchor += (gratio+gspacing)
+                anchors.append(start_anchor)
+            else:
+                start_anchor += gratio
+            regroup_ratios.append(gratio)
+            start_ix += g
+        ratios = regroup_ratios
+    else:
+        start = 0
+        anchors = []
+        last_ix = len(ratios) - 1
+        for ix, i in enumerate(ratios):
+            anchors.append(start)
+            start += i
+            # If not the last one
+            # Add space
+            if ix < last_ix:
+                start += spacing[ix]
+    return np.array(ratios), np.array(anchors)
 
 
 def get_axes_rect(rect, figsize):
@@ -84,7 +117,7 @@ class BaseCell:
 
         return cx, cy, cw, ch
 
-    def hsplit(self, chunk_ratios, spacing=.05):
+    def hsplit(self, chunk_ratios, spacing=.05, group_ratios=None):
         """
         Parameters
         ----------
@@ -92,12 +125,16 @@ class BaseCell:
             The length of each chunk from top to bottom
         spacing :
             Relative to the cell size, the value should between 0~1
+        group_ratios :
+            Regroup the split chunks
+
         """
-        ratios, anchors = _split(chunk_ratios[::-1], spacing=spacing)
+        ratios, anchors = _split(chunk_ratios[::-1], spacing=spacing,
+                                 group_ratios=group_ratios)
         self.h_ratios = ratios
         self.h_anchors = anchors
 
-    def vsplit(self, chunk_ratios, spacing=.05):
+    def vsplit(self, chunk_ratios, spacing=.05, group_ratios=None):
         """
         Parameters
         ----------
@@ -105,8 +142,12 @@ class BaseCell:
             The length of each chunk from left to right
         spacing :
             Relative to the cell size, the value should between 0~1
+        group_ratios :
+            Regroup the split chunks
+
         """
-        ratios, anchors = _split(chunk_ratios, spacing=spacing)
+        ratios, anchors = _split(chunk_ratios, spacing=spacing,
+                                 group_ratios=group_ratios)
         self.v_ratios = ratios
         self.v_anchors = anchors
 
@@ -345,15 +386,19 @@ class CrossLayout(_MarginMixin):
         legend_cell = self._get_cell(self._legend_ax_name)
         legend_cell.size = size
 
-    def vsplit(self, name, chunk_ratios, spacing=.05):
+    def vsplit(self, name, chunk_ratios,
+               spacing=.05, group_ratios=None):
         cell = self._get_cell(name)
         cell.is_split = True
-        cell.vsplit(chunk_ratios, spacing=spacing)
+        cell.vsplit(chunk_ratios, spacing=spacing,
+                    group_ratios=group_ratios)
 
-    def hsplit(self, name, chunk_ratios, spacing=.05):
+    def hsplit(self, name, chunk_ratios,
+               spacing=.05, group_ratios=None):
         cell = self._get_cell(name)
         cell.is_split = True
-        cell.hsplit(chunk_ratios, spacing=spacing)
+        cell.hsplit(chunk_ratios, spacing=spacing,
+                    group_ratios=group_ratios)
 
     def is_split(self, name):
         """Query if a cell is split"""

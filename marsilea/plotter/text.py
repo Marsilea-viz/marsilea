@@ -812,6 +812,8 @@ class Chunk(_LabelBase):
         The label for each chunk
     fill_colors : color, array of color
         The color used as background color for each chunk
+    ratio : array of int
+        To span chunks on more than one chunk.
     borderwidth, bordercolor, borderstyle : 
         Control the style of border
         For borderstyle, see :meth:`linestyles <matplotlib.lines.Line2D.set_linestyle>`
@@ -843,7 +845,7 @@ class Chunk(_LabelBase):
     """
 
     def __init__(self, texts,
-                 fill_colors=None,
+                 fill_colors=None, ratio=None,
                  props=None, padding=2, bordercolor=None,
                  borderwidth=None, borderstyle=None,
                  **options):
@@ -870,6 +872,8 @@ class Chunk(_LabelBase):
 
         super().__init__()
         self._sort_params(**options)
+        if ratio is not None:
+            self.set_split_regroup(ratio)
 
     default_rotation = {
         "right": -90,
