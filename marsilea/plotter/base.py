@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from matplotlib.offsetbox import AnchoredText
-from typing import Any, List, Iterable
+from typing import Any, List, Iterable, Sequence
 
 import numpy as np
 import pandas as pd
@@ -118,6 +118,7 @@ class RenderPlan:
     # label if a render plan
     # can be used on split axes
     no_split: bool = False
+    _split_regroup: Sequence[float] = None
     zorder: int = 0
 
     deform: Deformation = None
@@ -325,6 +326,12 @@ class RenderPlan:
                                  bbox_transform=label_ax.transAxes,
                                  frameon=False)
             label_ax.add_artist(title)
+
+    def set_split_regroup(self, ratio):
+        self._split_regroup = ratio
+
+    def get_split_regroup(self):
+        return self._split_regroup
 
 
 class AxisOption:

@@ -698,13 +698,15 @@ class ClusterBoard(WhiteBoard):
         if deform.is_col_split:
             for plan in self._col_plan:
                 if not plan.no_split:
-                    self.layout.vsplit(plan.name, w_ratios, wspace)
+                    self.layout.vsplit(plan.name, w_ratios, wspace,
+                                       plan.get_split_regroup())
 
         # split row axes
         if deform.is_row_split:
             for plan in self._row_plan:
                 if not plan.no_split:
-                    self.layout.hsplit(plan.name, h_ratios, hspace)
+                    self.layout.hsplit(plan.name, h_ratios, hspace,
+                                       plan.get_split_regroup())
 
     def _render_dendrogram(self):
         deform = self.get_deform()
