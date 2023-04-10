@@ -1,3 +1,4 @@
+from itertools import cycle
 from typing import Callable, Mapping
 
 import numpy as np
@@ -192,6 +193,10 @@ class StackBar(StatsBase):
                 bar_colors = [colors[name] for name in item_names]
             else:
                 bar_colors = colors
+
+        if len(bar_colors) < len(item_names):
+            msg = "The number of colors is less than the number of items."
+            raise ValueError(msg)
 
         fmt_func = None
         if isinstance(show_value, Callable):
