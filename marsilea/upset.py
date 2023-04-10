@@ -35,7 +35,7 @@ class UpsetData:
     data : bool matrix
         A one-hot encode matrix indicates if an item is in a set.
         Columns are sets and rows are items
-    names : optional, array
+    sets_names : optional, array
         The name of sets
     items : optional, array
         The name of items
@@ -59,34 +59,37 @@ class UpsetData:
 
     """
 
-    def __init__(self, data, names=None, items=None,
-                 sets_attrs=None, items_attrs=None):
+    def __init__(self, data, sets_names=None, items=None,
+                 sets_attrs=None, items_attrs=None, sets_order=None):
         if isinstance(data, pd.DataFrame):
-            if names is None:
-                names = data.columns.tolist()
+            if sets_names is None:
+                sets_names = data.columns.tolist()
             if items is None:
                 items = data.index.tolist()
             data = data.to_numpy()
-        if names is None:
+        if sets_names is None:
             raise ValueError("The name of sets must be provided")
         if items is None:
             raise ValueError("The name of items must be provided")
 
-        assert len(names) == len(set(names)), "Duplicates in names"
+        assert len(sets_names) == len(set(sets_names)), "Duplicates in set names"
         assert len(items) == len(set(items)), "Duplicates in items"
-        self.names = list(names)  # columns
+        self.sets_names = list(sets_names)  # columns
         self.items = list(items)  # row
         self._data = data  # one-hot encode matrix
         if sets_attrs is not None:
-            sets_attrs = sets_attrs.loc[self.names]
+            sets_attrs = sets_attrs.loc[self.sets_names]
         self._sets_attrs = sets_attrs
 
         if items_attrs is not None:
             items_attrs = items_attrs.loc[self.items]
         self._items_attrs = items_attrs
 
-        self._sets_table = pd.DataFrame(columns=names, index=items,
-                                        data=data)
+        self._binary_table = pd.DataFrame(columns=sets_names, index=items,
+                                          data=data)
+        self._sets_order = sets_order
+        if sets_order is not None:
+            self._binary_table = self._binary_table.loc[:, sets_order]
 
     @classmethod
     def from_sets(cls, sets: List[Set], names=None,
@@ -132,7 +135,7 @@ class UpsetData:
             d = [i in s for i in items]
             data.append(d)
         data = np.array(data, dtype=int).T
-        container = cls(data, names=new_names, items=items,
+        container = cls(data, sets_names=new_names, items=items,
                         sets_attrs=sets_attrs,
                         items_attrs=items_attrs)
         return container
@@ -159,38 +162,38 @@ class UpsetData:
             new_items_names = items_names
 
         df = pd.DataFrame(sets).fillna(False).astype(int)
-        container = cls(df.to_numpy(), names=df.columns,
+        container = cls(df.to_numpy(), sets_names=df.columns,
                         items=new_items_names, sets_attrs=sets_attrs,
                         items_attrs=items_attrs)
         return container
 
     def has_item(self, item):
         """Return a list of sets' name the item is in"""
-        item_data = self._sets_table.loc[item]
+        item_data = self._binary_table.loc[item]
         return item_data.loc[item_data == 1].index.tolist()
 
     def intersection(self, sets_name):
         """Return the items that are shared in different sets"""
         expr = "&".join([f"(`{s}`==1)" for s in sets_name])
-        return self._sets_table.query(expr).index.tolist()
+        return self._binary_table.query(expr).index.tolist()
 
     def intersection_count(self):
         """The item has occurred in how many sets"""
-        return self._sets_table.sum(axis=1)
+        return self._binary_table.sum(axis=1)
 
-    def sets_table(self):
-        return self._sets_table
+    def binary_table(self):
+        return self._binary_table
 
     def cardinality(self):
         """Intersection size"""
-        return self._sets_table.groupby(self.names).size()
+        return self._binary_table.groupby(self.sets_names).size()
 
     def degree(self):
         """Intersection between how many sets"""
-        return self._sets_table.groupby(self.names).sum(axis=1)
+        return self._binary_table.groupby(self.sets_names).sum(axis=1)
 
     def sets_size(self):
-        return self._sets_table.sum()
+        return self._binary_table.sum()
 
     @property
     def sets_attrs(self):
@@ -199,6 +202,25 @@ class UpsetData:
     @property
     def items_attrs(self):
         return self._items_attrs
+
+    def filter(self,
+               sets_order=None,
+               min_degree=None,
+               max_degree=None,
+               min_size=None,
+               max_size=None,
+               ) -> UpsetData:
+        pass
+
+    def sort(self,
+             sets_order=None,
+             sort_subset="size",
+             ):
+        pass
+
+    def mark(self):
+        pass
+
 
 
 class Upset(WhiteBoard):
@@ -443,7 +465,7 @@ class Upset(WhiteBoard):
     def add_sets_label(self, side, pad=.1, size=None, **props):
         self._check_side(side, 'Sets label',
                          dict(h=["left", "right"], v=["top", "bottom"]))
-        data = self.sets_table.index.names
+        data = self.sets_table.index.sets_names
         self.add_plot(side, Labels(data, **props), pad=pad, size=size)
 
     def add_sets_attrs(self, side, attr_names, plot=None, **props):
@@ -455,7 +477,7 @@ class Upset(WhiteBoard):
     def add_items_attrs(self, side, attr_names, plot=None, name=None, pad=0,
                         size=None, plot_kws=None):
         items_attrs = self.data.items_attrs
-        sets_names = np.array(self.sets_table.index.names)
+        sets_names = np.array(self.sets_table.index.sets_names)
 
         data_collector = []
 
