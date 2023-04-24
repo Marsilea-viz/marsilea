@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-
 import numpy as np
 
 from .base import ClusterBoard
@@ -67,8 +66,11 @@ class CatHeatmap(ClusterBoard):
     """
 
     def __init__(self, data, palette=None, cmap=None, mask=None,
-                 name=None, width=None, height=None, cluster_data=None):
-        mesh = Colors(data, palette=palette, cmap=cmap, mask=mask)
+                 name=None, width=None, height=None, cluster_data=None,
+                 linewidth=0, linecolor="white",
+                 **kwargs):
+        mesh = Colors(data, palette=palette, cmap=cmap, mask=mask,
+                      linewidth=linewidth, linecolor=linecolor, **kwargs)
         if cluster_data is None:
             cluster_data = mesh.cluster_data
         super().__init__(cluster_data, width=width, height=height, name=name)

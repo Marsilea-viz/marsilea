@@ -1,9 +1,8 @@
-from typing import Mapping
-
 import pandas as pd
 import seaborn
 from legendkit import CatLegend
 from seaborn import color_palette
+from typing import Mapping
 
 from .base import StatsBase
 from ..utils import ECHARTS16
@@ -16,17 +15,17 @@ class _SeabornBase(StatsBase):
     data = None
 
     def __init__(self, data, hue_order=None, palette=None,
-                 orient=None,
-                 label=None, legend_kws=None, **kwargs):
+                 orient=None, label=None, legend_kws=None,
+                 group_kws=None, **kwargs):
 
         if isinstance(data, Mapping):
-            self.datasets = []
+            datasets = []
             self.hue = []
             if hue_order is None:
                 hue_order = data.keys()
             for name in hue_order:
                 self.hue.append(name)
-                self.datasets.append(
+                datasets.append(
                     self.data_validator(data[name]))
             if isinstance(palette, Mapping):
                 self.palette = palette
@@ -37,8 +36,10 @@ class _SeabornBase(StatsBase):
                     colors = color_palette(palette, as_cmap=False)
                 self.palette = dict(zip(self.hue, colors))
             kwargs['palette'] = self.palette
+            self.set_data(*datasets)
         else:
-            self.data = self.data_validator(data)
+            data = self.data_validator(data)
+            self.set_data(data)
             kwargs.setdefault('color', 'C0')
             # if (palette is None) and ('color' not in kwargs):
             #     kwargs['palette'] = "dark:C0"
@@ -55,6 +56,8 @@ class _SeabornBase(StatsBase):
         self.orient = orient
         self.label = label
         self.legend_kws = {} if legend_kws is None else legend_kws
+        if group_kws is not None:
+            self.set_group_params(group_kws)
 
     def get_legends(self):
         if self.hue is not None:
@@ -67,7 +70,14 @@ class _SeabornBase(StatsBase):
             options.update(self.legend_kws)
             return CatLegend(colors=colors, labels=labels, **options)
 
-    def render_ax(self, ax, data):
+    def render_ax(self, spec):
+
+        ax = spec.ax
+        data = spec.data
+        gp = spec.group_params
+        if gp is None:
+            gp = {}
+
         if self.hue is not None:
 
             x, y = "var", "value"
@@ -94,7 +104,8 @@ class _SeabornBase(StatsBase):
             ax.invert_xaxis()
         # barplot(data=data, orient=orient, ax=ax, **self.kws)
         plotter = getattr(seaborn, self._seaborn_plot)
-        plotter(data=pdata, orient=orient, ax=ax, **self.kws)
+        options = {**self.kws, **gp}
+        plotter(data=pdata, orient=orient, ax=ax, **options)
         ax.set(xlabel=None, ylabel=None)
         leg = ax.get_legend()
         if leg is not None:
@@ -137,11 +148,11 @@ def _seaborn_doc(obj: _SeabornBase):
         :context: close-figs
         
         >>> import marsilea as ma
-        >>> from heatgraphy.plotter import {cls_name}
+        >>> from marsilea.plotter import {cls_name}
         >>> data = np.random.randn(10, 10)
         >>> sdata = np.random.randint(0, 10, {shape})
         >>> plot = {cls_name}(np.random.randint(0, 10, {shape}), color='#DB4D6D')
-        >>> h = hg.Heatmap(data)
+        >>> h = ma.Heatmap(data)
         >>> h.hsplit(cut=[3, 7])
         >>> h.add_right(plot)
         >>> h.render()
@@ -154,7 +165,7 @@ def _seaborn_doc(obj: _SeabornBase):
         :context: close-figs
         
         >>> plot = {cls_name}({{'a': sdata, 'b': sdata}}, color='#DB4D6D')
-        >>> h = hg.Heatmap(data)
+        >>> h = ma.Heatmap(data)
         >>> h.hsplit(cut=[3, 7])
         >>> h.add_right(plot)
         >>> h.render()
@@ -165,9 +176,9 @@ def _seaborn_doc(obj: _SeabornBase):
         :context: close-figs
         
         >>> plot = {cls_name}(np.random.randint(0, 10, {shape}), color='#DB4D6D')
-        >>> anno = hg.plotter.Chunk(['Chunk1', 'Chunk2', 'Chunk3'], 
+        >>> anno = ma.plotter.Chunk(['Chunk1', 'Chunk2', 'Chunk3'], 
         ...                         ['#66327C', '#FFB11B', '#A8D8B9'], padding=10)
-        >>> cb = hg.ClusterBoard(data, margin=.2)
+        >>> cb = ma.ClusterBoard(data, margin=.2)
         >>> cb.add_layer(plot)
         >>> cb.vsplit(cut=[3, 7])
         >>> cb.add_bottom(anno)
@@ -179,7 +190,7 @@ def _seaborn_doc(obj: _SeabornBase):
         :context: close-figs
         
         >>> plot = {cls_name}(np.random.randint(0, 10, {shape}), orient='h', color='#DB4D6D')
-        >>> cb = hg.ClusterBoard(data.T)
+        >>> cb = ma.ClusterBoard(data.T)
         >>> cb.add_layer(plot)
         >>> cb.hsplit(cut=[3, 7])
         >>> cb.add_left(anno)

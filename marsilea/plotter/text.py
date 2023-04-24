@@ -1,16 +1,18 @@
 from __future__ import annotations
 
-import warnings
-from dataclasses import dataclass
-from typing import List, Iterable
+from itertools import zip_longest
+
+from numbers import Number
 
 import matplotlib.pyplot as plt
 import numpy as np
-# from icecream import ic
+import warnings
+from dataclasses import dataclass
 from matplotlib.axes import Axes
 from matplotlib.colors import is_color_like
 from matplotlib.patches import Rectangle
 from matplotlib.text import Text
+from typing import List, Iterable
 
 from .base import RenderPlan
 from ..utils import pairwise, relative_luminance
@@ -315,6 +317,7 @@ class TextParams:
 
 
 class _LabelBase(RenderPlan):
+    texts = None
     is_flex = True
     texts_size = None
     padding = 0
@@ -343,6 +346,12 @@ class _LabelBase(RenderPlan):
             use = not use
         return coords
 
+    @staticmethod
+    def get_text_color(bgcolor):
+        """Get text color by background color"""
+        lum = relative_luminance(bgcolor)
+        return ".15" if lum > .408 else "w"
+
     def get_expand(self):
         if self.is_flank:
             return 1. + self.text_pad, 1. + self.text_gap
@@ -355,9 +364,9 @@ class _LabelBase(RenderPlan):
         ax = figure.add_axes([0, 0, 1, 1])
         params = self.get_text_params()
 
-        locs = self.get_axes_coords(self.data)
+        locs = self.get_axes_coords(self.texts)
         sizes = []
-        for s, c in zip(self.data, locs):
+        for s, c in zip(self.texts, locs):
             x, y = (0, c) if self.is_flank else (c, 0)
             t = ax.text(x, y, s=s, transform=ax.transAxes, **params.to_dict())
             bbox = t.get_window_extent(renderer).expanded(*expand)
@@ -450,10 +459,10 @@ class AnnoLabels(_LabelBase):
 
         >>> labels = np.arange(100)
 
-        >>> import marsilea as hg
+        >>> import marsilea as ma
         >>> from marsilea.plotter import AnnoLabels
         >>> matrix = np.random.randn(100, 10)
-        >>> h = hg.Heatmap(matrix)
+        >>> h = ma.Heatmap(matrix)
         >>> marks = AnnoLabels(labels, mark=[3, 4, 5])
         >>> h.add_right(marks)
         >>> h.render()
@@ -476,7 +485,9 @@ class AnnoLabels(_LabelBase):
                 raise TypeError("Must be numpy masked array or "
                                 "use `marks` to mark "
                                 "the labels you want to draw")
-        self.data = self.data_validator(labels, target="1d")
+        texts = self.data_validator(labels, target="1d")
+        self.set_data(texts)
+        self.texts = texts
 
         self.pointer_size = pointer_size
         self.linewidth = linewidth
@@ -510,7 +521,10 @@ class AnnoLabels(_LabelBase):
         self.text_anchor = self.pointer_size / size
         return size
 
-    def render_ax(self, ax, labels):
+    def render_ax(self, spec):
+        ax = spec.ax
+        labels = spec.data
+
         renderer = ax.get_figure().canvas.get_renderer()
         locs = self.get_axes_coords(labels)
 
@@ -592,10 +606,10 @@ class Labels(_LabelBase):
         >>> row = [str(i) for i in range(15)]
         >>> col = [str(i) for i in range(10)]
 
-        >>> import marsilea as hg
+        >>> import marsilea as ma
         >>> from marsilea.plotter import Labels
         >>> matrix = np.random.randn(15, 10)
-        >>> h = hg.Heatmap(matrix)
+        >>> h = ma.Heatmap(matrix)
         >>> label_row = Labels(row)
         >>> label_col = Labels(col)
         >>> h.add_right(label_row)
@@ -606,8 +620,11 @@ class Labels(_LabelBase):
 
     def __init__(self, labels, align=None,
                  padding=2,
+                 text_props=None,
                  **options):
-        self.data = self.data_validator(labels, target="1d")
+        labels = self.data_validator(labels, target="1d")
+        self.set_data(labels)
+        self.texts = labels
         self.text_pad = 0
         self.text_gap = 0
         self.align = align
@@ -615,6 +632,8 @@ class Labels(_LabelBase):
 
         super().__init__()
         self._sort_params(**options)
+        if text_props is not None:
+            self.set_params(text_props)
 
     def _align_compact(self, align):
         """Make align keyword compatible to any side"""
@@ -639,7 +658,13 @@ class Labels(_LabelBase):
 
         return p
 
-    def render_ax(self, ax: Axes, data):
+    def render_ax(self, spec):
+        data = spec.data
+        ax = spec.ax
+        text_props = spec.params
+        if text_props is None:
+            text_props = [{}] * len(data)
+
         coords = self.get_axes_coords(data)
         params = self.get_text_params()
         if self.texts_size is not None:
@@ -656,10 +681,11 @@ class Labels(_LabelBase):
         else:
             const = offset_ratio / 2  # self.text_pad / (1 + self.text_pad) / 2
 
-        for s, c in zip(data, coords):
+        for s, c, p in zip(data, coords, text_props):
             x, y = (const, c) if self.is_flank else (c, const)
+            options = {**params.to_dict(), **p}
             ax.text(x, y, s=s, transform=ax.transAxes,
-                    **params.to_dict())
+                    **options)
         ax.set_axis_off()
         # from matplotlib.patches import Rectangle
         # ax.add_artist(Rectangle((0, 0), 1, 1, edgecolor="r",
@@ -697,17 +723,17 @@ class Title(_LabelBase):
     .. plot::
         :context: close-figs
 
-        >>> import marsilea as hg
+        >>> import marsilea as ma
         >>> from marsilea.plotter import Title
         >>> matrix = np.random.randn(15, 10)
-        >>> h = hg.Heatmap(matrix)
+        >>> h = ma.Heatmap(matrix)
         >>> title = Title('Heatmap')
         >>> h.add_top(title)
         >>> h.render()
 
 
     """
-    no_split = True
+    allow_split = False
 
     def __init__(self, title, align="center",
                  padding=10,
@@ -717,7 +743,8 @@ class Title(_LabelBase):
                  borderwidth=None,
                  borderstyle=None,
                  **options):
-        self.data = title
+        self.title = title
+        self.texts = [title]
         self.align = align
         if fontsize is None:
             fontsize = 12
@@ -731,7 +758,7 @@ class Title(_LabelBase):
         self.borderwidth = borderwidth
         self.borderstyle = borderstyle
         self._draw_bg = (self.fill_color is not None) \
-            or (self.bordercolor is not None)
+                        or (self.bordercolor is not None)
 
         super().__init__()
         self._sort_params(**options)
@@ -770,10 +797,7 @@ class Title(_LabelBase):
         p.update_params(self._user_params)
         return p
 
-    def get_render_data(self):
-        return self.data
-
-    def render_ax(self, ax: Axes, title):
+    def render(self, ax):
         params = self.get_text_params()
         fontdict = params.to_dict()
 
@@ -787,93 +811,62 @@ class Title(_LabelBase):
                                     transform=ax.transAxes
                                     ))
 
-            lum = relative_luminance(bgcolor)
-            text_color = ".15" if lum > .408 else "w"
-            fontdict.setdefault('color', text_color)
+            fontdict.setdefault('color', self.get_text_color(bgcolor))
 
         const = self.align_pos[self.align]
 
         pos = .5
         x, y = (const, pos) if self.is_body else (pos, const)
-        ax.text(x, y, title, fontsize=self.fontsize,
+        ax.text(x, y, self.title, fontsize=self.fontsize,
                 transform=ax.transAxes, **fontdict)
         ax.set_axis_off()
 
 
-class Chunk(_LabelBase):
-    """Mark splited chunks
-
-    This is useful to mark each chunks after you split the plot
-
-    Parameters
-    ----------
-
-    texts : array of str
-        The label for each chunk
-    fill_colors : color, array of color
-        The color used as background color for each chunk
-    ratio : array of int
-        To span chunks on more than one chunk.
-    borderwidth, bordercolor, borderstyle : 
-        Control the style of border
-        For borderstyle, see :meth:`linestyles <matplotlib.lines.Line2D.set_linestyle>`
-    props : dict
-        See :class:`matplotlib.text.Text`
-    rotation : float
-        How many to rotate the text
-    padding : float
-        The buffer space between text and the adjcent plots, in points unit
-
-    Examples
-    --------
-
-    .. plot::
-        :context: close-figs
-
-        >>> import marsilea as hg
-        >>> from marsilea.plotter import Chunk
-        >>> matrix = np.random.randn(15, 10)
-        >>> h = hg.Heatmap(matrix)
-        >>> h.hsplit(cut=[4, 10])
-        >>> h.vsplit(cut=[5])
-        >>> chunk_row = Chunk(['Top','Middle','Bottom'],rotation=True)
-        >>> chunk_col = Chunk(['Left','Right'],rotation=True)
-        >>> h.add_right(chunk_row)
-        >>> h.add_bottom(chunk_col)
-        >>> h.render()
-    
-    """
+class _ChunkBase(_LabelBase):
 
     def __init__(self, texts,
-                 fill_colors=None, ratio=None,
+                 fill_colors=None,
                  props=None, padding=2, bordercolor=None,
                  borderwidth=None, borderstyle=None,
                  **options):
 
-        self.data = np.asarray(texts)
+        n = len(texts)
+        self.n = n
+        self.texts = texts
         self.padding = padding
-        self.props = props if props is not None else {}
+
         if is_color_like(fill_colors):
-            fill_colors = [fill_colors for _ in range(len(self.data))]
+            fill_colors = [fill_colors for _ in range(n)]
         if fill_colors is not None:
             fill_colors = np.asarray(fill_colors)
         self.fill_colors = fill_colors
 
+        if props is None:
+            props = [{} for _ in range(n)]
+        elif isinstance(props, dict):
+            props = [props for _ in range(n)]
+        self.props = props
+
         if is_color_like(bordercolor):
-            bordercolor = [bordercolor for _ in range(len(self.data))]
+            bordercolor = [bordercolor for _ in range(n)]
         if bordercolor is not None:
             bordercolor = np.asarray(bordercolor)
         self.bordercolor = bordercolor
+
+        if isinstance(borderwidth, Number):
+            borderwidth = [borderwidth for _ in range(n)]
         self.borderwidth = borderwidth
+
+        if isinstance(borderstyle, str):
+            borderstyle = [borderstyle for _ in range(n)]
         self.borderstyle = borderstyle
+
         self._draw_bg = (self.fill_colors is not None) \
-            or (self.bordercolor is not None)
+                        or (self.bordercolor is not None)
         self.text_pad = 0
 
         super().__init__()
         self._sort_params(**options)
-        if ratio is not None:
-            self.set_split_regroup(ratio)
 
     default_rotation = {
         "right": -90,
@@ -886,56 +879,151 @@ class Chunk(_LabelBase):
         p = TextParams(va="center", ha="center",
                        rotation=self.default_rotation[self.side])
         p.update_params(self._user_params)
-        p.update_params(self.props)
         return p
 
-    def render(self, axes):
+    def _render(self, axes, texts, fill_colors, border_colors,
+                borderwidth, borderstyle, props):
 
         params = self.get_text_params()
+        fill_colors = [] if fill_colors is None else fill_colors
+        border_colors = [] if border_colors is None else border_colors
+        borderwidth = [] if borderwidth is None else borderwidth
+        borderstyle = [] if borderstyle is None else borderstyle
+        props = [] if props is None else props
 
-        text = self.data
-        bg_colors = self.fill_colors
-        border_colors = self.bordercolor
-        if self.has_deform:
-            if self.is_flank:
-                reindex = self.deform.row_chunk_index
-            else:
-                reindex = self.deform.col_chunk_index
-            if reindex is not None:
-                text = text[reindex]
-                if bg_colors is not None:
-                    bg_colors = bg_colors[reindex]
-                if border_colors is not None:
-                    border_colors = border_colors[reindex]
+        specs = zip_longest(axes, texts, fill_colors, border_colors,
+                            borderwidth, borderstyle, props)
+
+        for ax, t, bgcolor, bc, lw, ls, prop in specs:
+            ax.set_axis_off()
+            fontdict = params.to_dict()
+            if self._draw_bg:
+                if bgcolor is None:
+                    bgcolor = "white"
+                rect = Rectangle((0, 0), 1, 1, facecolor=bgcolor,
+                                 edgecolor=bc, linewidth=lw, linestyle=ls,
+                                 transform=ax.transAxes)
+                ax.add_artist(rect)
+                fontdict.setdefault('color', self.get_text_color(bgcolor))
+
+            if prop is not None:
+                fontdict.update(prop)
+            ax.text(0.5, 0.5, t, fontdict=fontdict, transform=ax.transAxes)
+
+
+class Chunk(_ChunkBase):
+    """Mark groups
+
+    This is useful to mark each groups after you split the plot,
+    the order of the chunks will align with cluster order.
+
+    Parameters
+    ----------
+
+    texts : array of str
+        The label for each chunk
+    fill_colors : color, array of color
+        The color used as background color for each chunk
+    borderwidth, bordercolor, borderstyle : 
+        Control the style of border, you can pass an array to style each group.
+        For borderstyle, see :meth:`linestyles <matplotlib.lines.Line2D.set_linestyle>`
+    props : dict or array of dict
+        See :class:`matplotlib.text.Text`
+    rotation : float
+        How many to rotate the text
+    padding : float
+        The buffer space between text and the adjcent plots, in points unit
+
+    Examples
+    --------
+
+    .. plot::
+        :context: close-figs
+
+        >>> import marsilea as ma
+        >>> from marsilea.plotter import Chunk
+        >>> matrix = np.random.randn(15, 10)
+        >>> h = ma.Heatmap(matrix)
+        >>> h.hsplit(cut=[4, 10])
+        >>> h.vsplit(cut=[5])
+        >>> chunk_row = Chunk(['Top','Middle','Bottom'],rotation=True)
+        >>> chunk_col = Chunk(['Left','Right'],rotation=True)
+        >>> h.add_right(chunk_row)
+        >>> h.add_bottom(chunk_col)
+        >>> h.render()
+    
+    """
+
+    def __init__(self, texts,
+                 fill_colors=None,
+                 props=None, padding=2, bordercolor=None,
+                 borderwidth=None, borderstyle=None,
+                 **options):
+
+        super().__init__(texts, fill_colors, props, padding, bordercolor,
+                         borderwidth, borderstyle, **options)
+
+    def render(self, axes):
 
         if isinstance(axes, Axes):
             axes = [axes]
 
-        if len(axes) != len(self.data):
+        if len(axes) != self.n:
             raise ValueError(f"You have {len(axes)} axes "
-                             f"but you only provide {len(self.data)} texts.")
+                             f"but you only provide {self.n} texts.")
 
-        for i, ax in enumerate(axes):
-            ax.set_axis_off()
-            fontdict = params.to_dict()
-            if self._draw_bg:
-                bgcolor = "white"
-                border_color = None
-                if bg_colors is not None:
-                    bgcolor = bg_colors[i]
-                if border_colors is not None:
-                    border_color = border_colors[i]
-                rect = Rectangle((0, 0), 1, 1,
-                                 facecolor=bgcolor,
-                                 edgecolor=border_color,
-                                 linewidth=self.borderwidth,
-                                 linestyle=self.borderstyle,
-                                 transform=ax.transAxes)
-                ax.add_artist(rect)
+        texts = self.reindex_by_chunk(self.texts)
+        fill_colors = self.reindex_by_chunk(self.fill_colors)
+        border_colors = self.reindex_by_chunk(self.bordercolor)
+        borderwidth = self.reindex_by_chunk(self.borderwidth)
+        borderstyle = self.reindex_by_chunk(self.borderstyle)
+        props = self.reindex_by_chunk(self.props)
 
-                lum = relative_luminance(bgcolor)
-                text_color = ".15" if lum > .408 else "w"
-                fontdict.setdefault('color', text_color)
+        self._render(axes, texts, fill_colors, border_colors,
+                     borderwidth, borderstyle, props)
 
-            ax.text(0.5, 0.5, text[i], fontdict=fontdict,
-                    transform=ax.transAxes)
+
+class FixedChunk(_ChunkBase):
+    """Mark groups with fixed order
+
+    Parameters
+    ----------
+    texts : array of str
+        The label for each chunk
+    fill_colors : color, array of color
+        The color used as background color for each chunk
+    ratio : array of int
+        To span chunks on more than one chunk.
+    borderwidth, bordercolor, borderstyle :
+        Control the style of border
+        For borderstyle, see :meth:`linestyles <matplotlib.lines.Line2D.set_linestyle>`
+    props : dict
+        See :class:`matplotlib.text.Text`
+    rotation : float
+        How many to rotate the text
+    padding : float
+        The buffer space between text and the adjcent plots, in points unit
+
+
+    """
+
+    def __init__(self, texts, fill_colors=None, ratio=None,
+                 props=None, padding=2, bordercolor=None,
+                 borderwidth=None, borderstyle=None,
+                 **options):
+        super().__init__(texts, fill_colors, props, padding, bordercolor,
+                         borderwidth, borderstyle, **options)
+        if ratio is not None:
+            self.set_split_regroup(ratio)
+
+    def render(self, axes):
+
+        if isinstance(axes, Axes):
+            axes = [axes]
+
+        if len(axes) != self.n:
+            raise ValueError(f"You have {len(axes)} axes "
+                             f"but you only provide {self.n} texts.")
+
+        self._render(axes, self.texts, self.fill_colors, self.bordercolor,
+                     self.borderwidth, self.borderstyle, self.props)

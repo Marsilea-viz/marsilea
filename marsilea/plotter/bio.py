@@ -1,6 +1,5 @@
 import numpy as np
 import pandas as pd
-from icecream import ic
 from matplotlib.patches import PathPatch
 from matplotlib.textpath import TextPath
 from matplotlib.transforms import Affine2D, Bbox
@@ -104,7 +103,7 @@ class SeqLogo(StatsBase):
                  **kwargs):
         self.matrix = matrix
         self.letters = matrix.index.to_numpy()
-        self.data = matrix.to_numpy()
+        self.set_data(matrix.to_numpy())
         if color_encode is None:
             color_encode = dict(zip(self.letters, ECHARTS16))
         self.color_encode = color_encode
@@ -112,7 +111,9 @@ class SeqLogo(StatsBase):
         self.stack = stack
         self.options = kwargs
 
-    def render_ax(self, ax, data):
+    def render_ax(self, spec):
+        ax = spec.ax
+        data = spec.data
 
         direction = "h" if self.is_body else "v"
         flip = self.side != "top"

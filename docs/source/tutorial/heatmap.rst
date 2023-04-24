@@ -1,8 +1,10 @@
 10 Minutes to Marsilea
 =========================
 
-Marsilea is a powerful Python package that allows you to effortlessly create visually appealing x-layout heatmaps.
-Designed with an object-oriented approach, it enables seamless block addition and effortless customization.
+Marsilea is a powerful Python package that allows you to effortlessly
+create visually appealing x-layout visualization.
+Designed with an object-oriented approach, it enables seamless
+block addition and effortless customization.
 
 Creating a basic heatmap
 ------------------------

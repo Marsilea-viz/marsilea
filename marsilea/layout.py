@@ -1,13 +1,12 @@
 from __future__ import annotations
 
+import numpy as np
 from dataclasses import dataclass
+from matplotlib import pyplot as plt
+from matplotlib.axes import Axes
 from numbers import Number
 from typing import List, Dict
 from uuid import uuid4
-
-import numpy as np
-from matplotlib import pyplot as plt
-from matplotlib.axes import Axes
 
 from .exceptions import AppendLayoutError, DuplicateName
 from .utils import _check_side
@@ -272,7 +271,7 @@ class CrossLayout(_MarginMixin):
 
     def __init__(self, name, width, height,
                  init_main=True, projection=None,
-                 margin=0):
+                 margin=.2):
 
         self._legend_ax_name = None
         self.main_cell = MainCell(name, width, height, is_canvas=init_main,

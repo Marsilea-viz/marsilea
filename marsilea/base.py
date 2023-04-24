@@ -1,18 +1,16 @@
 from __future__ import annotations
 
-from uuid import uuid4
-
+import numpy as np
 import warnings
 from copy import deepcopy
-from numbers import Number
-from typing import List, Dict
-
-import numpy as np
 from legendkit.layout import vstack, hstack
 from matplotlib import pyplot as plt
 from matplotlib.artist import Artist
 from matplotlib.colors import is_color_like
 from matplotlib.figure import Figure
+from numbers import Number
+from typing import List, Dict
+from uuid import uuid4
 
 from ._deform import Deformation
 from .dendrogram import Dendrogram
@@ -222,7 +220,7 @@ class WhiteBoard(LegendMaker):
     _col_plan: List[RenderPlan]
     _layer_plan: List[RenderPlan]
 
-    def __init__(self, width=None, height=None, name=None, margin=0):
+    def __init__(self, width=None, height=None, name=None, margin=.2):
         self.main_name = get_plot_name(name, "main", "board")
         self._main_size_updatable = (width is None) & (height is None)
         width = 4 if width is None else width
@@ -392,9 +390,10 @@ class WhiteBoard(LegendMaker):
 
     def _freeze_flex_plots(self, figure):
         for plan in self._col_plan + self._row_plan:
-            render_size = plan.get_canvas_size(figure)
-            if render_size is not None:
-                self.layout.set_render_size(plan.name, render_size)
+            if plan.size is None:
+                render_size = plan.get_canvas_size(figure)
+                if render_size is not None:
+                    self.layout.set_render_size(plan.name, render_size)
 
     def render(self, figure=None, scale=1):
         """
@@ -515,7 +514,7 @@ class ClusterBoard(WhiteBoard):
     square = False
 
     def __init__(self, cluster_data, width=None, height=None,
-                 name=None, margin=0):
+                 name=None, margin=.2):
         super().__init__(width=width, height=height, name=name, margin=margin)
         self._row_den = []
         self._col_den = []
@@ -582,8 +581,8 @@ class ClusterBoard(WhiteBoard):
             :context: close-figs
 
             >>> data = np.random.rand(10, 11)
-            >>> import marsilea as hg
-            >>> h = hg.Heatmap(data)
+            >>> import marsilea as ma
+            >>> h = ma.Heatmap(data)
             >>> h.add_dendrogram("left", method="ward", colors="green")
             >>> h.render()
 
@@ -592,7 +591,7 @@ class ClusterBoard(WhiteBoard):
         .. plot::
             :context: close-figs
 
-            >>> h = hg.Heatmap(data)
+            >>> h = ma.Heatmap(data)
             >>> h.hsplit(cut=[4, 8])
             >>> h.add_dendrogram("left", add_base=False)
             >>> h.render()
@@ -602,7 +601,7 @@ class ClusterBoard(WhiteBoard):
         .. plot::
             :context: close-figs
 
-            >>> h = hg.Heatmap(data)
+            >>> h = ma.Heatmap(data)
             >>> h.hsplit(cut=[4, 8])
             >>> h.add_dendrogram("left", colors=["#5470c6", "#91cc75", "#fac858"])
             >>> h.render()
@@ -697,16 +696,24 @@ class ClusterBoard(WhiteBoard):
         # split column axes
         if deform.is_col_split:
             for plan in self._col_plan:
-                if not plan.no_split:
+                if plan.allow_split:
+                    if deform.is_col_cluster:
+                        group_ratios = None
+                    else:
+                        group_ratios = plan.get_split_regroup()
                     self.layout.vsplit(plan.name, w_ratios, wspace,
-                                       plan.get_split_regroup())
+                                       group_ratios)
 
         # split row axes
         if deform.is_row_split:
             for plan in self._row_plan:
-                if not plan.no_split:
+                if plan.allow_split:
+                    if deform.is_row_cluster:
+                        group_ratios = None
+                    else:
+                        group_ratios = plan.get_split_regroup()
                     self.layout.hsplit(plan.name, h_ratios, hspace,
-                                       plan.get_split_regroup())
+                                       group_ratios)
 
     def _render_dendrogram(self):
         deform = self.get_deform()
@@ -741,14 +748,14 @@ class ClusterBoard(WhiteBoard):
     def _render_plan(self):
         deform = self.get_deform()
         for plan in self._col_plan:
-            if not plan.no_split:
+            if plan.allow_split:
                 plan.set_deform(deform)
             axes = self.layout.get_ax(plan.name)
             plan.render(axes)
 
         # render other plots
         for plan in self._row_plan:
-            if not plan.no_split:
+            if plan.allow_split:
                 plan.set_deform(deform)
             axes = self.layout.get_ax(plan.name)
             plan.render(axes)
@@ -770,6 +777,8 @@ class ClusterBoard(WhiteBoard):
         return len(self._col_den) > 0
 
     def render(self, figure=None, scale=1):
+        if self._deform is None:
+            raise ValueError("No layer is added to the plot")
         if figure is None:
             figure = plt.figure()
         self.figure = figure

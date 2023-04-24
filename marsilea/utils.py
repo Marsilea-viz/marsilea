@@ -1,10 +1,9 @@
-from itertools import tee, islice
-from uuid import uuid4
-
 import matplotlib as mpl
 import numpy as np
+from itertools import tee, islice
 from matplotlib import colors as mcolors
 from matplotlib.colors import Colormap
+from uuid import uuid4
 
 ECHARTS16 = [
     "#5470c6", "#91cc75", "#fac858", "#ee6666",

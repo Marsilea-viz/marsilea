@@ -4,14 +4,12 @@
 
 import numpy as np
 from matplotlib.image import imread, BboxImage
-from matplotlib.transforms import Bbox, TransformedBbox
+from matplotlib.transforms import Bbox
 from pathlib import Path
-
+from platformdirs import user_cache_dir
 from urllib.request import urlretrieve
 
 from .base import RenderPlan
-
-from platformdirs import user_cache_dir
 
 TWEMOJI_CDN = "https://cdn.jsdelivr.net/gh/twitter/twemoji/assets/72x72/"
 
@@ -42,7 +40,7 @@ class Emoji(RenderPlan):
             if not emoji.is_emoji(i):
                 raise ValueError(f"{i} is not a valid emoji")
             codes.append(f"{ord(i):X}".lower())
-        self.data = codes
+        self.set_data(codes)
         self.emoji_caches = {}
         for c in codes:
             cache_image = _cache_remote(f"{TWEMOJI_CDN}{c}.png")
@@ -51,7 +49,9 @@ class Emoji(RenderPlan):
         self.scale = scale
         self.mode = mode
 
-    def render_ax(self, ax, data):
+    def render_ax(self, spec):
+        ax = spec.ax
+        data = spec.data
 
         locs = np.linspace(0, 1, len(data)+2)[1:-1]
         for loc, d in zip(locs, data):

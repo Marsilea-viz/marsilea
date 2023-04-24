@@ -2,31 +2,18 @@ Let's make custom visualization for marsilea
 ============================================
 
 
-Unlock the full potential of Marsilea with custom visualizations!
-Don't be limited by the built-in options. Create your own dynamic visualizations, like Lollipop plots,
-by leveraging Python's class inheritance.
-
-.. code-block:: python
-
-    import numpy as np
-    import marsilea as hg
-
-    h = hg.Heatmap(np.random.rand(10, 10))
-    h.add_left(hg.plotter.Colors(list("1122233344")))
-    h.render()
-
-However, the preset included in Marsilea may not fit your need.
-What if I want a Lollipop plot? It's not in Marsilea.
+The built-in plotting options in Marsilea
+may not be perfect for your presentation.
+This section will show you how to create your own visualization.
+It's expected that you are familiar with Python's class inheritance.
 
 
-Master the Art of Rendering with :class:`RenderPlan <heatgraphy.plotter.base.RenderPlan>`
------------------------------------------------------------------------------------------
+Everything render on the canvas in Marsilea is derived from
+:class:`RenderPlan <marsilea.plotter.base.RenderPlan>`.
+To create a new visualization, we also need to inherit from
+:class:`RenderPlan <marsilea.plotter.base.RenderPlan>`.
 
-
-Everything render on the canvas in Marsilea is a :class:`RenderPlan <marsilea.plotter.base.RenderPlan>`,
-or inherited from it. To create a new visualization, we also need to inherit from this base class.
-
-For example, create a Lollipop plot RenderPlan as follows:
+Let's create a Lollipop plot as example:
 
 .. code-block:: python
 
@@ -37,8 +24,29 @@ For example, create a Lollipop plot RenderPlan as follows:
 
 
 The current `Lollipop` does nothing,
-it does not know how to draw a lollipop,
-we need to implement the `render` method.
+it does not know how to draw a lollipop.
+
+.. plot::
+    :context: close-figs
+    :include-source: false
+
+        >>> from marsilea.base import RenderPlan
+
+        >>> class Lollipop(RenderPlan):
+        ...     pass
+
+
+.. plot::
+    :context: close-figs
+
+        >>> import marsilea as ma
+
+        >>> h = ma.Heatmap(np.random.rand(10, 10))
+        >>> h.add_top(Lollipop())
+        >>> h.render()
+
+
+We need to implement the `render` method.
 The `render` method takes one argument, which is the `Axes`
 where we do all the drawing.
 
@@ -56,7 +64,6 @@ where we do all the drawing.
             ax.stem(locs, self.data, basefmt="none")
             ax.set_axis_off()
 
-Now lets create a heatmap and add it to the top
 
 .. plot::
     :context: close-figs
@@ -76,76 +83,25 @@ Now lets create a heatmap and add it to the top
         ...         ax.set_axis_off()
         ...
 
-        >>> from marsilea.base import RenderPlan
-
-        >>> class Lollipop(RenderPlan):
-        ...
-        ...     def __init__(self, data):
-        ...         self.data = data
-        ...
-        ...     def render(self, ax):
-        ...         lim = len(self.data)
-        ...         locs = np.arange(lim) + 0.5
-        ...         ax.stem(locs, self.data, basefmt="none")
-        ...         ax.set_axis_off()
-        ...
-
-    >>> from marsilea.base import RenderPlan
-
-    >>> class Lollipop(RenderPlan):
-    ...
-    ...     def __init__(self, data):
-    ...         self.data = data
-    ...
-    ...     def render(self, ax):
-    ...         lim = len(self.data)
-    ...         locs = np.arange(lim) + 0.5
-    ...         ax.stem(locs, self.data, basefmt="none")
-    ...         ax.set_axis_off()
-    ...
-
 
 .. plot::
     :context: close-figs
 
         >>> import marsilea as hg
         >>> data = np.random.rand(10, 10)
-        >>> lol_data = np.arange(10) + 2
+        >>> lp_data = np.arange(10) + 1
         >>> h = hg.Heatmap(data)
-        >>> h.add_top(Lollipop(lol_data))
+        >>> h.add_top(Lollipop(lp_data))
         >>> h.render()
 
 
-    Congratulation! you just creat your
-
-        >>> import marsilea as hg
-        >>> data = np.random.rand(10, 10)
-        >>> lol_data = np.arange(10) + 2
-        >>> h = hg.Heatmap(data)
-        >>> h.add_top(Lollipop(lol_data))
-        >>> h.render()
-
-
-    Congratulation! you just creat your
-
-    >>> import marsilea as hg
-    >>> data = np.random.rand(10, 10)
-    >>> lol_data = np.arange(10) + 2
-    >>> h = hg.Heatmap(data)
-    >>> h.add_top(Lollipop(lol_data))
-    >>> h.render()
-
-
-Congratulation! you just creat your :class:`RenderPlan <marsilea.plotter.base.RenderPlan>`.
-
-
-But what if I want to add it to other side.
+But what if I want to add it to the left.
 
 .. plot::
     :context: close-figs
 
     >>> h = hg.Heatmap(data)
-    >>> h.add_left(Lollipop(lol_data))
+    >>> h.add_left(Lollipop(lp_data))
     >>> h.render()
 
 Oh no, it's broken! Let's try to fix it.
@@ -172,7 +128,7 @@ Here we use the `is_body` attribute to query the side,
 here is a list of attributes that you can use to know
 which side that the :class:`RenderPlan <marsilea.plotter.base.RenderPlan>` is drawn.
 
-- :attr:`.side <marsilea.plotter.base.RenderPlan.side>`: Directly known the side
+- :attr:`.side <marsilea.plotter.base.RenderPlan.side>`: Get the current side of the RenderPlan
 - :attr:`.is_body <marsilea.plotter.base.RenderPlan.is_body>`: Top, Bottom or Main
 - :attr:`.is_flank <marsilea.plotter.base.RenderPlan.is_flank>`: Left or Right
 
@@ -206,7 +162,7 @@ Now we try add it to the left again.
     :context: close-figs
 
     >>> h = hg.Heatmap(data)
-    >>> h.add_left(Lollipop(lol_data))
+    >>> h.add_left(Lollipop(lp_data))
     >>> h.render()
 
 
@@ -222,34 +178,30 @@ you need to implement the
 .. code-block:: python
     :emphasize-lines: 21, 22, 23, 24, 25
 
+    >>> from legendkit import CatLegend
+    >>>
     >>> class Lollipop(RenderPlan):
-    >>>     def __init__(self, data):
-    >>>         self.data = data
-    >>>
-    >>>     def get_legends(self):
-    >>>         return CatLegend(label=['Lollipop'], handle="circle")
-    >>>
-    >>>     def render_ax(self, ax, data):
-    >>>         orient = "horizontal" if self.is_flank else "vertical"
-    >>>         lim = len(data)
-    >>>         if self.is_flank:
-    >>>             ax.set_ylim(0, lim)
-    >>>             ax.set_xlim(0, None)
-    >>>         else:
-    >>>             ax.set_xlim(0, lim)
-    >>>             ax.set_ylim(0, None)
-    >>>         if self.side == "left":
-    >>>             ax.invert_xaxis()
-    >>>         for spine in ax.spines.values():
-    >>>             spine.set_visible(False)
-    >>>          # Plot on every .5 start from 0
-    >>>         locs = np.arange(0, lim) + 0.5
-    >>>         ax.set_yticks([])
-    >>>         ax.set_xticks([])
-    >>>         ax.stem(locs, data, orientation=orient, basefmt=" ")
-=======
-    We also develop another package called `legendkit <https://legendkit.readthedocs.io/en/latest/>`_ to help
-    you handle legend easily. Consider using it.
+    ...
+    ...    def __init__(self, data):
+    ...        self.data = data
+    ...
+    ...    def render(self, ax):
+    ...        lim = len(self.data)
+    ...        locs = np.arange(lim) + 0.5
+    ...        orientation = "vertical" if self.is_body else "horizontal"
+    ...        ax.stem(locs, self.data, basefmt="none", orientation=orientation)
+    ...        ax.set_axis_off()
+    ...        if self.side == "left":
+    ...            ax.invert_xaxis()
+    ...        if self.is_flank:
+    ...             ax.invert_yaxis()
+    ...
+    ...    def get_legends(self):
+    ...        return CatLegend(colors=["b"], labels=["Lollipop"], handle="circle")
+    ...
+
+We also develop another package called `legendkit <https://legendkit.readthedocs.io/en/latest/>`_ to help
+you handle legend easily. Consider using it.
 
 
 
@@ -278,6 +230,9 @@ you need to implement the
     ...    def get_legends(self):
     ...        return CatLegend(colors=["b"], labels=["Lollipop"], handle="circle")
     ...
+
+.. plot::
+    :context: close-figs
 
     >>> h = hg.Heatmap(data)
     >>> h.add_left(Lollipop(lol_data))
@@ -338,63 +293,6 @@ It takes two paramters, an axes to be drawn and the data that are already split.
         >>> h.add_top(Lollipop(np.arange(10) + 2))
         >>> h.render()
 
-    What's happening under the hood is clearly illustrated in the flowchart below.
-
-    Here, the
-
-        >>> from marsilea.plotter.base import StatsBase
-        >>>
-        >>> class Lollipop(StatsBase):
-        ...
-        ...    def __init__(self, data):
-        ...        self.data = data
-        ...
-        ...    def render_ax(self, ax, data):
-        ...        lim = len(data)
-        ...        locs = np.arange(lim) + 0.5
-        ...        orientation = "vertical" if self.is_body else "horizontal"
-        ...        ax.stem(locs, data, basefmt="none")
-        ...        ax.set_axis_off()
-        ...        if self.side == "left":
-        ...            ax.invert_xaxis()
-        ...        if self.is_flank:
-        ...             ax.invert_yaxis()
-        ...        ax.set_xlim(0, locs[-1]+.5)
-        ...
-
-        >>> h = hg.Heatmap(data)
-        >>> h.vsplit(cut=[5])
-        >>> h.add_top(Lollipop(np.arange(10) + 2))
-        >>> h.render()
-
-    What's happening under the hood is clearly illustrated in the flowchart below.
-
-    Here, the
-
-    >>> from marsilea.plotter.base import StatsBase
-    >>>
-    >>> class Lollipop(StatsBase):
-    ...
-    ...    def __init__(self, data):
-    ...        self.data = data
-    ...
-    ...    def render_ax(self, ax, data):
-    ...        lim = len(data)
-    ...        locs = np.arange(lim) + 0.5
-    ...        orientation = "vertical" if self.is_body else "horizontal"
-    ...        ax.stem(locs, data, basefmt="none")
-    ...        ax.set_axis_off()
-    ...        if self.side == "left":
-    ...            ax.invert_xaxis()
-    ...        if self.is_flank:
-    ...             ax.invert_yaxis()
-    ...        ax.set_xlim(0, locs[-1]+.5)
-    ...
-
-    >>> h = hg.Heatmap(data)
-    >>> h.vsplit(cut=[5])
-    >>> h.add_top(Lollipop(np.arange(10) + 2))
-    >>> h.render()
 
 What's happening under the hood is clearly illustrated in the flowchart below.
 

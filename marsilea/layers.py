@@ -1,5 +1,3 @@
-from typing import Mapping, Iterable
-
 import numpy as np
 from legendkit import ListLegend
 from matplotlib import pyplot as plt
@@ -9,13 +7,14 @@ from matplotlib.lines import Line2D
 from matplotlib.markers import MarkerStyle
 from matplotlib.patches import Rectangle, Polygon
 from matplotlib.transforms import IdentityTransform
+from typing import Mapping, Iterable
 
 from .base import ClusterBoard
 from .layout import close_ticks
-from .plotter.mesh import MeshBase
+from .plotter import RenderPlan
 
 
-class LayersMesh(MeshBase):
+class LayersMesh(RenderPlan):
     """The mesh that draw customized elements in multi-layers
 
     LayersMesh is a powerful solution for drawing and visualizing customized elements in multi-layered formats.
@@ -90,13 +89,13 @@ class LayersMesh(MeshBase):
         # render one layer
         # with different elements
         if data is not None:
-            self.data = data
             if not isinstance(pieces, Mapping):
                 msg = f"Expect pieces to be dict " \
                       f"but found {type(pieces)} instead."
                 raise TypeError(msg)
             self.pieces_mapper = pieces
             self.mode = "cell"
+            self.set_data(data)
         # render multiple layers
         # each layer is an elements
         else:
@@ -104,8 +103,9 @@ class LayersMesh(MeshBase):
                 msg = f"Expect pieces to be list " \
                       f"but found {type(pieces)} instead."
                 raise TypeError(msg)
-            self.pieces, self.data = self._sort_by_zorder(pieces, layers)
+            self.pieces, data = self._sort_by_zorder(pieces, layers)
             self.mode = "layer"
+            self.set_data(*data)
         self.x_offset = (1 - shrink[0]) / 2
         self.y_offset = (1 - shrink[1]) / 2
         self.width = shrink[0]
@@ -129,21 +129,21 @@ class LayersMesh(MeshBase):
             sorted_layers.append(layers[ix])
         return pieces, layers
 
-    def get_render_data(self):
-        data = self.data
-
-        if not self.has_deform:
-            return data
-
-        if self.mode == "cell":
-            return self.get_deform_func()(data)
-        else:
-            trans_layers = [
-                self.get_deform_func()(layer) for layer in self.data]
-            if self.is_split:
-                return [chunk for chunk in zip(*trans_layers)]
-            else:
-                return trans_layers
+    # def get_render_data(self):
+    #     data = self.data
+    #
+    #     if not self.has_deform:
+    #         return data
+    #
+    #     if self.mode == "cell":
+    #         return self.get_deform_func()(data)
+    #     else:
+    #         trans_layers = [
+    #             self.get_deform_func()(layer) for layer in self.data]
+    #         if self.is_split:
+    #             return [chunk for chunk in zip(*trans_layers)]
+    #         else:
+    #             return trans_layers
 
     def get_legends(self):
         if self.mode == "cell":
@@ -161,7 +161,10 @@ class LayersMesh(MeshBase):
         return ListLegend(handles=new_handles, labels=labels,
                           handler_map=handler_map, **self._legend_kws)
 
-    def render_ax(self, ax, data):
+    def render_ax(self, spec):
+        ax = spec.ax
+        data = spec.data
+
         if self.mode == "layer":
             if self.is_flank:
                 data = [d.T for d in data]
@@ -210,18 +213,15 @@ class Layers(ClusterBoard):
                           shrink=shrink)
         if cluster_data is None:
             self._allow_cluster = False
-            if mesh.mode == "cell":
-                data_shape = mesh.data.shape
-            else:
-                data_shape = mesh.data[0].shape
+            data_shape = mesh.get_data()[0].shape
             # create numeric data explicitly
             # in case user input string data
             cluster_data = np.random.randn(*data_shape)
-        if (width is not None) & (height is not None):
-            main_aspect = height / width
-        else:
-            Y, X = cluster_data.shape
-            main_aspect = Y * aspect / X
+        # if (width is not None) & (height is not None):
+        #     main_aspect = height / width
+        # else:
+        #     Y, X = cluster_data.shape
+        #     main_aspect = Y * aspect / X
         super().__init__(cluster_data, width=width, height=height, name=name)
 
         self.add_layer(mesh)
@@ -369,6 +369,7 @@ class Marker(Piece):
             (self.path,), [self.size],
             offsets=[c],
             offset_transform=ax.transData,
+            facecolors=self.color,
         )
         collection.set_transform(IdentityTransform())
 

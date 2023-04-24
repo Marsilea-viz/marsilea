@@ -1,11 +1,10 @@
-from itertools import cycle
-from typing import List, Sequence
-
 import numpy as np
+from itertools import cycle
 from matplotlib.collections import LineCollection
 from matplotlib.colors import is_color_like
 from matplotlib.lines import Line2D
 from scipy.cluster.hierarchy import linkage, dendrogram
+from typing import List, Sequence
 
 
 class _DendrogramBase:
@@ -36,14 +35,18 @@ class _DendrogramBase:
             self.x_coords = np.asarray(self._plot_data['icoord']) / 5
             self.y_coords = np.asarray(self._plot_data['dcoord'])
             self._reorder_index = self._plot_data['leaves']
-            ycoords = np.unique(self.y_coords)
-            ycoords = ycoords[np.nonzero(ycoords)]
-            y_min, y_max = np.min(ycoords), np.max(ycoords)
-            interval = y_max - y_min
-            for i, j in zip(*np.nonzero(self.y_coords)):
-                if self.y_coords[i, j] != 0.:
-                    v = self.y_coords[i, j]
-                    self.y_coords[i, j] = (v - y_min) / interval + .2
+
+            if len(self.y_coords) == 1:
+                self.y_coords = np.array([[0., .75, .75, 0.]])
+            else:
+                ycoords = np.unique(self.y_coords)
+                ycoords = ycoords[np.nonzero(ycoords)]
+                y_min, y_max = np.min(ycoords), np.max(ycoords)
+                interval = y_max - y_min
+                for i, j in zip(*np.nonzero(self.y_coords)):
+                    if self.y_coords[i, j] != 0.:
+                        v = self.y_coords[i, j]
+                        self.y_coords[i, j] = (v - y_min) / interval + .2
                     # self.y_coords[i, j] -= offset
             # self.y_coords[np.nonzero(self.y_coords)] - offset
 

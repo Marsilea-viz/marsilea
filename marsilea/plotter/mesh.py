@@ -1,17 +1,15 @@
 __all__ = ["ColorMesh", "Colors", "SizedMesh", "MarkerMesh",
            "TextMesh", "PatchMesh"]
 
-import warnings
-from itertools import cycle
-from typing import Mapping
-
 import numpy as np
 import pandas as pd
+import warnings
+from itertools import cycle
 from legendkit import ColorArt, CatLegend, SizeLegend
 from matplotlib.cm import ScalarMappable
 from matplotlib.colors import ListedColormap, TwoSlopeNorm, Normalize, \
-    is_color_like, to_hex
-from matplotlib.offsetbox import AnchoredText
+    is_color_like
+from typing import Mapping
 
 from .base import RenderPlan
 from ..layout import close_ticks
@@ -109,10 +107,10 @@ class ColorMesh(MeshBase):
     .. plot::
         :context: close-figs
 
-        >>> import marsilea as hg
+        >>> import marsilea as ma
         >>> from marsilea.plotter import ColorMesh
         >>> data = np.random.randn(10, 8)
-        >>> h = hg.Heatmap(data)
+        >>> h = ma.Heatmap(data)
         >>> h.hsplit(cut=[5])
         >>> h.add_dendrogram("left")
         >>> cmap1, cmap2 = "Purples", "Greens"
@@ -148,6 +146,7 @@ class ColorMesh(MeshBase):
         self._process_cmap(data, vmin, vmax, cmap, norm, center)
 
         self.set_label(label, label_loc, props)
+        self.set_data(self.data, self.annotated_texts)
         self._legend_kws = dict(title=self.label)
         if cbar_kws is not None:
             self.set_legends(**cbar_kws)
@@ -170,15 +169,13 @@ class ColorMesh(MeshBase):
                 text_kwargs.update(self.annot_kws)
                 ax.text(x, y, annotation, **text_kwargs)
 
-    def get_render_data(self):
-        return self.create_render_datasets(self.data, self.annotated_texts)
-
     def get_legends(self):
         mappable = ScalarMappable(norm=self.norm, cmap=self.cmap)
         return ColorArt(mappable, **self._legend_kws)
 
-    def render_ax(self, ax, data):
-        values, texts = data
+    def render_ax(self, spec):
+        values, texts = spec.data
+        ax = spec.ax
         if self.is_flank:
             values = values.T
             texts = texts.T
@@ -249,12 +246,15 @@ class Colors(MeshBase):
     """
 
     def __init__(self, data, palette=None, cmap=None, mask=None,
+                 linewidth=None, linecolor=None,
                  label=None, label_loc=None, props=None, legend_kws=None,
                  **kwargs):
         data = np.asarray(data)
         self.label = label
         self.label_loc = label_loc
         self.props = props
+        self.linewidth = linewidth
+        self.linecolor = linecolor
         self.kwargs = kwargs
 
         self._legend_kws = dict(title=self.label, size=1)
@@ -300,7 +300,7 @@ class Colors(MeshBase):
         self.vmax = len(render_colors)
         # Encode data into cmap range
         encode_data = encode_numeric(data, encoder)
-        self.data = _mask_data(encode_data, mask=mask)
+        self.set_data(_mask_data(encode_data, mask=mask))
         # If the data is numeric, we don't change it
         if np.issubdtype(data.dtype, np.number):
             self.cluster_data = data
@@ -315,10 +315,15 @@ class Colors(MeshBase):
             colors.append(color)
         return CatLegend(colors=colors, labels=labels, **self._legend_kws)
 
-    def render_ax(self, ax, data):
+    def render_ax(self, spec):
+        ax = spec.ax
+        data = spec.data
+
         if self.is_flank:
             data = data.T
         ax.pcolormesh(data, cmap=self.render_cmap,
+                      linewidth=self.linewidth,
+                      edgecolor=self.linecolor,
                       vmin=0, vmax=self.vmax, **self.kwargs)
         ax.set_axis_off()
         ax.invert_yaxis()
@@ -438,6 +443,7 @@ class SizedMesh(MeshBase):
         self.kwargs = kwargs
 
         self._collections = None
+        self.set_data(self.size_matrix, self.color2d)
 
     def update_main_canvas_size(self):
         return get_canvas_size_by_data(self.orig_size.shape)
@@ -463,7 +469,7 @@ class SizedMesh(MeshBase):
                                  **options
                                  )
 
-        if (self._has_colormesh) & (self.color != "none"):
+        if self._has_colormesh & (self.color != "none"):
             if self.palette is not None:
                 labels, colors = [], []
                 for label, c in self.palette.items():
@@ -487,11 +493,9 @@ class SizedMesh(MeshBase):
         else:
             return size_legend
 
-    def get_render_data(self):
-        return self.create_render_datasets(self.size_matrix, self.color2d)
-
-    def render_ax(self, ax, data):
-        size, color = data
+    def render_ax(self, spec):
+        ax = spec.ax
+        size, color = spec.data
         if self.is_flank:
             size = size.T
             color = color.T
@@ -561,7 +565,7 @@ class MarkerMesh(MeshBase):
 
     def __init__(self, data, color="black", marker="*", size=35,
                  label=None, label_loc=None, props=None, **kwargs):
-        self.data = np.asarray(data)
+        self.set_data(np.asarray(data))
         self.color = color
         self.marker = marker
         self.label = label
@@ -574,7 +578,10 @@ class MarkerMesh(MeshBase):
         return CatLegend(colors=[self.color], labels=[self.label],
                          handle=self.marker, draw=False)
 
-    def render_ax(self, ax, data):
+    def render_ax(self, spec):
+        ax = spec.ax
+        data = spec.data
+
         Y, X = data.shape
         xticks = np.arange(X) + 0.5
         yticks = np.arange(Y) + 0.5
@@ -595,14 +602,17 @@ class TextMesh(MeshBase):
 
     def __init__(self, texts, color="black",
                  label=None, label_loc=None, props=None, **kwargs):
-        self.data = np.asarray(texts)
+        self.set_data(self.data_validator(texts))
         self.color = color
         self.label = label
         self.label_loc = label_loc
         self.props = props
         self.kwargs = kwargs
 
-    def render_ax(self, ax, data):
+    def render_ax(self, spec):
+        ax = spec.ax
+        data = spec.data
+
         Y, X = data.shape
         xticks = np.arange(X) + 0.5
         yticks = np.arange(Y) + 0.5

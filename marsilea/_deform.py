@@ -343,3 +343,7 @@ class Deformation:
     @property
     def is_split(self):
         return self.is_row_split | self.is_col_split
+
+    @property
+    def is_cluster(self):
+        return self.is_row_cluster | self.is_col_cluster

@@ -4,14 +4,14 @@
 from __future__ import annotations
 
 from collections import Counter
-from itertools import cycle
-from typing import List, Set, Mapping
 
 import numpy as np
 import pandas as pd
+from itertools import cycle
 from legendkit import ListLegend
 from matplotlib.collections import PatchCollection
 from matplotlib.patches import Rectangle, Patch
+from typing import List, Set, Mapping
 
 from .base import WhiteBoard
 from .plotter import Numbers, Labels, StackBar, Bar, Box, \
@@ -418,11 +418,11 @@ class Upset(WhiteBoard):
     sets_color : array of color
         The color for each set, this will also change the bar color
         in set size
-    sort_subset : {'size', 'degree'}
+    sort_sets : {'ascending', 'descending'}
+        The sorting order of sets
+    sort_subsets : {'cardinality', 'degree'}
         How to sort the subset, 'size' will sort by intersection size,
         'degree' will sort by the number of intersected sets.
-    ascending : bool, default: True
-        The sorting order
     min_degree, max_degree : int
         Select a fraction of subset to render by degree
     min_cardinality, max_cardinality : int

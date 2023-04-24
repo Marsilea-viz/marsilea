@@ -1,13 +1,11 @@
+import numpy as np
 from dataclasses import dataclass
 from legendkit import cat_legend
-
+from matplotlib.colors import Normalize, is_color_like
+from matplotlib.patches import Arc as mArc
 from numbers import Number
 
 from .base import StatsBase
-
-import numpy as np
-from matplotlib.patches import Arc as mArc
-from matplotlib.colors import Normalize, is_color_like
 
 
 @dataclass
@@ -105,7 +103,8 @@ class Arc(StatsBase):
                  **kwargs):
         if len(np.unique(anchors)) != len(anchors):
             raise ValueError("`anchors` must be unique")
-        self.data = self.data_validator(anchors, target="1d")
+        anchors = self.data_validator(anchors, target="1d")
+        self.set_data(anchors)
         self.links = Links(links, weights=weights, width=width,
                            colors=colors, labels=labels)
         self.options = kwargs
@@ -115,7 +114,9 @@ class Arc(StatsBase):
         self.label_loc = label_loc
         self.props = props
 
-    def render_ax(self, ax, data):
+    def render_ax(self, spec):
+        ax = spec.ax
+        data = spec.data
 
         chunks = np.linspace(0, 1, len(data) + 1)
         mids = (chunks[1:] + chunks[:-1]) / 2

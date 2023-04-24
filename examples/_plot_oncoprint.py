@@ -8,7 +8,7 @@ Breast Invasive Carcinoma (TCGA, PanCancer Atlas)
 """
 import matplotlib.pyplot as plt
 
-import heatgraphy as hg
+import marsilea as hg
 from oncoprinter import OncoPrint
 
 # %%

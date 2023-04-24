@@ -1,11 +1,10 @@
-from itertools import cycle
-from typing import Callable, Mapping
-
 import numpy as np
 import pandas as pd
 from legendkit import CatLegend
 from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
+from matplotlib.ticker import FuncFormatter
+from typing import Callable, Mapping
 
 from .base import StatsBase
 from ..utils import ECHARTS16
@@ -34,14 +33,23 @@ def simple_bar(data,
     return ax
 
 
-def _fmt_func(v):
-    if v != 0:
-        return v
-    else:
-        return ""
+class _BarBase(StatsBase):
+
+    def _process_params(self, width=.7, orient=None, show_value=True,
+                        fmt=None, label=None, label_pad=2.,
+                        props=None, **kwargs):
+
+        self.width = width
+        self.orient = orient
+        self.show_value = show_value
+        self.label = label
+        self.fmt = "%g" if fmt is None else fmt
+        self.label_pad = label_pad
+        self.props = props if props is not None else {}
+        self.options = kwargs
 
 
-class Numbers(StatsBase):
+class Numbers(_BarBase):
     """Show numbers in bar plot
 
     Parameters
@@ -68,59 +76,121 @@ class Numbers(StatsBase):
     def __init__(self, data, width=.7, color="C0", orient=None,
                  show_value=True, fmt=None, label=None, label_pad=2.,
                  props=None, **kwargs):
-        self.data = self.data_validator(data, target="1d")
-        self.width = width
+        self.set_data(self.data_validator(data, target="1d"))
         self.color = color
-
-        fmt_func = None
-        if isinstance(show_value, Callable):
-            fmt_func = show_value
-            show_value = True
-        else:
-            if show_value:
-                fmt_func = _fmt_func
-
-        self.fmt_func = fmt_func
-        self.show_value = show_value
-        self.label = label
-        self.fmt = fmt
-        self.label_pad = label_pad
-        self.props = props if props is not None else {}
-        self.options = kwargs
         self.bars = None
-        self.orient = orient
 
-    def render_ax(self, ax: Axes, data):
+        self._process_params(width, orient, show_value, fmt, label,
+                             label_pad, props, **kwargs)
+
+    def render_ax(self, spec):
+        ax = spec.ax
+        data = spec.data
+
+        lim = len(data)
         orient = self.get_orient()
         bar = ax.bar if orient == "v" else ax.barh
         if orient == "h":
             data = data[::-1]
-        self.bars = bar(np.arange(0, len(data)) + 0.5, data,
+        self.bars = bar(np.arange(0, lim) + 0.5, data,
                         self.width, color=self.color, **self.options)
 
         if orient == "v":
-            ax.set_xlim(0, len(data))
+            ax.set_xlim(0, lim)
         else:
-            ax.set_ylim(0, len(data))
+            ax.set_ylim(0, lim)
 
         if self.side == "left":
             ax.invert_xaxis()
 
-        display_value = data
-        if self.fmt_func is not None:
-            display_value = [self.fmt_func(i) for i in data]
-
         if self.show_value:
-            ax.bar_label(self.bars, display_value, fmt=self.fmt,
+            ax.bar_label(self.bars, fmt=self.fmt,
                          padding=self.label_pad,
                          **self.props)
 
 
-# TODO: Not fully implemented
-#       Align the axis lim
+class CenterBar(_BarBase):
+
+    def __init__(self, data, names=None, width=.7, colors=None, orient=None,
+                 show_value=False, fmt=None, label=None, label_pad=2.,
+                 props=None, **kwargs):
+
+        self.set_data(self.data_validator(data.T, target="2d"))
+        if names is None:
+            if isinstance(data, pd.DataFrame):
+                names = data.columns
+        self.names = names
+        if colors is None:
+            colors = ["C0", "C1"]
+        self.colors = colors
+
+        self._process_params(width, orient, show_value, fmt, label,
+                             label_pad, props, **kwargs)
+
+    def render_ax(self, spec):
+
+        ax = spec.ax
+        data = spec.data
+
+        orient = self.get_orient()
+        bar = ax.bar
+        line = ax.axhline
+        options = {"bottom": 0, **self.options}
+        if orient == "h":
+            bar = ax.barh
+            line = ax.axvline
+            data = data[::-1]
+
+            del options["bottom"]
+            options["left"] = 0
+
+        left_bar, right_bar = data[0], data[1]
+        locs = np.arange(0, len(left_bar)) + 0.5
+
+        bar1 = bar(locs, left_bar, self.width,
+                   color=self.colors[0], **self.options)
+        bar2 = bar(locs, -right_bar, self.width,
+                   color=self.colors[1], **self.options)
+        line(0, color="black", lw=1)
+        if self.names is not None:
+            n1, n2 = self.names
+            if orient == "h" and spec.is_first:
+                ax.text(.45, 1, n1, ha="right", va="bottom",
+                        transform=ax.transAxes)
+                ax.text(.55, 1, n2, ha="left", va="bottom",
+                        transform=ax.transAxes)
+            elif orient == "v" and spec.is_last:
+                ax.text(1, .75, n1, ha="left", va="center",
+                        transform=ax.transAxes)
+                ax.text(1, .25, n2, ha="left", va="center",
+                        transform=ax.transAxes)
+
+        lim_value = np.max(data)
+
+        if orient == "v":
+            ax.set_xlim(0, len(left_bar))
+            ax.set_ylim(-lim_value, lim_value)
+            ax.yaxis.set_major_formatter(
+                FuncFormatter(lambda x, p: f"{np.abs(x)}"))
+        else:
+            ax.set_ylim(0, len(left_bar))
+            ax.set_xlim(-lim_value, lim_value)
+            ax.xaxis.set_major_formatter(
+                FuncFormatter(lambda x, p: f"{np.abs(x)}"))
+
+        if self.side == "left":
+            ax.invert_yaxis()
+
+        if self.show_value:
+            ax.bar_label(bar1, left_bar, fmt=self.fmt,
+                         padding=self.label_pad,
+                         **self.props)
+            ax.bar_label(bar2, right_bar, fmt=self.fmt,
+                         padding=self.label_pad,
+                         **self.props)
 
 
-class StackBar(StatsBase):
+class StackBar(_BarBase):
     """Stacked Bar
 
 
@@ -156,7 +226,7 @@ class StackBar(StatsBase):
 
         >>> cut_off = lambda v: v if v > 2 else ""
         >>> _, ax = plt.subplots()
-        >>> StackBar(stack_data, show_value=cut_off).render(ax)
+        >>> StackBar(stack_data, fmt=cut_off).render(ax)
 
      """
 
@@ -170,6 +240,7 @@ class StackBar(StatsBase):
                  fmt=None,
                  props=None,
                  label=None,
+                 label_pad=0,
                  legend_kws=None,
                  **kwargs,
                  ):
@@ -198,42 +269,31 @@ class StackBar(StatsBase):
             msg = "The number of colors is less than the number of items."
             raise ValueError(msg)
 
-        fmt_func = None
-        if isinstance(show_value, Callable):
-            fmt_func = show_value
-            show_value = True
-        else:
-            if show_value:
-                fmt_func = _fmt_func
-
-        self.data = data
+        self.set_data(data)
         self.labels = item_names
         self.bar_colors = bar_colors
-        self.show_value = show_value
-        self.fmt_func = fmt_func
-        self.width = width
-        self.value_size = value_size
-        self.fmt = "%g" if fmt is None else fmt
-        self.kwargs = kwargs
-        self.orient = orient
-        self.label = label
 
         props = {} if props is None else props
         value_props = dict(label_type=value_loc)
         value_props.update(props)
-        self.props = value_props
+
+        self._process_params(width, orient, show_value, fmt, label,
+                             label_pad, value_props, **kwargs)
+
+        self.value_size = value_size
         self._legend_kws = dict(title=self.label, size=1)
         if legend_kws is not None:
             self._legend_kws.update(legend_kws)
-
-    ''''''
 
     def get_legends(self):
         if self.labels is not None:
             return CatLegend(colors=self.bar_colors, labels=self.labels,
                              **self._legend_kws)
 
-    def render_ax(self, ax, data):
+    def render_ax(self, spec):
+        ax = spec.ax
+        data = spec.data
+
         orient = self.get_orient()
         bar = ax.bar if orient == "v" else ax.barh
 
@@ -257,13 +317,9 @@ class StackBar(StatsBase):
         for ix, row in enumerate(data[::-1]):
             bars = bar(locs, row, self.width, bottom,
                        fc=colors[ix],
-                       label=labels[ix], **self.kwargs)
+                       label=labels[ix], **self.options)
             bottom += row
 
-            display_value = row
-            if self.fmt_func is not None:
-                display_value = [self.fmt_func(i) for i in row]
-
             if self.show_value:
-                ax.bar_label(bars, display_value, fmt=self.fmt,
+                ax.bar_label(bars, fmt=self.fmt, padding=self.label_pad,
                              **self.props)

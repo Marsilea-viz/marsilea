@@ -1,18 +1,21 @@
-from urllib.request import urlretrieve
-
 import pandas as pd
 from platformdirs import user_cache_path
+from urllib.request import urlretrieve
 
 NAME = "Marsilea"
-BASE_URL = "https://raw.githubusercontent.com/marsilea-viz/marsilea-data/main"
+BASE_URL = "https://raw.githubusercontent.com/Marsilea-viz/marsilea-data/main"
 
 
 def load_data(name, cache=True):
     """To load marsilea dataset
 
+    - 'cooking_oils': Cooking oils dataset
     - 'imdb': The IMDB Top 100 Movies
     - 'pbmc3k': single-cell RNA-seq dataset from 10X Genomics
-    - 'oncoprint': Subsample of Breast Invasive Carcinoma (TCGA, PanCancer Atlas)
+    - 'oncoprint': Subsample of Breast Invasive Carcinoma
+                (TCGA, PanCancer Atlas)
+    - 'mouse_embryo': Spatial mapping of mouse embryo at E12.5
+    - 'seq_align': Sequence alignment data
 
     Parameters
     ----------
@@ -31,6 +34,12 @@ def load_data(name, cache=True):
         return _load_pbmc3k(cache)
     elif name == "oncoprint":
         return _load_oncoprint(cache)
+    elif name == "mouse_embryo":
+        return _load_mouse_embryo(cache)
+    elif name == "seq_align":
+        return _load_sequence_alignment(cache)
+    elif name == "cooking_oils":
+        return _load_cooking_oils(cache)
     else:
         raise NameError("Dataset not found")
 
@@ -86,3 +95,18 @@ def _load_oncoprint(cache=True):
         'methyl_exp': pd.read_csv(methyl, index_col=0),
         'clinical': pd.read_csv(clinical, index_col=0)
     }
+
+
+def _load_mouse_embryo(cache=True):
+    data = _cache_remote("mouse_embryo_E12.5.csv.gz", cache=cache)
+    return pd.read_csv(data)
+
+
+def _load_sequence_alignment(cache=True):
+    data = _cache_remote("sequence_alignment.csv", cache=cache)
+    return pd.read_csv(data, index_col=0)
+
+
+def _load_cooking_oils(cache=True):
+    data = _cache_remote("cooking_oils.csv", cache=cache)
+    return pd.read_csv(data, index_col=0)
