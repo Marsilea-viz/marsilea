@@ -9,14 +9,14 @@ import seaborn as sns
 from matplotlib import pyplot as plt
 from scipy.stats import gaussian_kde
 
-import heatgraphy as hg
+import marsilea as ma
 
+# %% Create datasets
 
 np.random.seed(0)
 rs = np.random.RandomState(50)
 x, y = rs.normal(size=(2, 50))
 xmin, ymin, xmax, ymax = x.min(), y.min(), x.max(), y.max()
-
 
 X, Y = np.mgrid[xmin:xmax:100j, ymin:ymax:100j]
 positions = np.vstack([X.ravel(), Y.ravel()])
@@ -32,44 +32,50 @@ zx = x_kernel(np.mgrid[xmin:xmax:100j])
 y_kernel = gaussian_kde(x)
 zy = y_kernel(np.mgrid[ymin:ymax:100j])
 
-wb = hg.WhiteBoard(name="main", width=3, height=3, margin=.2)
+# %% Plot
+
+wb = ma.WhiteBoard(width=3, height=3)
+# Reserve empty canvas for drawing latter
 wb.add_canvas("top", size=.4, pad=.1, name="x1")
 wb.add_canvas("bottom", size=.4, pad=.1, name="x2")
-
 wb.add_canvas("left", size=.4, pad=.1, name="y1")
 wb.add_canvas("right", size=.4, pad=.1, name="y2")
+# Add title
 wb.add_title(left="Y-axis distribution", top="X-axis distribution")
+# Add padding
 wb.add_pad("left", size=.3)
 wb.add_pad("right", size=.3)
+# Initiate the axes
 wb.render()
 
-main_ax = wb.get_ax("main")
+main_ax = wb.get_main_ax()
 main_ax.set_axis_off()
 main_ax.pcolormesh(Z, cmap="Greens")
 
-x_ax = wb.get_ax("x2")
-x_ax.set_axis_off()
-x_ax.pcolormesh(zy.reshape(1, -1), cmap="Blues")
-
-x2_ax = wb.get_ax("x1")
+x1_ax = wb.get_ax("x1")
 sns.lineplot(x=np.arange(len(zy)), y=zy,
-             ax=x2_ax, color="b", alpha=.7)
-x2_ax.set_xlim(0, len(zy))
-x2_ax.tick_params(bottom=False, labelbottom=False)
-sns.despine(ax=x2_ax)
+             ax=x1_ax, color="b", alpha=.7)
+x1_ax.set_xlim(0, len(zy))
+x1_ax.tick_params(bottom=False, labelbottom=False)
+sns.despine(ax=x1_ax)
 
-y_ax = wb.get_ax("y2")
-y_ax.set_axis_off()
-y_ax.pcolormesh(zy.reshape(-1, 1), cmap="Reds")
-y_ax.invert_yaxis()
+x2_ax = wb.get_ax("x2")
+x2_ax.set_axis_off()
+x2_ax.pcolormesh(zy.reshape(1, -1), cmap="Blues")
 
-y2_ax = wb.get_ax("y1")
-sns.lineplot(y=np.arange(len(zx)), x=zx, ax=y2_ax,
+y1_ax = wb.get_ax("y1")
+sns.lineplot(y=np.arange(len(zx)), x=zx, ax=y1_ax,
              orient="y", color="r", alpha=.7)
-y2_ax.set_ylim(0, len(zx))
-sns.despine(ax=y2_ax, left=True, right=False)
-y2_ax.tick_params(right=False, labelright=False)
-for tick in y2_ax.get_xticklabels():
+y1_ax.set_ylim(0, len(zx))
+sns.despine(ax=y1_ax, left=True, right=False)
+y1_ax.tick_params(right=False, labelright=False)
+for tick in y1_ax.get_xticklabels():
     tick.set_rotation(90)
-y2_ax.invert_xaxis()
+y1_ax.invert_xaxis()
+
+y2_ax = wb.get_ax("y2")
+y2_ax.set_axis_off()
+y2_ax.pcolormesh(zy.reshape(-1, 1), cmap="Reds")
+y2_ax.invert_yaxis()
+
 plt.show()
