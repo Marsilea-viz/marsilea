@@ -25,10 +25,6 @@ Layers Heatmap
 
     Layers
     LayersMesh
-    Rect
-    FrameRect
-    FracRect
-    Piece
 
 UpSet plots
 -----------
@@ -42,14 +38,3 @@ UpSet plots
     Upset
     UpsetData
 
-Customized elements
--------------------
-
-.. currentmodule:: marsilea.layers
-.. autosummary::
-    :toctree: APIs/
-    :template: autosummary.rst
-    :nosignatures:
-
-    Layers
-    Piece

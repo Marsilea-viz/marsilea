@@ -2,7 +2,7 @@ API Reference
 =============
 
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 1
 
    viz.rst
    plots.rst

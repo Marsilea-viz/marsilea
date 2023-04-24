@@ -1,364 +1,187 @@
-10 Minutes to Marsilea
-=========================
+Heatmap
+=======
 
-Marsilea is a powerful Python package that allows you to effortlessly
-create visually appealing x-layout visualization.
-Designed with an object-oriented approach, it enables seamless
-block addition and effortless customization.
+Creation of annotated heatmap in Marsilea is very easy.
 
 Creating a basic heatmap
 ------------------------
 
-Let's try create a heatmap! Marsilea provides many high-level plotting function
-to be used.
+Marsilea has APIs to directly create different heatmap.
+
+- Matrix Heatmap: :class:`Heatmap <marsilea.Heatmap>`
+- Matrix Heatmap with sized elements: :class:`SizedHeatmap <marsilea.SizedHeatmap>`
+- Categorical Heatmap: :class:`CatHeatmap <marsilea.CatHeatmap>`
+- Layered Heatmap :class:`Layers <marsilea.layers.Layers>`
+
+
+Matrix Heatmap
+^^^^^^^^^^^^^^
 
 .. plot::
     :context: close-figs
 
-        >>> # load the dataset
-        >>> from sklearn.datasets import load_iris
-        >>> iris = load_iris()
-
-        >>> import marsilea as hg
-        >>> h = hg.Heatmap(iris.data)
+        >>> import marsilea as ma
+        >>> data = np.random.rand(20, 20)
+        >>> h = ma.Heatmap(data, linewidth=1)
         >>> h.render()
 
+Matrix Heatmap with sized elements
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-    Now a minimum heatmap is created, remember to call
+.. plot::
+    :context: close-figs
 
-        >>> # load the dataset
-        >>> from sklearn.datasets import load_iris
-        >>> iris = load_iris()
+        >>> s = ma.SizedHeatmap(size=data, color=data, cmap="YlGnBu")
+        >>> s.render()
 
-        >>> import marsilea as hg
-        >>> h = hg.Heatmap(iris.data)
-        >>> h.render()
-
-
-    Now a minimum heatmap is created, remember to call
-
-    >>> # load the dataset
-    >>> from sklearn.datasets import load_iris
-    >>> iris = load_iris()
-
-    >>> import marsilea as hg
-    >>> h = hg.Heatmap(iris.data)
-    >>> h.render()
+Create `Hinton diagram <https://matplotlib.org/stable/gallery/specialty_plots/hinton_demo.html>`_.
+If your colors are categorical, you can easily assign colors to each category.
 
 
-Now a minimum heatmap is created, remember to call :meth:`render() <marsilea.WhiteBoard.render>` to actually render your
-plot. Otherwise, no plot will be generated.
+.. plot::
+    :context: close-figs
 
-Enhancing the heatmap with additional components
-------------------------------------------------
+    >>> matrix = np.random.randint(-10, 10, (20, 20))
+    >>> size = np.random.randint(-10, 10, (20, 20))
+    >>> color = matrix > 0
+    >>> s = ma.SizedHeatmap(size=size, color=color, marker="s",
+    ...                     palette={True: "#E87A90", False: "#BEC23F"})
+    >>> s.render()
 
-Typically, you'll want to include components such as labels, dendrograms, and other plots when creating a heatmap.
+Categorical Heatmap
+^^^^^^^^^^^^^^^^^^^
+
+.. plot::
+    :context: close-figs
+
+        >>> data = np.random.choice(["A", "B", "C"], size=(20, 20))
+        >>> c = ma.CatHeatmap(data, linewidth=1)
+        >>> c.render()
+
+
+Layered Heatmap
+^^^^^^^^^^^^^^^
+
+Layered Heatmap is a special type of heatmap that allows you to render customized
+elements. Marsilea provides a set of predefined elements. You can also create your own.
+
+You can render the heatmap with one layer or multiple layers. The following example
+shows how to create a heatmap with one layer but different elements.
+
+.. plot::
+    :context: close-figs
+
+        >>> from marsilea.layers import Rect, FrameRect, RightTri, Marker
+        >>> mapper = {0: Rect(color="#454545"), 1: Marker("*", color="#D14D72"),
+        ...           2: FrameRect(color="#89375F"), 3: RightTri(color="#CE5959"),
+        ...           4: RightTri(color="#BACDDB", right_angle="upper right")}
+        >>> data = np.random.choice([0, 1, 2, 3, 4], (20, 20))
+        >>> l = ma.Layers(data=data, pieces=mapper, shrink=(.8, .8))
+        >>> l.render()
+
+But you can also create a heatmap with multiple layers, each layer will render
+one element. The following example shows how to create a heatmap with multiple layers.
+
+.. plot::
+    :context: close-figs
+
+    >>> layers = [np.random.choice([0, 1], (20, 20)) for _ in range(5)]
+    >>> pieces = mapper.values()
+    >>> l = ma.Layers(layers=layers, pieces=pieces, shrink=(.8, .8))
+    >>> l.render()
+
+The following example shows how to create your own element.
+
+.. plot::
+    :context: close-figs
+    :height: 100px
+
+        >>> from marsilea.layers import Piece, preview
+        >>> from matplotlib.patches import Circle
+        >>> class MyCircle(Piece):
+        ...     def __init__(self, color="C0", label=None):
+        ...         self.color = color
+        ...         self.label = label
+        ...
+        ...     def draw(self, x, y, w, h, ax):
+        ...         xy = (x + .5, y + .5)
+        ...         r = min(w, h) / 2
+        ...         return Circle(xy, radius=r, lw=1, fc=self.color)
+        ...
+        >>> preview(MyCircle())
+
+.. plot::
+    :context: close-figs
+    :height: 300px
+
+        >>> data = np.random.choice([0, 1], (10, 10))
+        >>> l = ma.Layers(layers=[data], pieces=[MyCircle()], shrink=(.8, .8))
+        >>> l.render()
+
+
+
+Additional components
+---------------------
+
+Typically, you'll want to include components such as labels, dendrograms,
+and other plots when creating a heatmap.
 Marsilea makes it easy to add these components.
-
-.. code-block:: python
-    :emphasize-lines: 3,4
-
-    >>> from marsilea.plotter import Colors
-    >>> h = hg.Heatmap(iris.data)
-    >>> h.add_dendrogram("right")
-    >>> h.add_left(Colors(iris.target), size=.2, pad=.1)
-    >>> h.render()
+Let's create a clustermap like in Seaborn.
 
 
 .. plot::
     :context: close-figs
-    :include-source: False
 
-        >>> from marsilea.plotter import Colors
-        >>> h = hg.Heatmap(iris.data)
-        >>> h.add_dendrogram("right")
-        >>> h.add_left(Colors(iris.target), size=.2, pad=.1)
+        >>> import marsilea.plotter as mp
+        >>> data = np.random.rand(20, 20)
+        >>> cat = np.random.choice(["A", "B", "C"], 20)
+        >>> h = ma.Heatmap(data, linewidth=1)
+        >>> h.add_left(mp.Colors(cat), size=.2, pad=.1)
+        >>> h.add_dendrogram("left")
+        >>> h.add_dendrogram("top")
+        >>> h.add_right(mp.Labels(cat), pad=.1)
         >>> h.render()
 
-
-    To add a dendrogram on the dataset, simply call
-
-        >>> from marsilea.plotter import Colors
-        >>> h = hg.Heatmap(iris.data)
-        >>> h.add_dendrogram("right")
-        >>> h.add_left(Colors(iris.target), size=.2, pad=.1)
-        >>> h.render()
-
-
-    To add a dendrogram on the dataset, simply call
-
-    >>> from marsilea.plotter import Colors
-    >>> h = hg.Heatmap(iris.data)
-    >>> h.add_dendrogram("right")
-    >>> h.add_left(Colors(iris.target), size=.2, pad=.1)
-    >>> h.render()
-
-
-
-To include a dendrogram, simply call
-:meth:`add_dendrogram() <heatgraphy.ClusterBoard.add_dendrogram>`, and Marsilea will take care of the rest.
-In this example, we've added a dendrogram to the right side,
-but you can also place it on the top or bottom for column-wise clustering.
-
-
-Organizing the heatmap
-----------------------
-
-We also use colors to label the names of iris. What if I want the same color to be together? You can
-split the heatmap by labeling them. Use the :meth:`hsplit() <marsilea.ClusterBoard.hsplit>`
-or :meth:`vsplit() <marsilea.ClusterBoard.vsplit>` to split the heatmap.
-
-.. code-block:: python
-    :emphasize-lines: 4
-
-    >>> h = hg.Heatmap(iris.data)
-    >>> h.add_dendrogram("right")
-    >>> h.add_left(Colors(iris.target), size=.2, pad=.1)
-    >>> h.hsplit(labels=iris.target)
-    >>> h.render()
+We could easily include a bar plot to the heatmap.
 
 .. plot::
     :context: close-figs
-    :include-source: False
 
-    >>> h = hg.Heatmap(iris.data)
-    >>> h.add_dendrogram("right")
-    >>> h.add_left(Colors(iris.target), size=.2, pad=.1)
-    >>> h.hsplit(labels=iris.target)
+    >>> h.add_right(mp.Bar(data.mean(axis=0)), pad=.1)
     >>> h.render()
 
-.. note::
-
-    The order of adding plots or split the heatmap is arbitrary,
-    just make sure you remember to call :meth:`render()` at the very end.
-
-
-Adding title and labels
------------------------
-
-Enhance your heatmap with titles and labels for better readability.
-
-.. code-block:: python
-    :emphasize-lines: 6,7
-
-    >>> from marsilea.plotter import Labels
-    >>> h = hg.Heatmap(iris.data)
-    >>> h.add_dendrogram("right")
-    >>> h.add_left(Colors(iris.target), size=.2, pad=.1)
-    >>> h.hsplit(labels=iris.target)
-    >>> h.add_bottom(Labels(iris.feature_names, rotation=0, fontsize=6), pad=.1)
-    >>> h.add_title("Iris Dataset")
-    >>> h.render()
+It's possible to overlay another layer on top of the heatmap.
 
 .. plot::
     :context: close-figs
-    :include-source: False
 
-        >>> from marsilea.plotter import Labels
-        >>> h = hg.Heatmap(iris.data)
-        >>> h.add_dendrogram("right")
-        >>> h.add_left(Colors(iris.target), size=.2, pad=.1)
-        >>> h.hsplit(labels=iris.target)
-        >>> h.add_bottom(Labels(iris.feature_names, rotation=0, fontsize=6), pad=.1)
-        >>> h.add_title("Iris Dataset")
-        >>> h.render()
-
-        >>> from marsilea.plotter import Labels
-        >>> h = hg.Heatmap(iris.data)
-        >>> h.add_dendrogram("right")
-        >>> h.add_left(Colors(iris.target), size=.2, pad=.1)
-        >>> h.hsplit(labels=iris.target)
-        >>> h.add_bottom(Labels(iris.feature_names, rotation=0, fontsize=6), pad=.1)
-        >>> h.add_title("Iris Dataset")
-        >>> h.render()
-
-    >>> from marsilea.plotter import Labels
-    >>> h = hg.Heatmap(iris.data)
-    >>> h.add_dendrogram("right")
-    >>> h.add_left(Colors(iris.target), size=.2, pad=.1)
-    >>> h.hsplit(labels=iris.target)
-    >>> h.add_bottom(Labels(iris.feature_names, rotation=0, fontsize=6), pad=.1)
-    >>> h.add_title("Iris Dataset")
+    >>> mark = data > data.mean()
+    >>> h.add_layer(mp.MarkerMesh(mark, color="g", label="Above Mean"))
     >>> h.render()
 
 
-Adding legends
---------------
+Grouping the heatmap
+---------------------
 
-To make your heatmap even more informative, add legends.
+You can easily split the heatmap into multiple groups.
 
-.. code-block:: python
-    :emphasize-lines: 8
 
-    >>> names = [iris.target_names[i] for i in iris.target]
-    >>> h = hg.Heatmap(iris.data)
-    >>> h.add_dendrogram("right")
-    >>> h.add_left(Colors(names, label="Names"), size=.2, pad=.1)
-    >>> h.add_bottom(Labels(iris.feature_names, rotation=0, fontsize=6), pad=.1)
-    >>> h.hsplit(labels=iris.target)
-    >>> h.add_title("Iris Dataset")
+.. plot::
+    :context: close-figs
+
+    >>> h.hsplit(labels=cat, order=["A", "B", "C"])
+    >>> h.render()
+
+
+Adding title and legends
+------------------------
+
+Finally, let's finish our heatmap by adding a title and legends to it.
+
+.. plot::
+    :context: close-figs
+
+    >>> h.add_title(top="A cool example of Marsilea Heatmap")
     >>> h.add_legends()
     >>> h.render()
 
-.. plot::
-    :context: close-figs
-    :include-source: False
-
-    >>> names = [iris.target_names[i] for i in iris.target]
-    >>> h = hg.Heatmap(iris.data)
-    >>> h.add_dendrogram("right")
-    >>> h.add_left(Colors(names, label="Names"), size=.2, pad=.1)
-    >>> h.hsplit(labels=iris.target)
-    >>> h.add_bottom(Labels(iris.feature_names, rotation=0, fontsize=6), pad=.1)
-    >>> h.add_title("Iris Dataset")
-    >>> h.add_legends()
-    >>> h.render()
-
-Adding layers
--------------
-
-Add extra layers to your heatmap to label specific plots.
-For instance, you can label data values larger than a certain threshold.
-Here we can try to label the data that are larger than 4.
-
-.. code-block:: python
-    :emphasize-lines: 8
-
-    >>> ix = np.random.choice(np.arange(len(iris.data)), 10, replace=False)
-    >>> h = hg.Heatmap(iris.data[ix])
-    >>> h.add_dendrogram("right")
-    >>> h.add_left(Colors(np.array(names)[ix], label="Names"), size=.2, pad=.1)
-    >>> h.hsplit(labels=iris.target[ix])
-    >>> h.add_bottom(Labels(iris.feature_names, rotation=0, fontsize=6), pad=.1)
-    >>> h.add_title("Iris Dataset")
-    >>> h.add_layer(hg.plotter.MarkerMesh(iris.data[ix] > 4, label="Larger than 4"))
-    >>> h.add_legends()
-    >>> h.render()
-
-.. plot::
-    :context: close-figs
-    :include-source: False
-
-    >>> ix = np.random.choice(np.arange(len(iris.data)), 10, replace=False)
-    >>> h = hg.Heatmap(iris.data[ix])
-    >>> h.add_dendrogram("right")
-    >>> h.add_left(Colors(np.array(names)[ix], label="Names"), size=.2, pad=.1)
-    >>> h.hsplit(labels=iris.target[ix])
-    >>> h.add_bottom(Labels(iris.feature_names, rotation=0, fontsize=6), pad=.1)
-    >>> h.add_title("Iris Dataset")
-    >>> h.add_layer(hg.plotter.MarkerMesh(iris.data[ix] > 4, label="Larger than 4"))
-    >>> h.add_legends()
-    >>> h.render()
-
-
-Adjusting plot size and spacing
--------------------------------
-
-Customizing Figure Size
-#######################
-
-To modify the overall figure size, simply pass the :obj:`scale` parameter to :meth:`render()`
-
-.. plot::
-    :context: close-figs
-
-    >>> data = np.random.rand(10, 10)
-    >>> h = hg.Heatmap(data)
-    >>> h.render()
-
-
-.. plot::
-    :context: close-figs
-
-    >>> h = hg.Heatmap(data)
-    >>> h.render(scale=0.1)
-
-You can also adjust the canvas size by :obj:`width` and :obj:`height`.
-The unit are proportional to the figure size. Suppose the figure width is 12 inches,
-you have a main canvas with width of 5 and a side plot with width of 1. As a result,
-your main canvas is 10 inches width and the side plot is 2 inches width.
-
-.. plot::
-    :context: close-figs
-
-    >>> h = hg.Heatmap(data, width=10, height=5)
-    >>> h.render()
-
-Changing Side Plot Size
-#######################
-
-You may already notice that you can change
-the size of the side plots by :obj:`size` and add spacing by :obj:`pad`.
-
-
-.. plot::
-    :context: close-figs
-
-        >>> from marsilea.plotter import Colors
-        >>> h = hg.Heatmap(iris.data)
-        >>> h.add_left(Colors(iris.target), size=.2, pad=.1)
-        >>> h.render()
-
-        >>> from marsilea.plotter import Colors
-        >>> h = hg.Heatmap(iris.data)
-        >>> h.add_left(Colors(iris.target), size=.2, pad=.1)
-        >>> h.render()
-
-    >>> from marsilea.plotter import Colors
-    >>> h = hg.Heatmap(iris.data)
-    >>> h.add_left(Colors(iris.target), size=.2, pad=.1)
-    >>> h.render()
-
-
-.. plot::
-    :context: close-figs
-
-        >>> from marsilea.plotter import Colors
-        >>> h = hg.Heatmap(iris.data)
-        >>> h.add_left(Colors(iris.target), size=.5, pad=.2)
-        >>> h.render()
-
-        >>> from marsilea.plotter import Colors
-        >>> h = hg.Heatmap(iris.data)
-        >>> h.add_left(Colors(iris.target), size=.5, pad=.2)
-        >>> h.render()
-
-    >>> from marsilea.plotter import Colors
-    >>> h = hg.Heatmap(iris.data)
-    >>> h.add_left(Colors(iris.target), size=.5, pad=.2)
-    >>> h.render()
-
-
-Adjusting spacing of split heatmap
-##################################
-
-You can also adjust the spacing when split heatmap, the unit is the ratio of the axes.
-
-.. plot::
-    :context: close-figs
-
-    >>> h = hg.Heatmap(iris.data)
-    >>> h.add_dendrogram("right")
-    >>> h.hsplit(labels=iris.target)
-    >>> h.render()
-
-
-.. plot::
-    :context: close-figs
-
-    >>> h = hg.Heatmap(iris.data)
-    >>> h.add_dendrogram("right")
-    >>> h.hsplit(labels=iris.target, spacing=.01)
-    >>> h.render()
-
-
-You may change the spacing by supplying an array.
-
-
-.. plot::
-    :context: close-figs
-
-    >>> h = hg.Heatmap(iris.data)
-    >>> h.add_dendrogram("right")
-    >>> h.hsplit(labels=iris.target, spacing=[.02, .04])
-    >>> h.render()

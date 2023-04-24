@@ -1,55 +1,40 @@
-How to customize your visualization?
-====================================
+Axes-level customization
+========================
+
+You may find the default style in Marsilea does not fit your taste.
+You can customize the plot by accessing the axes directly.
 
 Retrieve main axes
 ------------------
 
-Easily access the main axes by invoking the
-:meth:`get_main_ax() <marsilea.WhiteBoard.get_main_ax>` method after rendering your plot.
+No axes or figure is created or render until you
+call the :meth:`render() <marsilea.base.WhiteBoard.render>` method.
 
-Remember to retrieve the axes **after**
-you render the plot. If not render, the axes will not be created.
+After you render the visualization, you can access the main axes by
+:meth:`get_main_ax() <marsilea.base.WhiteBoard.get_main_ax>`.
 
-Check out the example below to learn how to create a beautiful heatmap with a custom border:
+The example below shows how to add a border to your heatmap:
 
-.. code-block:: python
-    :emphasize-lines: 7
+.. plot::
+    :context: close-figs
 
     >>> import marsilea as ma
     >>> from matplotlib.patches import Rectangle
-    >>> data = np.random.rand(10, 10)
-    >>> h = ma.Heatmap(data)
+    >>> data = np.random.rand(20, 20)
+    >>> h = ma.Heatmap(data, linewidth=1)
     >>> h.render()
-    >>> # Get the ax after render()
     >>> hax = h.get_main_ax()
     >>> border = Rectangle((0, 0), 1, 1, fill=False, ec=".1", lw=5, transform=hax.transAxes)
     >>> hax.add_artist(border)
 
 
-.. plot::
-    :context: close-figs
-    :include-source: False
-
-        >>> import marsilea as ma
-        >>> from matplotlib.patches import Rectangle
-        >>> data = np.random.rand(10, 10)
-        >>> h = ma.Heatmap(data)
-        >>> h.render()
-        >>> # Get the ax after render()
-        >>> hax = h.get_main_ax()
-        >>> border = Rectangle((0, 0), 1, 1, fill=False, ec=".1", lw=5, transform=hax.transAxes)
-        >>> hax.add_artist(border)
-
-
-
-If the heatmap is split, there will be multiple axes. The return order starts from upper left to lower right.
-
-When working with split heatmaps, you'll receive multiple axes in return, ordered from the upper left to the lower right:
+When working with split heatmaps, you'll receive multiple axes in return,
+ordered from the upper left to the lower right.
 
 .. plot::
     :context: close-figs
 
-    >>> h = ma.Heatmap(data, cmap="binary")
+    >>> h = ma.Heatmap(data, cmap="binary", linewidth=1)
     >>> h.hsplit(cut=[5])
     >>> h.vsplit(cut=[5])
     >>> h.render()
@@ -67,35 +52,16 @@ When working with split heatmaps, you'll receive multiple axes in return, ordere
 Retrieve side axes
 ------------------
 
-To retrieve side axes, use the :meth:`get_ax() <marsilea.WhiteBoard.get_ax>`
-method and provide the name of your target plot. Remember to assign a name to your plot first:
-
-
-
-.. code-block:: python
-    :emphasize-lines: 5, 8
-
-    >>> h = ma.Heatmap(data)
-    >>> h.split_row(cut=[5])
-    >>> bar = ma.plotter.Numbers(np.arange(10))
-    >>> h.add_right(bar, name="My Bar")
-    >>> h.render()
-    >>> # Get the ax after render()
-    >>> bar_axes = h.get_ax("My Bar")
-    >>> colors = ["#9a60b4", "#73c0de"]
-    >>> # purple, blue
-    >>> for ax, c in zip(bar_axes, colors):
-    ...     bg = Rectangle((0, 0), 1, 1, fc=c, zorder=-1, transform=ax.transAxes)
-    ...     ax.add_artist(bg)
-
+To retrieve side axes, you must name the plot that you wish to customize first.
+Once you assign the name, you can use :meth:`get_ax() <marsilea.base.WhiteBoard.get_ax>`
+to retrieve the named axes.
 
 .. plot::
     :context: close-figs
-    :include-source: False
 
-    >>> h = ma.Heatmap(data)
+    >>> h = ma.Heatmap(data, linewidth=1)
     >>> h.hsplit(cut=[5])
-    >>> bar = ma.plotter.Numbers(np.arange(10))
+    >>> bar = ma.plotter.Numbers(np.arange(20))
     >>> h.add_right(bar, name="My Bar")
     >>> h.render()
     >>> # Get the ax after render()

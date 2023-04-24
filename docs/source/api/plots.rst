@@ -1,5 +1,5 @@
-Side Annotation Plots
-=====================
+Plotters
+========
 
 .. currentmodule:: marsilea.plotter
 
@@ -43,6 +43,8 @@ Other plots
 
     Numbers
     StackBar
+    Arc
+    SeqLogo
 
 
 Text Label

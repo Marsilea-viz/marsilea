@@ -1,9 +1,11 @@
 html[data-theme="light"] {
-    --pst-color-primary: #00b796;
+    --pst-color-primary: #0098FF;
+    --pst-color-secondary: #57B77E;
 }
 
 html[data-theme="dark"] {
-    --pst-color-primary: #00b796;
+    --pst-color-primary: #0098FF;
+    --pst-color-secondary: #57B77E;
 }
 
 /* Change the highlight color, increase contrast*/
@@ -12,9 +14,24 @@ html[data-theme="light"] .highlight .hll {
 }
 
 img.plot-directive {
-    max-height: 450px;
+    max-height: 500px;
 }
 
-.sd-card-body > .toctree-wrapper li[class^=toctree-l] {
-    text-align: center;
+
+.img-frame {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 250px;
+    width: 250px;
+    border: var(--pst-color-border) 1px solid;
+    border-radius: 5px;
+    padding: 5px;
+}
+
+.sd-card-center {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
 }

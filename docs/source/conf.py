@@ -15,7 +15,7 @@
 # sys.path.insert(0, os.path.abspath('.'))
 from sphinx_gallery.sorting import FileNameSortKey
 from sphinx_gallery.scrapers import matplotlib_scraper
-import marsilea as hg
+import marsilea as ma
 
 # -- Project information -----------------------------------------------------
 
@@ -24,7 +24,7 @@ copyright = '2023, Mr-Milk'
 author = 'Mr-Milk'
 
 # The full version, including alpha/beta/rc tags
-release = hg.__version__
+release = ma.__version__
 
 # -- General configuration ---------------------------------------------------
 
@@ -53,14 +53,17 @@ numpydoc_show_class_members = False
 plot_include_source = True
 plot_html_show_source_link = False
 plot_html_show_formats = False
-plot_formats = [('png', 90)]
-plot_rcparams = {'savefig.bbox': 'tight'}
+plot_formats = [('png', 220)]
+# plot_rcparams = {'savefig.bbox': 'tight'}
 plot_pre_code = "import numpy as np; " \
                 "import pandas as pd;" \
                 "import matplotlib as mpl;" \
                 "from matplotlib import pyplot as plt;" \
                 "np.random.seed(0); " \
-                "mpl.rcParams['legend.frameon'] = False;"
+                "mpl.rcParams['legend.frameon'] = False;" \
+                "import mpl_fontkit as fk;" \
+                "fk.install('Lato');" \
+                "fk.install_fontawesome();"
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -105,6 +108,8 @@ def autodoc_skip_member(app, what, name, obj, skip, options):
 
     if hasattr(obj, "__qualname__"):
         cls = obj.__qualname__.split(".")[0]
+        if (cls == "WhiteBoard") & (name == "render"):
+            return False
         if cls != "RenderPlan":
             if name in methods:
                 return True
