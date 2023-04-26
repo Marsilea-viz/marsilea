@@ -10,7 +10,7 @@
 
 ### Create x-layout visualization!
 
-[Read Documentation](https://marsilea.readthedocs.io/en/stable)
+[Read Documentation](https://marsilea.readthedocs.io/)
 
 
 ### Installation
