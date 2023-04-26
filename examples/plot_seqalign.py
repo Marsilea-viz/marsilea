@@ -1,6 +1,6 @@
 """
-DNA Sequence Alignment
-======================
+DNA Sequence Alignment Plot
+===========================
 """
 from collections import Counter
 import numpy as np
