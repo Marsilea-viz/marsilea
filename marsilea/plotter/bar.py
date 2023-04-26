@@ -112,7 +112,7 @@ class Numbers(_BarBase):
 class CenterBar(_BarBase):
 
     def __init__(self, data, names=None, width=.7, colors=None, orient=None,
-                 show_value=False, fmt=None, label=None, label_pad=2.,
+                 show_value=True, fmt=None, label=None, label_pad=2.,
                  props=None, **kwargs):
 
         self.set_data(self.data_validator(data.T, target="2d"))
@@ -136,6 +136,7 @@ class CenterBar(_BarBase):
         bar = ax.bar
         line = ax.axhline
         options = {"bottom": 0, **self.options}
+
         if orient == "h":
             bar = ax.barh
             line = ax.axvline
@@ -165,27 +166,29 @@ class CenterBar(_BarBase):
                 ax.text(1, .25, n2, ha="left", va="center",
                         transform=ax.transAxes)
 
-        lim_value = np.max(data)
+        lim_value = np.max(data) * 1.05
 
         if orient == "v":
             ax.set_xlim(0, len(left_bar))
             ax.set_ylim(-lim_value, lim_value)
             ax.yaxis.set_major_formatter(
-                FuncFormatter(lambda x, p: f"{np.abs(x)}"))
+                FuncFormatter(lambda x, p: f"{np.abs(x):g}"))
         else:
             ax.set_ylim(0, len(left_bar))
             ax.set_xlim(-lim_value, lim_value)
             ax.xaxis.set_major_formatter(
-                FuncFormatter(lambda x, p: f"{np.abs(x)}"))
+                FuncFormatter(lambda x, p: f"{np.abs(x):g}"))
 
-        if self.side == "left":
+        if self.is_flank:
             ax.invert_yaxis()
 
         if self.show_value:
-            ax.bar_label(bar1, left_bar, fmt=self.fmt,
+            left_label = _format_bar_labels(left_bar, self.fmt)
+            right_label = _format_bar_labels(right_bar, self.fmt)
+            ax.bar_label(bar1, left_label,
                          padding=self.label_pad,
                          **self.props)
-            ax.bar_label(bar2, right_bar, fmt=self.fmt,
+            ax.bar_label(bar2, right_label,
                          padding=self.label_pad,
                          **self.props)
 
@@ -323,3 +326,28 @@ class StackBar(_BarBase):
             if self.show_value:
                 ax.bar_label(bars, fmt=self.fmt, padding=self.label_pad,
                              **self.props)
+
+
+def _format_bar_labels(labels, fmt):
+    f_labels = []
+    for a in labels:
+        if np.isnan(a):
+            a = ""
+        if isinstance(fmt, str):
+            label = _auto_format_str(fmt, a)
+        elif callable(fmt):
+            label = fmt(a)
+        else:
+            raise TypeError("fmt must be a str or callable")
+        f_labels.append(label)
+    return f_labels
+
+
+def _auto_format_str(fmt, value):
+    """Format a value according to the given format string.
+    matplotlib/cbook.py
+    """
+    try:
+        return fmt % (value,)
+    except (TypeError, ValueError):
+        return fmt.format(value)
