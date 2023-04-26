@@ -34,4 +34,17 @@ img.plot-directive {
     flex-direction: column;
     justify-content: center;
     align-items: center;
+    font-weight: 500;
+}
+
+.flex-container {
+    display: flex;
+    gap: 10px;
+    flex-direction: row;
+}
+
+@media (max-width: 680px) {
+    .flex-container {
+        flex-direction: column;
+    }
 }

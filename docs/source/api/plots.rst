@@ -43,6 +43,7 @@ Other plots
 
     Numbers
     StackBar
+    CenterBar
     Arc
     SeqLogo
 

@@ -56,7 +56,7 @@ Tutorial
 
         .. raw:: html
 
-            <div style="display: flex; gap: 10px;">
+            <div class="flex-container">
                 <div class="img-frame">
                     <img style="max-width: 240px; max-height: 240px;" src="../_images/concatenation-5.png"/>
                 </div>

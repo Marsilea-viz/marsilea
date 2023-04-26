@@ -21,12 +21,13 @@ Install via pip:
 Documentation Sections
 ----------------------
 
-.. grid:: 4
+.. grid:: 2 2 4 4
 
     .. grid-item-card:: :octicon:`repo;4em;sd-text-primary`
         :shadow: none
         :text-align: center
         :link: tutorial/index.html
+        :margin: 1 1 0 0
 
         **Tutorial**
 
@@ -34,6 +35,7 @@ Documentation Sections
         :shadow: none
         :text-align: center
         :link: auto_examples/index.html
+        :margin: 1 1 0 0
 
         **Gallery**
 
@@ -41,6 +43,7 @@ Documentation Sections
         :shadow: none
         :text-align: center
         :link: api/index.html
+        :margin: 1 1 0 0
 
         **API Reference**
 
@@ -48,6 +51,7 @@ Documentation Sections
         :shadow: none
         :text-align: center
         :link: how-to.html
+        :margin: 1 1 0 0
 
         **How-To**
 
