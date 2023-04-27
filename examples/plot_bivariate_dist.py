@@ -11,7 +11,8 @@ from scipy.stats import gaussian_kde
 
 import marsilea as ma
 
-# %% Create datasets
+# %%
+# Create datasets
 
 np.random.seed(0)
 rs = np.random.RandomState(50)
@@ -32,7 +33,8 @@ zx = x_kernel(np.mgrid[xmin:xmax:100j])
 y_kernel = gaussian_kde(x)
 zy = y_kernel(np.mgrid[ymin:ymax:100j])
 
-# %% Plot
+# %%
+# Create skeletons and add contents
 
 wb = ma.WhiteBoard(width=3, height=3)
 # Reserve empty canvas for drawing latter
