@@ -292,18 +292,18 @@ class RenderPlan:
         loader = DataLoader(data, target=target, plotter=name)
         return loader.get_array()
 
-    def get_render_data(self):
-
-        data = self.get_data()
-
-        if self.has_deform:
-            deform_func = self.get_deform_func()
-
-        else:
-            if len(data) == 1:
-                return data[0]
-            else:
-                return data
+    # def get_render_data(self):
+    #
+    #     data = self.get_data()
+    #
+    #     if self.has_deform:
+    #         self.get_deform_func()
+    #
+    #     else:
+    #         if len(data) == 1:
+    #             return data[0]
+    #         else:
+    #             return data
 
     def _get_split_render_spec(self, axes):
         datasets = self.get_data()
@@ -490,7 +490,7 @@ class RenderPlan:
         return None
 
     def set_legends(self, *args, **kwargs):
-        raise NotImplemented
+        raise NotImplementedError
 
     def update_main_canvas_size(self):
         pass

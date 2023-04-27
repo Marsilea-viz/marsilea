@@ -1051,7 +1051,8 @@ class FixedChunk(_ChunkBase):
         >>> labels = np.random.choice(chunk, size=20)
         >>> h.hsplit(labels=labels, order=chunk)
         >>> h.add_right(FixedChunk(chunk, bordercolor="gray"), pad=.1)
-        >>> h.add_right(FixedChunk(['C1', 'C2', 'C3'], ratio=[1, 2, 1], fill_colors="red"), pad=.1)
+        >>> h.add_right(FixedChunk(['C1', 'C2', 'C3'],
+        ...                        ratio=[1, 2, 1], fill_colors="red"), pad=.1)
         >>> h.render()
 
 

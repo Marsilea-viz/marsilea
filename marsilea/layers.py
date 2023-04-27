@@ -17,14 +17,16 @@ from .plotter import RenderPlan
 class LayersMesh(RenderPlan):
     """The mesh that draw customized elements in multi-layers
 
-    LayersMesh is a powerful solution for drawing and visualizing customized elements in multi-layered formats.
+    LayersMesh is a powerful solution for drawing and visualizing customized
+    elements in multi-layered formats.
     It offers two flexible ways to specify layers:
 
     #. A single layer of data containing different elements.
     #. Multiple layers of data, where each layer represents a customized element,
     overlaying elements on top of one another
 
-    When supplying multiple layers, the drawing order follows the order of the input array.
+    When supplying multiple layers,
+    the drawing order follows the order of the input array.
     Override this order by controlling the `zorder` attribute in your :class:`Pieces`.
 
     Parameters
@@ -34,7 +36,8 @@ class LayersMesh(RenderPlan):
         Use this parameter for a single layer
     layers : list of data
         For multiple layers, use this parameter.
-        Each layer must be a boolean matrix indicating whether the element is rendered at a specific cell.
+        Each layer must be a boolean matrix indicating
+        whether the element is rendered at a specific cell.
     pieces : dict or array
         For a single layer, use a dict to define how to render each element.
         For multiple layers, use an array to define the rendering of each layer.

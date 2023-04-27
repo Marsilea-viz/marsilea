@@ -542,7 +542,7 @@ class SizedMesh(MeshBase):
                                          **options
                                          )
             else:
-                mappable = ScalarMappable(norm=self.norm, cmap=self.cmap)
+                ScalarMappable(norm=self.norm, cmap=self.cmap)
                 color_legend = ColorArt(self._collections,
                                         **self.color_legend_kws)
             return [size_legend, color_legend]

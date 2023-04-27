@@ -147,7 +147,7 @@ class UpsetData:
 
         """
         if by not in ["degree", "cardinality"]:
-            raise ValueError(f"Sort by either `degree` or `cardinality`")
+            raise ValueError("Sort by either `degree` or `cardinality`")
         if by == "cardinality":
             self._sets_table.sort_values(by=by, ascending=not ascending,
                                          inplace=True)
@@ -783,7 +783,7 @@ class Upset(WhiteBoard):
     def _render_matrix(self, ax):
         ax.set_axis_off()
 
-        bg, bg_circles = [], []
+        bg_circles = []
         lines, circles = [], []
         matrix = self.sets_table.index.to_frame().to_numpy()
         X, Y = matrix.shape
