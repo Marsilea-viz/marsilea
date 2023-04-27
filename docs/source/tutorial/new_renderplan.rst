@@ -40,7 +40,7 @@ it does not know how to draw a lollipop.
 
 
 We need to implement the :meth:`render_ax() <marsilea.plotter.base.RenderPlan.render_ax>` method,
-which takes one argument: the :class:`spec <marsilea.plotter.base.RenderSpecs>`. The :code:`spec` contains
+which takes one argument: the :class:`spec <marsilea.plotter.base.RenderSpec>`. The :code:`spec` contains
 necessary information to draw the plot. It handles data and axes for you.
 
 .. plot::

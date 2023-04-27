@@ -46,4 +46,4 @@ Render plan
     :nosignatures:
 
     RenderPlan
-    RenderSpecs
+    RenderSpec

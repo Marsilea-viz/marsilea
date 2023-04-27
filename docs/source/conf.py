@@ -54,7 +54,7 @@ plot_include_source = True
 plot_html_show_source_link = False
 plot_html_show_formats = False
 plot_formats = [('png', 220)]
-# plot_rcparams = {'savefig.bbox': 'tight'}
+plot_rcparams = {'savefig.bbox': 'tight'}
 plot_pre_code = "import numpy as np; " \
                 "import pandas as pd;" \
                 "import matplotlib as mpl;" \

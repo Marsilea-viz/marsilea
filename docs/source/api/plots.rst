@@ -29,7 +29,6 @@ Seaborn plots
     Boxen
     Violin
     Point
-    Count
     Strip
     Swarm
 
@@ -60,3 +59,4 @@ Text Label
     AnnoLabels
     Title
     Chunk
+    FixedChunk
