@@ -96,6 +96,7 @@ class LayersMesh(RenderPlan):
             self.pieces_mapper = pieces
             self.mode = "cell"
             self.set_data(data)
+            self._one_layer = True
         # render multiple layers
         # each layer is an elements
         else:
@@ -106,6 +107,7 @@ class LayersMesh(RenderPlan):
             self.pieces, data = self._sort_by_zorder(pieces, layers)
             self.mode = "layer"
             self.set_data(*data)
+            self._one_layer = len(data) == 1
         self.x_offset = (1 - shrink[0]) / 2
         self.y_offset = (1 - shrink[1]) / 2
         self.width = shrink[0]
@@ -127,23 +129,7 @@ class LayersMesh(RenderPlan):
         for (ix, piece) in ix_pieces:
             sorted_pieces.append(piece)
             sorted_layers.append(layers[ix])
-        return pieces, layers
-
-    # def get_render_data(self):
-    #     data = self.data
-    #
-    #     if not self.has_deform:
-    #         return data
-    #
-    #     if self.mode == "cell":
-    #         return self.get_deform_func()(data)
-    #     else:
-    #         trans_layers = [
-    #             self.get_deform_func()(layer) for layer in self.data]
-    #         if self.is_split:
-    #             return [chunk for chunk in zip(*trans_layers)]
-    #         else:
-    #             return trans_layers
+        return sorted_pieces, sorted_layers
 
     def get_legends(self):
         if self.mode == "cell":
@@ -168,6 +154,8 @@ class LayersMesh(RenderPlan):
         if self.mode == "layer":
             if self.is_flank:
                 data = [d.T for d in data]
+            if self._one_layer:
+                data = [data]
             Y, X = data[0].shape
         else:
             if self.is_flank:

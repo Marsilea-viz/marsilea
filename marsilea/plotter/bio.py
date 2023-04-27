@@ -80,8 +80,8 @@ class SeqLogo(StatsBase):
     Parameters
     ----------
     matrix : pandas.DataFrame
-        Drawing matrix, with columns as logo height and
-        rows as nucleotides/amino acids letters.
+        Drawing matrix, the data is the height of logo
+        with columns as positions and rows as nucleotides/amino acids letters.
     width : float, optional
         The width of each letter, by default .9, should be within [0, 1]
     color_encode : dict, optional
@@ -90,6 +90,20 @@ class SeqLogo(StatsBase):
     stack : {"descending", "ascending", "normal"}, default: "descending"
         The stacking order of letters, by height. If normal will stack
         as the order in matrix.
+
+    Examples
+    --------
+
+    .. plot::
+        :context: close-figs
+
+        >>> import pandas as pd
+        >>> from marsilea.plotter import SeqLogo
+        >>> matrix = pd.DataFrame(data=np.random.randint(1, 10, (4, 10)),
+        ...                       index=list("ACGT"))
+        >>> _, ax = plt.subplots()
+        >>> colors = {"A": "r", "C": "b", "G": "g", "T": "black"}
+        >>> SeqLogo(matrix, color_encode=colors).render(ax)
 
     """
 

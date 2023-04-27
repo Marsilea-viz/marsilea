@@ -1,11 +1,13 @@
+from typing import Mapping
+
 import numpy as np
 import pandas as pd
 from legendkit import CatLegend
 from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
 from matplotlib.ticker import FuncFormatter
-from typing import Callable, Mapping
 
+from ._utils import _format_labels
 from .base import StatsBase
 from ..utils import ECHARTS16
 
@@ -36,7 +38,7 @@ def simple_bar(data,
 class _BarBase(StatsBase):
 
     def _process_params(self, width=.7, orient=None, show_value=True,
-                        fmt=None, label=None, label_pad=2.,
+                        fmt=None, label=None, value_pad=2.,
                         props=None, **kwargs):
 
         self.width = width
@@ -44,13 +46,15 @@ class _BarBase(StatsBase):
         self.show_value = show_value
         self.label = label
         self.fmt = "%g" if fmt is None else fmt
-        self.label_pad = label_pad
+        self.value_pad = value_pad
         self.props = props if props is not None else {}
         self.options = kwargs
 
 
 class Numbers(_BarBase):
     """Show numbers in bar plot
+
+    This is used to show 1D data specifically.
 
     Parameters
     ----------
@@ -62,26 +66,38 @@ class Numbers(_BarBase):
         The color of bar
     show_value : bool
         Whether to show value on the bar
-    fmt : str
+    fmt : str, callable
         Format the value show on the bar
     label : str
         The label of the plot
-    label_pad : float
+    value_pad : float
         The spacing between label and the plot
     props : dict
         See :class:`matplotlib.text.Text`
+
+    Examples
+    --------
+
+    .. plot::
+        :context: close-figs
+
+        >>> import marsilea as ma
+        >>> from marsilea.plotter import Numbers
+        >>> data = np.random.randint(1, 10, 10)
+        >>> _, ax = plt.subplots()
+        >>> Numbers(data).render(ax)
     
     """
 
-    def __init__(self, data, width=.7, color="C0", orient=None,
-                 show_value=True, fmt=None, label=None, label_pad=2.,
+    def __init__(self, data, width=.8, color="C0", orient=None,
+                 show_value=True, fmt=None, label=None, value_pad=2.,
                  props=None, **kwargs):
         self.set_data(self.data_validator(data, target="1d"))
         self.color = color
         self.bars = None
 
         self._process_params(width, orient, show_value, fmt, label,
-                             label_pad, props, **kwargs)
+                             value_pad, props, **kwargs)
 
     def render_ax(self, spec):
         ax = spec.ax
@@ -105,14 +121,62 @@ class Numbers(_BarBase):
 
         if self.show_value:
             ax.bar_label(self.bars, fmt=self.fmt,
-                         padding=self.label_pad,
+                         padding=self.value_pad,
                          **self.props)
 
 
 class CenterBar(_BarBase):
+    """Two comparable bar plots with center line
 
-    def __init__(self, data, names=None, width=.7, colors=None, orient=None,
-                 show_value=True, fmt=None, label=None, label_pad=2.,
+    Parameters
+    ----------
+    data : np.ndarray, pd.DataFrame
+        If input with array, must be 2D array with shape (n, 2).
+        If input with DataFrame, must have two columns.
+    names : list of str
+        The names of the two bars
+    width : float
+        The width of bar
+    colors : list of color
+        The colors of the two bars
+    orient : {"v", "h"}
+        The orientation of the plot
+    show_value : bool
+        Whether to show value on the bar
+    fmt : str, callable
+        Format the value show on the bar
+    label : str
+        The label of the plot
+    value_pad : float
+        The spacing between value and the plot
+    props : dict
+        See :class:`matplotlib.text.Text`
+    kwargs:
+        Other keyword arguments passed to :meth:`matplotlib.axes.Axes.bar`
+
+    Examples
+    --------
+
+    .. plot::
+        :context: close-figs
+
+        >>> import marsilea as ma
+        >>> from marsilea.plotter import CenterBar
+        >>> data = np.random.randint(1, 10, (10, 2))
+        >>> _, ax = plt.subplots()
+        >>> CenterBar(data, names=["Bar 1", "Bar 2"]).render(ax)
+
+
+    .. plot::
+        :context: close-figs
+
+        >>> _, ax = plt.subplots()
+        >>> CenterBar(data, names=["Bar 1", "Bar 2"], orient="h").render(ax)
+
+    """
+
+    def __init__(self, data, names=None, width=.8, colors=None, orient=None,
+                 show_value=True, fmt=None, label=None, value_pad=2.,
                  props=None, **kwargs):
 
         self.set_data(self.data_validator(data.T, target="2d"))
@@ -125,7 +189,7 @@ class CenterBar(_BarBase):
         self.colors = colors
 
         self._process_params(width, orient, show_value, fmt, label,
-                             label_pad, props, **kwargs)
+                             value_pad, props, **kwargs)
 
     def render_ax(self, spec):
 
@@ -183,19 +247,18 @@ class CenterBar(_BarBase):
             ax.invert_yaxis()
 
         if self.show_value:
-            left_label = _format_bar_labels(left_bar, self.fmt)
-            right_label = _format_bar_labels(right_bar, self.fmt)
+            left_label = _format_labels(left_bar, self.fmt)
+            right_label = _format_labels(right_bar, self.fmt)
             ax.bar_label(bar1, left_label,
-                         padding=self.label_pad,
+                         padding=self.value_pad,
                          **self.props)
             ax.bar_label(bar2, right_label,
-                         padding=self.label_pad,
+                         padding=self.value_pad,
                          **self.props)
 
 
 class StackBar(_BarBase):
     """Stacked Bar
-
 
      Parameters
      ----------
@@ -205,7 +268,22 @@ class StackBar(_BarBase):
         The name of items.
      colors : list of colors, mapping of (item, color)
         The colors of the bar for each item.
-
+    orient : {"v", "h"}
+        The orientation of the plot
+    show_value : bool
+        Whether to show value on the bar
+    value_loc : {"center", "edge"}
+        The location of the value
+    fmt : str, callable
+        Format the value show on the bar
+    label : str
+        The label of the plot
+    value_pad : float
+        The spacing between value and the bar
+    props : dict
+        See :class:`matplotlib.text.Text`
+    kwargs:
+        Other keyword arguments passed to :meth:`matplotlib.axes.Axes.bar`
 
 
     Examples
@@ -215,7 +293,7 @@ class StackBar(_BarBase):
         :context: close-figs
 
         >>> from marsilea.plotter import StackBar
-        >>> stack_data = pd.DataFrame(data=np.random.randint(0, 10, (5, 3)),
+        >>> stack_data = pd.DataFrame(data=np.random.randint(1, 10, (5, 10)),
         ...                           index=list("abcde"))
         >>> _, ax = plt.subplots()
         >>> StackBar(stack_data).render(ax)
@@ -227,23 +305,24 @@ class StackBar(_BarBase):
     .. plot::
         :context: close-figs
 
-        >>> cut_off = lambda v: v if v > 2 else ""
+        >>> fmt = lambda v: int(v) if v > 2 else ""
         >>> _, ax = plt.subplots()
-        >>> StackBar(stack_data, fmt=cut_off).render(ax)
+        >>> StackBar(stack_data, show_value=True, fmt=fmt).render(ax)
 
      """
 
     def __init__(self, data,
-                 items=None, colors=None,
+                 items=None,
+                 colors=None,
                  orient=None,
                  show_value=False,
                  value_loc="center",
-                 width=.5,
+                 width=.8,
                  value_size=6,
                  fmt=None,
                  props=None,
                  label=None,
-                 label_pad=0,
+                 value_pad=0,
                  legend_kws=None,
                  **kwargs,
                  ):
@@ -281,7 +360,7 @@ class StackBar(_BarBase):
         value_props.update(props)
 
         self._process_params(width, orient, show_value, fmt, label,
-                             label_pad, value_props, **kwargs)
+                             value_pad, value_props, **kwargs)
 
         self.value_size = value_size
         self._legend_kws = dict(title=self.label, size=1)
@@ -324,30 +403,5 @@ class StackBar(_BarBase):
             bottom += row
 
             if self.show_value:
-                ax.bar_label(bars, fmt=self.fmt, padding=self.label_pad,
+                ax.bar_label(bars, fmt=self.fmt, padding=self.value_pad,
                              **self.props)
-
-
-def _format_bar_labels(labels, fmt):
-    f_labels = []
-    for a in labels:
-        if np.isnan(a):
-            a = ""
-        if isinstance(fmt, str):
-            label = _auto_format_str(fmt, a)
-        elif callable(fmt):
-            label = fmt(a)
-        else:
-            raise TypeError("fmt must be a str or callable")
-        f_labels.append(label)
-    return f_labels
-
-
-def _auto_format_str(fmt, value):
-    """Format a value according to the given format string.
-    matplotlib/cbook.py
-    """
-    try:
-        return fmt % (value,)
-    except (TypeError, ValueError):
-        return fmt.format(value)

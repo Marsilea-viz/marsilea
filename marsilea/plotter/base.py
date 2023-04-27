@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
+from typing import Any, List, Iterable, Sequence, Dict
 
 import numpy as np
 import pandas as pd
@@ -8,8 +9,6 @@ from matplotlib.artist import Artist
 from matplotlib.axes import Axes
 from matplotlib.offsetbox import AnchoredText
 from seaborn import despine
-from typing import Any, List, Iterable, Sequence, Dict
-from itertools import zip_longest
 
 from .._deform import Deformation
 from ..exceptions import DataError, SplitConflict
@@ -76,7 +75,7 @@ class DataLoader:
 
 
 @dataclass(repr=False)
-class RenderSpecs:
+class RenderSpec:
     ax: Axes
 
     data: Any
@@ -332,8 +331,8 @@ class RenderPlan:
         total = len(axes)
         dispatch = zip(axes, spec_data, params, group_params)
         for i, (ax, d, p, gp) in enumerate(dispatch):
-            spec = RenderSpecs(ax=ax, data=d, params=p, group_params=gp,
-                               current_ix=i, total=total)
+            spec = RenderSpec(ax=ax, data=d, params=p, group_params=gp,
+                              current_ix=i, total=total)
             spec_list.append(spec)
         return spec_list
 
@@ -354,7 +353,7 @@ class RenderPlan:
                     np.asarray(params, dtype=object))
         else:
             spec_data = datasets[0] if len(datasets) == 1 else datasets
-        return RenderSpecs(ax=ax, data=spec_data, params=params)
+        return RenderSpec(ax=ax, data=spec_data, params=params)
 
     def get_render_spec(self, axes):
         if self.is_split:
@@ -362,60 +361,35 @@ class RenderPlan:
         else:
             return self._get_intact_render_spec(axes)
 
-        # if params_sets is not None:
-        #     ic(params_sets.values())
-        #     params_sets_values = self.create_render_datasets(
-        #         deform_func, *list(params_sets.values()))
-        #     params_sets_names = list(params_sets.keys())
-        #     ic(params_sets_values)
+    # def get_render_data(self):
+    #     """Define how render data is organized
+    #
+    #     The render data could be different depends on following situations:
+    #
+    #     #. Render at different sides: left, right, top, bottom and main canvas
+    #     #. The canvas is split or not
+    #
+    #     """
+    #     deform_func = self.get_deform_func()
+    #     data = self.get_data()
+    #     datasets = self.get_datasets()
+    #     if deform_func is None:
+    #         if data is not None:
+    #             return data
+    #         else:
+    #             return datasets
+    #     else:
+    #         if data is not None:
+    #             return deform_func(data)
+    #         elif datasets is not None:
+    #             return self.create_render_datasets(*datasets)
 
-        # Has grouping, maybe clustering
-
-        # if params_sets is not None:
-        #     spec_params = []
-        #     for d in zip(*params_sets_values):
-        #         spec_params.append(dict(zip(params_sets_names, d)))
-
-        # if group_data is not None:
-        #     group_data = self.reindex_by_chunk(group_data)
-        # else:
-        #     group_data = [None] * len(axes)
-        # if group_params is not None:
-        #     group_params = {k: self.reindex_by_chunk(v) for k, v in group_params.items()}
-        # else:
-        #     group_params = [None] * len(axes)
-
-        # No grouping, must be clustering
-
-    def get_render_data(self):
-        """Define how render data is organized
-
-        The render data could be different depends on following situations:
-
-        #. Render at different sides: left, right, top, bottom and main canvas
-        #. The canvas is split or not
-
-        """
-        deform_func = self.get_deform_func()
-        data = self.get_data()
-        datasets = self.get_datasets()
-        if deform_func is None:
-            if data is not None:
-                return data
-            else:
-                return datasets
-        else:
-            if data is not None:
-                return deform_func(data)
-            elif datasets is not None:
-                return self.create_render_datasets(*datasets)
-
-    def create_render_datasets(self, deform_func, *datasets):
-        datasets = [deform_func(d) for d in datasets]
-        if self.is_split:
-            return [d for d, in zip(*datasets)]
-        else:
-            return datasets
+    # def create_render_datasets(self, deform_func, *datasets):
+    #     datasets = [deform_func(d) for d in datasets]
+    #     if self.is_split:
+    #         return [d for d, in zip(*datasets)]
+    #     else:
+    #         return datasets
 
     @property
     def has_deform(self):
@@ -447,28 +421,28 @@ class RenderPlan:
                 return True
         return False
 
-    def render_ax(self, spec: RenderSpecs):
+    def render_ax(self, spec: RenderSpec):
         """The major rendering function
         Define how the plot is drawn
         """
         pass
 
-    def render_axes(self, axes):
-        """Use to render plots when the canvas is split
-
-        By default, it will match each data chunk to each axes
-
-        .. code-block:: python
-
-            for ax, data in zip(axes, self.get_render_data()):
-                self.render_ax(ax, data)
-
-        """
-        total = len(axes)
-        for ix, (ax, data) in enumerate(
-                zip_longest(axes, self.get_render_data())):
-            self.render_ax(RenderSpecs(ax=ax, data=data,
-                                       current_ix=ix, total=total))
+    # def render_axes(self, axes):
+    #     """Use to render plots when the canvas is split
+    #
+    #     By default, it will match each data chunk to each axes
+    #
+    #     .. code-block:: python
+    #
+    #         for ax, data in zip(axes, self.get_render_data()):
+    #             self.render_ax(ax, data)
+    #
+    #     """
+    #     total = len(axes)
+    #     for ix, (ax, data) in enumerate(
+    #             zip_longest(axes, self.get_render_data())):
+    #         self.render_ax(RenderSpec(ax=ax, data=data,
+    #                                   current_ix=ix, total=total))
 
     def render(self, axes):
         """
@@ -510,7 +484,7 @@ class RenderPlan:
 
         .. note::
             :class:`matplotlib.colorbar.Colorbar` is not an :class:`Artist`.
-            Use :func:`legendkit.colorart`
+            Use :class:`legendkit.colorart`
 
         """
         return None

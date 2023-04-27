@@ -11,6 +11,7 @@ from matplotlib.colors import ListedColormap, TwoSlopeNorm, Normalize, \
     is_color_like
 from typing import Mapping
 
+from ._utils import _format_label
 from .base import RenderPlan
 from ..layout import close_ticks
 from ..utils import relative_luminance, get_colormap, ECHARTS16, \
@@ -70,18 +71,18 @@ class ColorMesh(MeshBase):
         The value to center on colormap, notice that this is different from
         seaborn; If set, a :class:`matplotlib.colors.TwoSlopeNorm` will be used
         to center the colormap.
-    mask : array of bool
-        Indicate which cell will be masked and not rendered
+    mask : array-like
+        A bool matrix indicates which cell will be masked and not rendered
     alpha : float
         The transparency value
     linewidth : float
         The width of grid line 
-    linecolor : 
+    linecolor : color
         The color of grid line
-    annot : bool
-        Whether to show the value
-    fmt : str
-        The format string
+    annot : bool, array-like
+        Whether to show the value / The text to show in each cell
+    fmt : str, callable
+        The format string or a function to format the value
     annot_kws : dict
         See :class:`matplotlib.text.Text`
     cbar_kws : dict
@@ -94,21 +95,24 @@ class ColorMesh(MeshBase):
         See :class:`matplotlib.text.Text`
     kwargs :
 
+    See Also
+    --------
+        :class:`marsilea.Heatmap`
+
     Examples
     --------
-
-    .. plot::
-
-        >>> from marsilea.plotter import ColorMesh
-        >>> _, ax = plt.subplots(figsize=(5, .5))
-        >>> data = np.arange(10)
-        >>> ColorMesh(data, cmap="Blues", label="ColorMesh").render(ax)
 
     .. plot::
         :context: close-figs
 
         >>> import marsilea as ma
         >>> from marsilea.plotter import ColorMesh
+        >>> _, ax = plt.subplots(figsize=(5, .5))
+        >>> ColorMesh(np.arange(10), cmap="Blues").render(ax)
+
+    .. plot::
+        :context: close-figs
+
         >>> data = np.random.randn(10, 8)
         >>> h = ma.Heatmap(data)
         >>> h.hsplit(cut=[5])
@@ -164,7 +168,7 @@ class ColorMesh(MeshBase):
             if m is not np.ma.masked:
                 lum = relative_luminance(color)
                 text_color = ".15" if lum > .408 else "w"
-                annotation = ("{:" + self.fmt + "}").format(val)
+                annotation = _format_label(val, self.fmt)
                 text_kwargs = dict(color=text_color, ha="center", va="center")
                 text_kwargs.update(self.annot_kws)
                 ax.text(x, y, annotation, **text_kwargs)
@@ -239,9 +243,36 @@ class Colors(MeshBase):
     props : dict
         See :class:`matplotlib.text.Text`
     legend_kws : 
-        See :func:`legendkit.legend`
+        See :class:`legendkit.legend`
     kwargs : 
         Pass to :meth:`pcolormesh <matplotlib.axes.Axes.pcolormesh>`
+
+    See Also
+    --------
+        :class:`marsilea.CatHeatmap`
+
+    Examples
+    --------
+
+    .. plot::
+        :context: close-figs
+
+        >>> import marsilea as ma
+        >>> from marsilea.plotter import Colors
+        >>> _, ax = plt.subplots(figsize=(5, .5))
+        >>> data = np.random.choice(["A", "B", "C"], 10)
+        >>> Colors(data).render(ax)
+
+    .. plot::
+        :context: close-figs
+
+        >>> h = ma.Heatmap(np.random.randn(10, 8))
+        >>> h.hsplit(cut=[5])
+        >>> h.add_dendrogram("left")
+        >>> color = Colors(data, label="Colors")
+        >>> h.add_right(color, size=.2, pad=.05)
+        >>> h.render()
+
 
     """
 
@@ -250,9 +281,7 @@ class Colors(MeshBase):
                  label=None, label_loc=None, props=None, legend_kws=None,
                  **kwargs):
         data = np.asarray(data)
-        self.label = label
-        self.label_loc = label_loc
-        self.props = props
+        self.set_label(label, label_loc, props)
         self.linewidth = linewidth
         self.linecolor = linecolor
         self.kwargs = kwargs
@@ -378,10 +407,39 @@ class SizedMesh(MeshBase):
     legend : bool, default: True
         Whether to add a legend
     size_legend_kws : dict
-        Control the size legend, See :func:`legendkit.size_legend`
+        Control the size legend, See :class:`legendkit.size_legend`
     color_legend_kws : dict
-        Control the color legend, See :func:`legendkit.colorart`
-    kwargs :
+        Control the color legend, See :class:`legendkit.colorart`
+    kwargs : dict
+        Pass to :meth:`matplotlib.axes.Axes.scatter`
+
+    See Also
+    --------
+        :class:`marsilea.SizedHeatmap`
+
+    Examples
+    --------
+
+    .. plot::
+        :context: close-figs
+
+        >>> import marsilea as ma
+        >>> from marsilea.plotter import SizedMesh
+        >>> _, ax = plt.subplots(figsize=(5, .5))
+        >>> size, color = np.random.rand(1, 10), np.random.rand(1, 10)
+        >>> SizedMesh(size, color).render(ax)
+
+    .. plot::
+        :context: close-figs
+
+        >>> h = ma.Heatmap(np.random.randn(10, 8))
+        >>> h.hsplit(cut=[5])
+        >>> h.add_dendrogram("left")
+        >>> mesh = SizedMesh(size, color, marker="*", label="SizedMesh")
+        >>> h.add_right(mesh, size=.2, pad=.05)
+        >>> h.render()
+
+
 
     """
 
@@ -437,9 +495,7 @@ class SizedMesh(MeshBase):
         self.frameon = frameon
         self.edgecolor = edgecolor
         self.linewidth = linewidth
-        self.label = label
-        self.label_loc = label_loc
-        self.props = props
+        self.set_label(label, label_loc, props)
         self.kwargs = kwargs
 
         self._collections = None
@@ -568,9 +624,7 @@ class MarkerMesh(MeshBase):
         self.set_data(np.asarray(data))
         self.color = color
         self.marker = marker
-        self.label = label
-        self.label_loc = label_loc
-        self.props = props
+        self.set_label(label, label_loc, props)
         self.kwargs = kwargs
         self.marker_size = size
 
@@ -604,9 +658,7 @@ class TextMesh(MeshBase):
                  label=None, label_loc=None, props=None, **kwargs):
         self.set_data(self.data_validator(texts))
         self.color = color
-        self.label = label
-        self.label_loc = label_loc
-        self.props = props
+        self.set_label(label, label_loc, props)
         self.kwargs = kwargs
 
     def render_ax(self, spec):

@@ -1,4 +1,4 @@
-from ._seaborn import Bar, Box, Boxen, Violin, Point, Count, Strip, Swarm
+from ._seaborn import Bar, Box, Boxen, Violin, Point, Strip, Swarm
 from .arc import Arc
 from .bar import Numbers, StackBar, CenterBar
 from .base import RenderPlan

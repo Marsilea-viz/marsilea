@@ -114,7 +114,25 @@ class _SeabornBase(StatsBase):
 
 def _seaborn_doc(obj: _SeabornBase):
     cls_name = obj.__name__
-    shape = (10, 10)
+
+    sdata = "np.random.rand(10, 10)"
+    hue_data = "{'a': sdata, 'b': sdata}"
+    kws = "color='#DB4D6D'"
+    h_kws = "group_kws={'color': colors}"
+
+    if cls_name == "Swarm":
+        sdata = "np.random.rand(50, 10)"
+        kws = "palette='dark:#DB4D6D', size=2"
+        h_kws = "group_kws={'palette': [f'dark:{c}'for c in colors]}, size=2"
+
+    elif cls_name == "Strip":
+        sdata = "np.random.rand(50, 10)"
+        kws = "palette='dark:#DB4D6D', size=2"
+        h_kws = "group_kws={'palette': [f'dark:{c}'for c in colors]}, size=2"
+
+    elif cls_name == "Point":
+        hue_data = "{'a': sdata, 'b': sdata * 2}"
+
     base_doc = f"""Wrapper for seaborn's {obj._seaborn_plot}
     
     .. note::
@@ -136,6 +154,11 @@ def _seaborn_doc(obj: _SeabornBase):
     palette : dict of label, color
     label : str
         The label of your data
+    legend_kws : dict
+        Configurations for legend
+    group_kws : dict
+        Configurations that apply to each group, should be something like
+        :code:`{{'colors': ['C0', 'C1', 'C2']}}` if you have three groups.
     kwargs : 
         See :func:`seaborn.{obj._seaborn_plot}`
         
@@ -150,8 +173,8 @@ def _seaborn_doc(obj: _SeabornBase):
         >>> import marsilea as ma
         >>> from marsilea.plotter import {cls_name}
         >>> data = np.random.randn(10, 10)
-        >>> sdata = np.random.randint(0, 10, {shape})
-        >>> plot = {cls_name}(np.random.randint(0, 10, {shape}), color='#DB4D6D')
+        >>> sdata = {sdata}
+        >>> plot = {cls_name}(sdata, {kws})
         >>> h = ma.Heatmap(data)
         >>> h.hsplit(cut=[3, 7])
         >>> h.add_right(plot)
@@ -164,7 +187,7 @@ def _seaborn_doc(obj: _SeabornBase):
     .. plot::
         :context: close-figs
         
-        >>> plot = {cls_name}({{'a': sdata, 'b': sdata}}, color='#DB4D6D')
+        >>> plot = {cls_name}({hue_data}, {kws})
         >>> h = ma.Heatmap(data)
         >>> h.hsplit(cut=[3, 7])
         >>> h.add_right(plot)
@@ -175,22 +198,23 @@ def _seaborn_doc(obj: _SeabornBase):
     .. plot::
         :context: close-figs
         
-        >>> plot = {cls_name}(np.random.randint(0, 10, {shape}), color='#DB4D6D')
-        >>> anno = ma.plotter.Chunk(['Chunk1', 'Chunk2', 'Chunk3'], 
-        ...                         ['#66327C', '#FFB11B', '#A8D8B9'], padding=10)
-        >>> cb = ma.ClusterBoard(data, margin=.2)
+        >>> plot = {cls_name}(sdata, {kws})
+        >>> colors = ['#66327C', '#FFB11B', '#A8D8B9']
+        >>> anno = ma.plotter.Chunk(['C1', 'C2', 'C3'], colors, padding=10)
+        >>> cb = ma.ClusterBoard(data, height=2, margin=.5)
         >>> cb.add_layer(plot)
         >>> cb.vsplit(cut=[3, 7])
         >>> cb.add_bottom(anno)
         >>> cb.render()
         
-    To layout in a different orient
+    To layout in a different orient and style each group
     
     .. plot::
         :context: close-figs
         
-        >>> plot = {cls_name}(np.random.randint(0, 10, {shape}), orient='h', color='#DB4D6D')
-        >>> cb = ma.ClusterBoard(data.T)
+        >>> plot = {cls_name}(sdata, orient='h',
+        ...                   {h_kws})
+        >>> cb = ma.ClusterBoard(data.T, width=2)
         >>> cb.add_layer(plot)
         >>> cb.hsplit(cut=[3, 7])
         >>> cb.add_left(anno)
@@ -229,9 +253,9 @@ class Point(_SeabornBase):
     _seaborn_plot = "pointplot"
 
 
-@_seaborn_doc
-class Count(_SeabornBase):
-    _seaborn_plot = "countplot"
+# @_seaborn_doc
+# class Count(_SeabornBase):
+#     _seaborn_plot = "countplot"
 
 
 @_seaborn_doc

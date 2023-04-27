@@ -463,7 +463,7 @@ class AnnoLabels(_LabelBase):
         >>> from marsilea.plotter import AnnoLabels
         >>> matrix = np.random.randn(100, 10)
         >>> h = ma.Heatmap(matrix)
-        >>> marks = AnnoLabels(labels, mark=[3, 4, 5])
+        >>> marks = AnnoLabels(labels, mark=[3, 4, 5, 96, 97, 98])
         >>> h.add_right(marks)
         >>> h.render()
 
@@ -593,6 +593,8 @@ class Labels(_LabelBase):
         Which side of the text to align
     padding : float
         The buffer space between text and the adjcent plots, in points unit
+    text_props : dict
+        A dict of array that control the text properties for each text.
     options : dict
         Pass to :class:`matplotlib.text.Text`
 
@@ -600,20 +602,18 @@ class Labels(_LabelBase):
     Examples
     --------
 
+    To set the text properties for each text, use :code:`text_props`
+
     .. plot::
         :context: close-figs
 
-        >>> row = [str(i) for i in range(15)]
-        >>> col = [str(i) for i in range(10)]
+        >>> labels = np.arange(20)
+        >>> colors = ["r" if labels % 2 else "b" for labels in labels]
 
         >>> import marsilea as ma
         >>> from marsilea.plotter import Labels
-        >>> matrix = np.random.randn(15, 10)
-        >>> h = ma.Heatmap(matrix)
-        >>> label_row = Labels(row)
-        >>> label_col = Labels(col)
-        >>> h.add_right(label_row)
-        >>> h.add_bottom(label_col)
+        >>> h = ma.Heatmap(np.random.randn(20, 20))
+        >>> h.add_right(Labels(labels, text_props={'color': colors}))
         >>> h.render()
 
     """
@@ -717,6 +717,10 @@ class Title(_LabelBase):
     options : dict
         Pass to :class:`matplotlib.text.Text`
 
+    See Also
+    --------
+        :meth:`marsilea.base.WhiteBoard.add_title`
+
     Examples
     --------
 
@@ -727,8 +731,12 @@ class Title(_LabelBase):
         >>> from marsilea.plotter import Title
         >>> matrix = np.random.randn(15, 10)
         >>> h = ma.Heatmap(matrix)
-        >>> title = Title('Heatmap')
-        >>> h.add_top(title)
+        >>> for align in ["left", "right", "center"]:
+        ...     title = Title(f'Title align={align}', align=align)
+        ...     h.add_top(title)
+        >>> for align in ["top", "bottom", "center"]:
+        ...     title = Title(f'Title align={align}', align=align)
+        ...     h.add_left(title)
         >>> h.render()
 
 
@@ -930,33 +938,38 @@ class Chunk(_ChunkBase):
     props : dict or array of dict
         See :class:`matplotlib.text.Text`
     rotation : float
-        How many to rotate the text
+        How many angle to rotate the text coutner-clockwise, in degree unit
     padding : float
         The buffer space between text and the adjcent plots, in points unit
 
+    See Also
+    --------
+        :class:`FixedChunk`
+
     Examples
     --------
+
+    The order of chunk will be aligned with the order of cluster.
 
     .. plot::
         :context: close-figs
 
         >>> import marsilea as ma
         >>> from marsilea.plotter import Chunk
-        >>> matrix = np.random.randn(15, 10)
+        >>> matrix = np.random.randn(20, 20)
         >>> h = ma.Heatmap(matrix)
-        >>> h.hsplit(cut=[4, 10])
-        >>> h.vsplit(cut=[5])
-        >>> chunk_row = Chunk(['Top','Middle','Bottom'],rotation=True)
-        >>> chunk_col = Chunk(['Left','Right'],rotation=True)
-        >>> h.add_right(chunk_row)
-        >>> h.add_bottom(chunk_col)
+        >>> chunk = ['C1', 'C2', 'C3', 'C4']
+        >>> labels = np.random.choice(chunk, size=20)
+        >>> h.hsplit(labels=labels, order=chunk)
+        >>> h.add_right(Chunk(chunk, bordercolor="gray"), pad=.1)
+        >>> h.add_dendrogram("left")
         >>> h.render()
     
     """
 
     def __init__(self, texts,
                  fill_colors=None,
-                 props=None, padding=2, bordercolor=None,
+                 props=None, padding=8, bordercolor=None,
                  borderwidth=None, borderstyle=None,
                  **options):
 
@@ -1005,10 +1018,47 @@ class FixedChunk(_ChunkBase):
         The buffer space between text and the adjcent plots, in points unit
 
 
+    See Also
+    --------
+        :class:`Chunk`
+
+    Examples
+    --------
+
+    The fixed chunk will not be reordered by the cluster results.
+
+    .. plot::
+        :context: close-figs
+
+        >>> import marsilea as ma
+        >>> from marsilea.plotter import FixedChunk
+        >>> matrix = np.random.randn(20, 20)
+        >>> h = ma.Heatmap(matrix)
+        >>> chunk = ['C1', 'C2', 'C3', 'C4']
+        >>> labels = np.random.choice(chunk, size=20)
+        >>> h.hsplit(labels=labels, order=chunk)
+        >>> h.add_right(FixedChunk(chunk, bordercolor="gray"), pad=.1)
+        >>> h.add_dendrogram("left")
+        >>> h.render()
+
+    You can span a chunk on more than one chunk.
+
+    .. plot::
+        :context: close-figs
+
+        >>> h = ma.Heatmap(matrix)
+        >>> chunk = ['C1', 'C2-1', 'C2-2', 'C4']
+        >>> labels = np.random.choice(chunk, size=20)
+        >>> h.hsplit(labels=labels, order=chunk)
+        >>> h.add_right(FixedChunk(chunk, bordercolor="gray"), pad=.1)
+        >>> h.add_right(FixedChunk(['C1', 'C2', 'C3'], ratio=[1, 2, 1], fill_colors="red"), pad=.1)
+        >>> h.render()
+
+
     """
 
     def __init__(self, texts, fill_colors=None, ratio=None,
-                 props=None, padding=2, bordercolor=None,
+                 props=None, padding=8, bordercolor=None,
                  borderwidth=None, borderstyle=None,
                  **options):
         super().__init__(texts, fill_colors, props, padding, bordercolor,
