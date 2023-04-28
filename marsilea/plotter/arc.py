@@ -206,26 +206,22 @@ class Arc(StatsBase):
                         elif self.side == "right":
                             xy = (0, arc_mid)
                             angle = -90
-                        elif self.side == "bottom":
-                            xy = (arc_mid, 1)
-                            angle = 180
                         else:
                             xy = (arc_mid, 0)
                             angle = 0
                         sizes.append(arc_width)
                         arc = mArc(xy, arc_width, arc_width * 2, angle,
                                    **options)
-
                         ax.add_patch(arc)
 
-        lim = np.max(sizes) * 1.1
+        lim = np.max(sizes)
         if self.is_flank:
-            ax.set_xlim(0, lim)
-            ax.set_ylim(0, 1)
+            ax.set_xlim(0, lim * 1.1)
+            ax.set_ylim(1, 0)
         else:
-            ax.set_ylim(0, lim)
+            ax.set_ylim(lim * 1.1, 0)
             ax.set_xlim(0, 1)
-        if self.is_flank:
+        if self.side == "top":
             ax.invert_yaxis()
         ax.set_axis_off()
 

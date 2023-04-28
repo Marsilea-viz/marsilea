@@ -244,12 +244,13 @@ class RenderPlan:
     def reindex_by_chunk(self, group_data):
         if group_data is not None:
             if self.has_deform:
-                if self.deform.is_cluster:
-                    group_data = np.asarray(group_data)
-                    if self.deform.is_col_split & self.is_body:
-                        return group_data[self.deform.col_chunk_index]
-                    elif self.deform.is_row_split & self.is_flank:
-                        return group_data[self.deform.row_chunk_index]
+                group_data = np.asarray(group_data)
+                if self.deform.is_col_split & self.is_body & \
+                        self.deform.is_col_cluster:
+                    return group_data[self.deform.col_chunk_index]
+                elif self.deform.is_row_split & self.is_flank & \
+                        self.deform.is_row_cluster:
+                    return group_data[self.deform.row_chunk_index]
             return group_data
 
     def set_deform(self, deform: Deformation):

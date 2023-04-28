@@ -901,7 +901,6 @@ class _ChunkBase(_LabelBase):
 
         specs = zip_longest(axes, texts, fill_colors, border_colors,
                             borderwidth, borderstyle, props)
-
         for ax, t, bgcolor, bc, lw, ls, prop in specs:
             ax.set_axis_off()
             fontdict = params.to_dict()

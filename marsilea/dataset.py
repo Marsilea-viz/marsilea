@@ -40,6 +40,8 @@ def load_data(name, cache=True):
         return _load_sequence_alignment(cache)
     elif name == "cooking_oils":
         return _load_cooking_oils(cache)
+    elif name == "les_miserables":
+        return _load_les_miserables(cache)
     else:
         raise NameError("Dataset not found")
 
@@ -110,3 +112,15 @@ def _load_sequence_alignment(cache=True):
 def _load_cooking_oils(cache=True):
     data = _cache_remote("cooking_oils.csv", cache=cache)
     return pd.read_csv(data, index_col=0)
+
+
+def _load_les_miserables(cache=True):
+    nodes, links = _cache_remote(
+        ['les-miserables/miserables_nodes.csv',
+         'les-miserables/miserables_links.csv'
+         ], cache=cache
+    )
+    return {
+        'nodes': pd.read_csv(nodes),
+        'links': pd.read_csv(links)
+    }
