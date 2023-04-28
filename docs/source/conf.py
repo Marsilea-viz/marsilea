@@ -76,7 +76,7 @@ html_logo = "../../img/logo.png"
 
 
 def matplotlib_tight_scraper(*args, **kwargs):
-    return matplotlib_scraper(*args, format="png", dpi=200, **kwargs)
+    return matplotlib_scraper(*args, bbox_inches="tight", format="png", dpi=200, **kwargs)
 
 
 intersphinx_mapping = {
