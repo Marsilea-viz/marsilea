@@ -1,4 +1,4 @@
 Gallery
 =======
 
-Below shows a series of visualization to generated with heatgraphy
+Below shows a series of visualization generated with marsilea.

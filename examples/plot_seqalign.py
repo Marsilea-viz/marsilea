@@ -7,17 +7,22 @@ import numpy as np
 import pandas as pd
 
 import marsilea as ma
-import matplotlib.pyplot as plt
-import mpl_fontkit as fk
+import marsilea.plotter as mp
+import matplotlib as mpl
 
+import mpl_fontkit as fk
 fk.install("Roboto Mono", verbose=False)
 
+mpl.rcParams["font.size"] = 30
 
+# %%
 # Load data
+# ---------
 seq = ma.load_data("seq_align")
-seq = seq.iloc[:, 130:160]
+seq = seq.iloc[:, 130:175]
 
-# %% Calculate the height of each amino acid
+# %%
+# Calculate the height of each amino acid.
 # See https://en.wikipedia.org/wiki/Sequence_logo
 
 collect = []
@@ -41,6 +46,10 @@ for _, col in hm.items():
     heights.append(col * R)
 
 logo = pd.DataFrame(heights).T
+
+# %%
+# Prepare color palette and data
+# ------------------------------
 
 color_encode = {
     'A': '#f76ab4',
@@ -74,9 +83,6 @@ for _, col in hm.items():
     max_aa.append(hm.index[ix])
     freq.append(col[ix])
 
-height = 5
-width = height * seq.shape[1] / seq.shape[0]
-
 position = []
 mock_ticks = []
 for i in seq.columns:
@@ -87,16 +93,22 @@ for i in seq.columns:
         position.append("")
         mock_ticks.append("")
 
+# %%
+# Plot
+# ----
+
+height = 5
+width = height * seq.shape[1] / seq.shape[0]
+
 ch = ma.CatHeatmap(seq.to_numpy(), palette=color_encode, height=height, width=width)
-ch.add_layer(ma.plotter.TextMesh(seq.to_numpy(), fontsize=25))
+ch.add_layer(ma.plotter.TextMesh(seq.to_numpy()))
 ch.add_top(ma.plotter.SeqLogo(logo, color_encode=color_encode), pad=.1, size=2)
-ch.add_left(ma.plotter.Labels(seq.index, fontsize=30), pad=.1)
-ch.add_bottom(ma.plotter.Labels(mock_ticks, fontsize=30, rotation=0), pad=.1)
-ch.add_bottom(ma.plotter.Labels(position, fontsize=30, rotation=0))
-ch.add_bottom(ma.plotter.Numbers(freq, width=.9, color="#FFB11B", show_value=False), name="freq_bar", size=2)
-ch.add_bottom(ma.plotter.Labels(max_aa, fontsize=30, rotation=0))
+ch.add_left(ma.plotter.Labels(seq.index), pad=.1)
+ch.add_bottom(ma.plotter.Labels(mock_ticks, rotation=0), pad=.1)
+ch.add_bottom(ma.plotter.Labels(position, rotation=0))
+ch.add_bottom(ma.plotter.Numbers(freq, width=.9, color="#FFB11B", show_value=False),
+              name="freq_bar", size=2)
+ch.add_bottom(ma.plotter.Labels(max_aa, rotation=0), pad=.1)
 ch.render()
 
 ch.get_ax("freq_bar").set_axis_off()
-
-plt.show()
