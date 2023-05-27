@@ -521,7 +521,7 @@ class ClusterBoard(WhiteBoard):
         self._cluster_data = cluster_data
         self._deform = Deformation(cluster_data)
 
-    def add_dendrogram(self, side, method=None, metric=None,
+    def add_dendrogram(self, side, method=None, metric=None, linkage=None,
                        add_meta=True, add_base=True, add_divider=True,
                        meta_color=None, linewidth=None, colors=None,
                        divider_style="--", meta_ratio=.2,
@@ -542,6 +542,10 @@ class ClusterBoard(WhiteBoard):
             See scipy's :meth:`linkage <scipy.cluster.hierarchy.linkage>`
         metric : str
             See scipy's :meth:`linkage <scipy.cluster.hierarchy.linkage>`
+        linkage : ndarray
+            Precomputed linkage matrix.
+            See scipy's :meth:`linkage <scipy.cluster.hierarchy.linkage>` for
+            specific format.
         add_meta : bool
             If the data is split, a meta dendrogram can be drawn for data
             chunks. The mean value of the data chunk is used to calculate
@@ -638,12 +642,12 @@ class ClusterBoard(WhiteBoard):
             den_options['pos'] = "row"
             self._row_den.append(den_options)
             deform.set_cluster(row=True, method=method, metric=metric,
-                               use_meta=add_meta)
+                               linkage=linkage, use_meta=add_meta)
         else:
             den_options['pos'] = "col"
             self._col_den.append(den_options)
             deform.set_cluster(col=True, method=method, metric=metric,
-                               use_meta=add_meta)
+                               linkage=linkage, use_meta=add_meta)
 
     def hsplit(self, cut=None, labels=None, order=None, spacing=0.01):
         if self._split_row:

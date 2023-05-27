@@ -16,6 +16,7 @@ def load_data(name, cache=True):
                 (TCGA, PanCancer Atlas)
     - 'mouse_embryo': Spatial mapping of mouse embryo at E12.5
     - 'seq_align': Sequence alignment data
+    - 'les_miserables': Characters in Les Miserables
 
     Parameters
     ----------

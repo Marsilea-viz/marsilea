@@ -3,7 +3,7 @@ from itertools import cycle
 from matplotlib.collections import LineCollection
 from matplotlib.colors import is_color_like
 from matplotlib.lines import Line2D
-from scipy.cluster.hierarchy import linkage, dendrogram
+from scipy.cluster.hierarchy import linkage as scipy_linkage, dendrogram
 from typing import List, Sequence
 
 
@@ -15,6 +15,7 @@ class _DendrogramBase:
                  data,
                  method=None,
                  metric=None,
+                 linkage=None,
                  ):
         if method is None:
             method = "single"
@@ -29,7 +30,10 @@ class _DendrogramBase:
             self._reorder_index = np.array([0])
             self.is_singleton = True
         else:
-            self.Z = linkage(data, method=method, metric=metric)
+            if linkage is not None:
+                self.Z = linkage
+            else:
+                self.Z = scipy_linkage(data, method=method, metric=metric)
             self._plot_data = dendrogram(self.Z, no_plot=True)
 
             self.x_coords = np.asarray(self._plot_data['icoord']) / 5
@@ -59,7 +63,9 @@ class _DendrogramBase:
         self.ylim = np.array([0, self.max_dependent_coord * 1.05])
         self._render_xlim = self.xlim
         self._render_ylim = self.ylim
+
         # Should be lazy eval
+        # TODO: Allow center to be calculated differently
         self._center = np.mean(data, axis=0)
 
     @property
@@ -143,9 +149,11 @@ class Dendrogram(_DendrogramBase):
     def __init__(self,
                  data: np.ndarray,
                  method=None,
-                 metric=None
+                 metric=None,
+                 linkage=None,
                  ):
-        super().__init__(data, method=method, metric=metric)
+        super().__init__(data, method=method, metric=metric,
+                         linkage=linkage)
 
     # here we left an empty **kwargs to align api with GroupDendrogram
     def draw(self, ax, orient="top",
@@ -223,7 +231,8 @@ class GroupDendrogram(_DendrogramBase):
     def __init__(self,
                  dens: List[Dendrogram],
                  method=None,
-                 metric=None
+                 metric=None,
+                 **kwargs,
                  ):
         data = np.vstack([d.center for d in dens])
         super().__init__(data, method=method, metric=metric)
