@@ -833,6 +833,7 @@ class Title(_LabelBase):
 class _ChunkBase(_LabelBase):
 
     def __init__(self, texts,
+                 align=None,
                  fill_colors=None,
                  props=None, padding=2, bordercolor=None,
                  borderwidth=None, borderstyle=None,
@@ -841,6 +842,7 @@ class _ChunkBase(_LabelBase):
         n = len(texts)
         self.n = n
         self.texts = texts
+        self.align = align
         self.padding = padding
 
         if is_color_like(fill_colors):
@@ -876,6 +878,15 @@ class _ChunkBase(_LabelBase):
         super().__init__()
         self._sort_params(**options)
 
+
+    align_pos = {
+        'right': 1,
+        'left': 0,
+        'top': 1,
+        'bottom': 0,
+        'center': 0.5
+    }
+
     default_rotation = {
         "right": -90,
         "left": 90,
@@ -883,16 +894,26 @@ class _ChunkBase(_LabelBase):
         "bottom": 0,
     }
 
+
+    def get_alignment(self, ha, va, rotation):
+        if rotation in {90, -90}:
+            ha, va = va, ha  # swap the alignment
+        align_x, align_y = self.align_pos[ha], self.align_pos[va]
+        return align_x, align_y
+
     def get_text_params(self) -> TextParams:
-        p = TextParams(va="center", ha="center",
-                       rotation=self.default_rotation[self.side])
+        va, ha = 'center', self.align
+        rotation = self.default_rotation[self.side]
+        p = TextParams(rotation=rotation, va=va, ha=ha)
         p.update_params(self._user_params)
         return p
 
+
+
     def _render(self, axes, texts, fill_colors, border_colors,
                 borderwidth, borderstyle, props):
-
         params = self.get_text_params()
+        ha, va, rotation = params._ha, params._va, params.rotation
         fill_colors = [] if fill_colors is None else fill_colors
         border_colors = [] if border_colors is None else border_colors
         borderwidth = [] if borderwidth is None else borderwidth
@@ -915,7 +936,12 @@ class _ChunkBase(_LabelBase):
 
             if prop is not None:
                 fontdict.update(prop)
-            ax.text(0.5, 0.5, t, fontdict=fontdict, transform=ax.transAxes)
+
+            # adjust the text alignment based on the alignment position and rotation
+            align_x, align_y = self.get_alignment(ha, va, rotation)
+            ax.text(align_x, align_y, t, fontdict=fontdict, transform=ax.transAxes)
+
+
 
 
 class Chunk(_ChunkBase):
@@ -967,12 +993,13 @@ class Chunk(_ChunkBase):
     """
 
     def __init__(self, texts,
+                 align=None,
                  fill_colors=None,
                  props=None, padding=8, bordercolor=None,
                  borderwidth=None, borderstyle=None,
                  **options):
 
-        super().__init__(texts, fill_colors, props, padding, bordercolor,
+        super().__init__(texts, align, fill_colors, props, padding, bordercolor,
                          borderwidth, borderstyle, **options)
 
     def render(self, axes):
@@ -1057,11 +1084,11 @@ class FixedChunk(_ChunkBase):
 
     """
 
-    def __init__(self, texts, fill_colors=None, ratio=None,
+    def __init__(self, texts, align=None, fill_colors=None, ratio=None,
                  props=None, padding=8, bordercolor=None,
                  borderwidth=None, borderstyle=None,
                  **options):
-        super().__init__(texts, fill_colors, props, padding, bordercolor,
+        super().__init__(texts, align, fill_colors, props, padding, bordercolor,
                          borderwidth, borderstyle, **options)
         if ratio is not None:
             self.set_split_regroup(ratio)

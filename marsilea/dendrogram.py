@@ -16,6 +16,7 @@ class _DendrogramBase:
                  method=None,
                  metric=None,
                  linkage=None,
+                 centroid_func=None,
                  ):
         if method is None:
             method = "single"
@@ -66,7 +67,18 @@ class _DendrogramBase:
 
         # Should be lazy eval
         # TODO: Allow center to be calculated differently
-        self._center = np.mean(data, axis=0)
+        if centroid_func is None:
+            self._center = np.mean(data, axis=0)
+        elif callable(centroid_func):
+            # Ensure the centroid function returns a numpy array of correct shape
+            centroid = centroid_func(data)
+            if isinstance(centroid, np.ndarray) and centroid.shape == data.shape[1:]:
+                self._center = centroid
+            else:
+                raise ValueError(
+                    "The centroid_func must return a numpy array with shape matching the number of features in the data.")
+        else:
+            raise TypeError("The centroid_func must be a callable function or None.")
 
     @property
     def xrange(self):
@@ -151,9 +163,10 @@ class Dendrogram(_DendrogramBase):
                  method=None,
                  metric=None,
                  linkage=None,
+                 centroid_func=None,
                  ):
         super().__init__(data, method=method, metric=metric,
-                         linkage=linkage)
+                         linkage=linkage, centroid_func=centroid_func)
 
     # here we left an empty **kwargs to align api with GroupDendrogram
     def draw(self, ax, orient="top",
@@ -232,10 +245,11 @@ class GroupDendrogram(_DendrogramBase):
                  dens: List[Dendrogram],
                  method=None,
                  metric=None,
+                 centroid_func=None,
                  **kwargs,
                  ):
         data = np.vstack([d.center for d in dens])
-        super().__init__(data, method=method, metric=metric)
+        super().__init__(data, method=method, metric=metric, centroid_func=centroid_func)
         self.orig_dens = np.asarray(dens)
         self.dens = np.asarray(dens)[self.reorder_index]
         self.n = len(self.dens)
