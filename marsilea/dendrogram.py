@@ -16,7 +16,7 @@ class _DendrogramBase:
                  method=None,
                  metric=None,
                  linkage=None,
-                 centroid_func=None,
+                 get_meta_center=None,
                  ):
         if method is None:
             method = "single"
@@ -67,18 +67,19 @@ class _DendrogramBase:
 
         # Should be lazy eval
         # TODO: Allow center to be calculated differently
-        if centroid_func is None:
+        if get_meta_center is None:
             self._center = np.mean(data, axis=0)
-        elif callable(centroid_func):
+        elif callable(get_meta_center):
             # Ensure the centroid function returns a numpy array of correct shape
-            centroid = centroid_func(data)
+            centroid = get_meta_center(data)
             if isinstance(centroid, np.ndarray) and centroid.shape == data.shape[1:]:
                 self._center = centroid
             else:
                 raise ValueError(
-                    "The centroid_func must return a numpy array with shape matching the number of features in the data.")
+                    "The get_meta_center must return a numpy array with shape "
+                    "matching the number of features in the data.")
         else:
-            raise TypeError("The centroid_func must be a callable function or None.")
+            raise TypeError("The get_meta_center must be a callable function or None.")
 
     @property
     def xrange(self):
@@ -163,10 +164,10 @@ class Dendrogram(_DendrogramBase):
                  method=None,
                  metric=None,
                  linkage=None,
-                 centroid_func=None,
+                 get_meta_center=None,
                  ):
         super().__init__(data, method=method, metric=metric,
-                         linkage=linkage, centroid_func=centroid_func)
+                         linkage=linkage, get_meta_center=get_meta_center)
 
     # here we left an empty **kwargs to align api with GroupDendrogram
     def draw(self, ax, orient="top",
@@ -245,11 +246,11 @@ class GroupDendrogram(_DendrogramBase):
                  dens: List[Dendrogram],
                  method=None,
                  metric=None,
-                 centroid_func=None,
+                 get_meta_center=None,
                  **kwargs,
                  ):
         data = np.vstack([d.center for d in dens])
-        super().__init__(data, method=method, metric=metric, centroid_func=centroid_func)
+        super().__init__(data, method=method, metric=metric, get_meta_center=get_meta_center)
         self.orig_dens = np.asarray(dens)
         self.dens = np.asarray(dens)[self.reorder_index]
         self.n = len(self.dens)
