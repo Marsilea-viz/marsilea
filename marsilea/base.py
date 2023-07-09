@@ -647,12 +647,14 @@ class ClusterBoard(WhiteBoard):
             den_options['pos'] = "row"
             self._row_den.append(den_options)
             deform.set_cluster(row=True, method=method, metric=metric,
-                               linkage=linkage, use_meta=add_meta, get_meta_center=get_meta_center)
+                               linkage=linkage, use_meta=add_meta,
+                               get_meta_center=get_meta_center)
         else:
             den_options['pos'] = "col"
             self._col_den.append(den_options)
             deform.set_cluster(col=True, method=method, metric=metric,
-                               linkage=linkage, use_meta=add_meta, get_meta_center=get_meta_center)
+                               linkage=linkage, use_meta=add_meta,
+                               get_meta_center=get_meta_center)
 
     def hsplit(self, cut=None, labels=None, order=None, spacing=0.01):
         if self._split_row:

@@ -250,7 +250,8 @@ class GroupDendrogram(_DendrogramBase):
                  **kwargs,
                  ):
         data = np.vstack([d.center for d in dens])
-        super().__init__(data, method=method, metric=metric, get_meta_center=get_meta_center)
+        super().__init__(data, method=method, metric=metric,
+                         get_meta_center=get_meta_center)
         self.orig_dens = np.asarray(dens)
         self.dens = np.asarray(dens)[self.reorder_index]
         self.n = len(self.dens)
