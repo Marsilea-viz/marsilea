@@ -525,7 +525,7 @@ class ClusterBoard(WhiteBoard):
                        add_meta=True, add_base=True, add_divider=True,
                        meta_color=None, linewidth=None, colors=None,
                        divider_style="--", meta_ratio=.2,
-                       show=True, name=None, size=0.5, pad=0.):
+                       show=True, name=None, size=0.5, pad=0., get_meta_center=None):
         """Run cluster and add dendrogram
 
         .. note::
@@ -575,6 +575,11 @@ class ClusterBoard(WhiteBoard):
             The name of the dendrogram axes
         size : float
         pad : float
+        get_meta_center: callable
+            A function to calculate the centroid of data. It should accept a 2D numpy
+            array as input and return a 1D numpy array of the same length as the number
+            of columns in the input, representing the centroid. The default will use the
+            mean values.
 
         Examples
         --------
@@ -642,12 +647,14 @@ class ClusterBoard(WhiteBoard):
             den_options['pos'] = "row"
             self._row_den.append(den_options)
             deform.set_cluster(row=True, method=method, metric=metric,
-                               linkage=linkage, use_meta=add_meta)
+                               linkage=linkage, use_meta=add_meta,
+                               get_meta_center=get_meta_center)
         else:
             den_options['pos'] = "col"
             self._col_den.append(den_options)
             deform.set_cluster(col=True, method=method, metric=metric,
-                               linkage=linkage, use_meta=add_meta)
+                               linkage=linkage, use_meta=add_meta,
+                               get_meta_center=get_meta_center)
 
     def hsplit(self, cut=None, labels=None, order=None, spacing=0.01):
         if self._split_row:
