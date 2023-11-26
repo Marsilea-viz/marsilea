@@ -204,7 +204,7 @@ class CenterBar(_BarBase):
         if orient == "h":
             bar = ax.barh
             line = ax.axvline
-            data = data[::-1]
+            data = data[::-1, ::-1]
 
             del options["bottom"]
             options["left"] = 0
