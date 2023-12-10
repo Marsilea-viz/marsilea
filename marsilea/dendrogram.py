@@ -17,7 +17,10 @@ class _DendrogramBase:
                  metric=None,
                  linkage=None,
                  get_meta_center=None,
+                 key=None,
                  ):
+        self.key = key
+        self.data = data
         if method is None:
             method = "single"
         if metric is None:
@@ -165,8 +168,9 @@ class Dendrogram(_DendrogramBase):
                  metric=None,
                  linkage=None,
                  get_meta_center=None,
+                 key=None,
                  ):
-        super().__init__(data, method=method, metric=metric,
+        super().__init__(data, method=method, metric=metric, key=key,
                          linkage=linkage, get_meta_center=get_meta_center)
 
     # here we left an empty **kwargs to align api with GroupDendrogram
@@ -247,11 +251,12 @@ class GroupDendrogram(_DendrogramBase):
                  method=None,
                  metric=None,
                  get_meta_center=None,
+                 key=None,
                  **kwargs,
                  ):
         data = np.vstack([d.center for d in dens])
         super().__init__(data, method=method, metric=metric,
-                         get_meta_center=get_meta_center)
+                         get_meta_center=get_meta_center, key=key)
         self.orig_dens = np.asarray(dens)
         self.dens = np.asarray(dens)[self.reorder_index]
         self.n = len(self.dens)

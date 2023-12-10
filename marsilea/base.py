@@ -1,16 +1,17 @@
 from __future__ import annotations
 
-import numpy as np
 import warnings
 from copy import deepcopy
+from numbers import Number
+from typing import List, Dict
+from uuid import uuid4
+
+import numpy as np
 from legendkit.layout import vstack, hstack
 from matplotlib import pyplot as plt
 from matplotlib.artist import Artist
 from matplotlib.colors import is_color_like
 from matplotlib.figure import Figure
-from numbers import Number
-from typing import List, Dict
-from uuid import uuid4
 
 from ._deform import Deformation
 from .dendrogram import Dendrogram
@@ -26,14 +27,13 @@ def reorder_index(arr, order=None):
     for ix, a in enumerate(arr):
         indices[a].append(ix)
 
+    if order is None:
+        order = sorted(uniq)
+
     final_index = []
-    if order is not None:
-        for it in order:
-            final_index += indices[it]
-    else:
-        for it in indices.values():
-            final_index += it
-    return final_index
+    for it in order:
+        final_index += indices[it]
+    return final_index, order
 
 
 def get_breakpoints(arr):
@@ -546,11 +546,13 @@ class ClusterBoard(WhiteBoard):
             Precomputed linkage matrix.
             See scipy's :meth:`linkage <scipy.cluster.hierarchy.linkage>` for
             specific format.
-        add_meta : bool
+        add_meta : None | bool
+            By default, add_meta is set to False if the linkage is provided, otherwise True.
             If the data is split, a meta dendrogram can be drawn for data
             chunks. The mean value of the data chunk is used to calculate
             linkage matrix for meta dendrogram.
-        add_base : bool
+        add_base : None | bool
+            By default, add_meta is set to False if the linkage is provided, otherwise True.
             Draw the base dendrogram for each data chunk. You can turn this
             off if the base dendrogram is too crowded.
         add_divider : bool
@@ -655,40 +657,42 @@ class ClusterBoard(WhiteBoard):
             deform.set_cluster(col=True, method=method, metric=metric,
                                linkage=linkage, use_meta=add_meta,
                                get_meta_center=get_meta_center)
-
+        
     def hsplit(self, cut=None, labels=None, order=None, spacing=0.01):
         if self._split_row:
             raise SplitTwice(axis="horizontally")
         self._split_row = True
 
-        self._deform.hspace = spacing
+        deform = self.get_deform()
+        deform.hspace = spacing
         if cut is not None:
-            self._deform.set_split_row(breakpoints=cut)
+            deform.set_split_row(breakpoints=cut)
         else:
             labels = np.asarray(labels)
 
-            reindex = reorder_index(labels, order=order)
-            self._deform.set_data_row_reindex(reindex)
+            reindex, order = reorder_index(labels, order=order)
+            deform.set_data_row_reindex(reindex)
 
             breakpoints = get_breakpoints(labels[reindex])
-            self._deform.set_split_row(breakpoints=breakpoints)
+            deform.set_split_row(breakpoints=breakpoints, order=order)
 
     def vsplit(self, cut=None, labels=None, order=None, spacing=0.01):
         if self._split_col:
             raise SplitTwice(axis="vertically")
         self._split_col = True
 
-        self._deform.wspace = spacing
+        deform = self.get_deform()
+        deform.wspace = spacing
         if cut is not None:
-            self._deform.set_split_col(breakpoints=cut)
+            deform.set_split_col(breakpoints=cut)
         else:
             labels = np.asarray(labels)
 
-            reindex = reorder_index(labels, order=order)
-            self._deform.set_data_col_reindex(reindex)
+            reindex, order = reorder_index(labels, order=order)
+            deform.set_data_col_reindex(reindex)
 
             breakpoints = get_breakpoints(labels[reindex])
-            self._deform.set_split_col(breakpoints=breakpoints)
+            deform.set_split_col(breakpoints=breakpoints, order=order)
 
     def _setup_axes(self):
         deform = self.get_deform()
@@ -778,6 +782,12 @@ class ClusterBoard(WhiteBoard):
 
     def get_deform(self):
         return self._deform
+
+    def get_row_linkage(self):
+        return self._deform.get_row_linkage()
+
+    def get_col_linkage(self):
+        return self._deform.get_col_linkage()
 
     @property
     def row_cluster(self):
