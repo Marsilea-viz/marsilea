@@ -1,4 +1,5 @@
 import numpy as np
+from typing import Literal
 
 from .dendrogram import Dendrogram, GroupDendrogram
 from .utils import pairwise
@@ -85,6 +86,14 @@ class Deformation:
             self._row_clustered = False
             self._use_row_meta = use_meta
 
+    def set_split_group_order(self, order, axis=Literal['row', 'col']):
+        if axis == "row":
+            self._split_row_group_order = order
+        elif axis == "col":
+            self._split_col_group_order = order
+        else:
+            raise ValueError("axis must be either 'row' or 'col'")
+        
     def get_data(self):
         data = self.data
         if self.data_row_reindex is not None:
@@ -172,8 +181,20 @@ class Deformation:
     def cluster_row(self):
         row_data = self.split_by_row(self.get_data())
         if self.is_row_split:
+            linkage = self.row_cluster_kws.pop("linkage")
+            if linkage is None:
+                ls_linkages = [None] * len(row_data)
+            else:
+                assert isinstance(linkage, dict), 'linkage must be a dict if row is split'
+                ls_order = self._split_row_group_order
+                if ls_order is None:
+                    ls_linkages = list(linkage.values())
+                else:
+                    assert set(ls_order) == set(linkage.keys()), 'linkage keys must match ls_order'
+                    ls_linkages = [linkage[x] for x in ls_order]
+
             dens = [Dendrogram(
-                chunk, **self.row_cluster_kws) for chunk in row_data]
+                chunk, linkage=linkage, **self.row_cluster_kws) for chunk,linkage in zip(row_data, ls_linkages)]
             dg = GroupDendrogram(dens, **self.row_cluster_kws)
             if self._use_row_meta:
                 self.row_chunk_index = dg.reorder_index
@@ -188,8 +209,20 @@ class Deformation:
     def cluster_col(self):
         col_data = self.split_by_col(self.get_data())
         if self.is_col_split:
+            linkage = self.col_cluster_kws.pop("linkage")
+            if linkage is None:
+                ls_linkages = [None] * len(col_data)
+            else:
+                assert isinstance(linkage, dict), 'linkage must be a dict if col is split'
+                ls_order = self._split_col_group_order
+                if ls_order is None:
+                    ls_linkages = list(linkage.values())
+                else:
+                    assert set(ls_order) == set(linkage.keys()), 'linkage keys must match ls_order'
+                    ls_linkages = [linkage[x] for x in ls_order]
+
             dens = [Dendrogram(
-                chunk.T, **self.col_cluster_kws) for chunk in col_data]
+                chunk.T, linkage=linkage, **self.col_cluster_kws) for chunk,linkage in zip(col_data, ls_linkages)]
             dg = GroupDendrogram(dens, **self.col_cluster_kws)
             if self._use_col_meta:
                 self.col_chunk_index = dg.reorder_index

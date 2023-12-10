@@ -522,7 +522,7 @@ class ClusterBoard(WhiteBoard):
         self._deform = Deformation(cluster_data)
 
     def add_dendrogram(self, side, method=None, metric=None, linkage=None,
-                       add_meta=True, add_base=True, add_divider=True,
+                       add_meta=None, add_base=None, add_divider=True,
                        meta_color=None, linewidth=None, colors=None,
                        divider_style="--", meta_ratio=.2,
                        show=True, name=None, size=0.5, pad=0., get_meta_center=None):
@@ -546,11 +546,13 @@ class ClusterBoard(WhiteBoard):
             Precomputed linkage matrix.
             See scipy's :meth:`linkage <scipy.cluster.hierarchy.linkage>` for
             specific format.
-        add_meta : bool
+        add_meta : None | bool
+            By default, add_meta is set to False if the linkage is provided, otherwise True.
             If the data is split, a meta dendrogram can be drawn for data
             chunks. The mean value of the data chunk is used to calculate
             linkage matrix for meta dendrogram.
-        add_base : bool
+        add_base : None | bool
+            By default, add_meta is set to False if the linkage is provided, otherwise True.
             Draw the base dendrogram for each data chunk. You can turn this
             off if the base dendrogram is too crowded.
         add_divider : bool
@@ -616,6 +618,10 @@ class ClusterBoard(WhiteBoard):
             >>> h.render()
 
         """
+        if add_meta is None:
+            add_meta = linkage is None
+        if add_base is None:
+            add_base = linkage is None
         if not self._allow_cluster:
             msg = f"Please specify cluster data when initialize " \
                   f"'{self.__class__.__name__}' class."
@@ -695,6 +701,7 @@ class ClusterBoard(WhiteBoard):
             raise SplitTwice(axis="horizontally")
         self._split_row = True
         self._split_row_group_order = order
+        self.get_deform().set_split_group_order(order, 'row')
 
         self._deform.hspace = spacing
         if cut is not None:
@@ -713,6 +720,7 @@ class ClusterBoard(WhiteBoard):
             raise SplitTwice(axis="vertically")
         self._split_col = True
         self._split_col_group_order = order
+        self.get_deform().set_split_group_order(order, 'col')
 
         self._deform.wspace = spacing
         if cut is not None:
