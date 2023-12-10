@@ -9,7 +9,7 @@ from matplotlib.artist import Artist
 from matplotlib.colors import is_color_like
 from matplotlib.figure import Figure
 from numbers import Number
-from typing import List, Dict
+from typing import List, Dict, Literal, Union
 from uuid import uuid4
 
 from ._deform import Deformation
@@ -656,10 +656,45 @@ class ClusterBoard(WhiteBoard):
                                linkage=linkage, use_meta=add_meta,
                                get_meta_center=get_meta_center)
 
+    def get_linkage(self, axis=Literal['col', 'row']) -> Union[Deformation, Dict[str, Deformation]]:
+        assert self.figure, "Please render it before get_linkage"
+        
+        deform = self.get_deform()
+        if axis == "col":
+            assert deform.col_dendrogram, "Please add col dendrogram first"
+            if self._split_col:
+                ls_linkages = [x.Z for x in deform.col_dendrogram.orig_dens]
+                ls_orders = self._split_col_group_order
+                if ls_orders is None:
+                    ls_orders = list(range(len(ls_linkages)))
+                linkages = {x:y for x,y in zip(ls_orders, ls_linkages)}
+            else:
+                linkages = deform.col_dendrogram.Z
+        elif axis == "row":
+            assert deform.row_dendrogram, "Please add row dendrogram first"
+            if self._split_row:
+                ls_linkages = [x.Z for x in deform.row_dendrogram.orig_dens]
+                ls_orders = self._split_row_group_order
+                if ls_orders is None:
+                    ls_orders = list(range(len(ls_linkages)))
+                linkages = {x:y for x,y in zip(ls_orders, ls_linkages)}
+            else:
+                linkages = deform.row_dendrogram.Z
+        else:
+            raise ValueError("axis must be either 'col' or 'row'")
+        return linkages
+
+    def get_row_linkage(self):
+        return self.get_linkage(axis="row")
+
+    def get_col_linkage(self):
+        return self.get_linkage(axis="col")
+        
     def hsplit(self, cut=None, labels=None, order=None, spacing=0.01):
         if self._split_row:
             raise SplitTwice(axis="horizontally")
         self._split_row = True
+        self._split_row_group_order = order
 
         self._deform.hspace = spacing
         if cut is not None:
@@ -677,6 +712,7 @@ class ClusterBoard(WhiteBoard):
         if self._split_col:
             raise SplitTwice(axis="vertically")
         self._split_col = True
+        self._split_col_group_order = order
 
         self._deform.wspace = spacing
         if cut is not None:
