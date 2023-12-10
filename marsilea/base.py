@@ -1,16 +1,17 @@
 from __future__ import annotations
 
-import numpy as np
 import warnings
 from copy import deepcopy
+from numbers import Number
+from typing import List, Dict
+from uuid import uuid4
+
+import numpy as np
 from legendkit.layout import vstack, hstack
 from matplotlib import pyplot as plt
 from matplotlib.artist import Artist
 from matplotlib.colors import is_color_like
 from matplotlib.figure import Figure
-from numbers import Number
-from typing import List, Dict, Literal, Union
-from uuid import uuid4
 
 from ._deform import Deformation
 from .dendrogram import Dendrogram
@@ -26,14 +27,13 @@ def reorder_index(arr, order=None):
     for ix, a in enumerate(arr):
         indices[a].append(ix)
 
+    if order is None:
+        order = sorted(uniq)
+
     final_index = []
-    if order is not None:
-        for it in order:
-            final_index += indices[it]
-    else:
-        for it in indices.values():
-            final_index += it
-    return final_index
+    for it in order:
+        final_index += indices[it]
+    return final_index, order
 
 
 def get_breakpoints(arr):
@@ -522,7 +522,7 @@ class ClusterBoard(WhiteBoard):
         self._deform = Deformation(cluster_data)
 
     def add_dendrogram(self, side, method=None, metric=None, linkage=None,
-                       add_meta=None, add_base=None, add_divider=True,
+                       add_meta=True, add_base=True, add_divider=True,
                        meta_color=None, linewidth=None, colors=None,
                        divider_style="--", meta_ratio=.2,
                        show=True, name=None, size=0.5, pad=0., get_meta_center=None):
@@ -618,10 +618,6 @@ class ClusterBoard(WhiteBoard):
             >>> h.render()
 
         """
-        if add_meta is None:
-            add_meta = linkage is None
-        if add_base is None:
-            add_base = linkage is None
         if not self._allow_cluster:
             msg = f"Please specify cluster data when initialize " \
                   f"'{self.__class__.__name__}' class."
@@ -661,78 +657,42 @@ class ClusterBoard(WhiteBoard):
             deform.set_cluster(col=True, method=method, metric=metric,
                                linkage=linkage, use_meta=add_meta,
                                get_meta_center=get_meta_center)
-
-    def get_linkage(self, axis=Literal['col', 'row']) -> Union[Deformation, Dict[str, Deformation]]:
-        assert self.figure, "Please render it before get_linkage"
-        
-        deform = self.get_deform()
-        if axis == "col":
-            assert deform.col_dendrogram, "Please add col dendrogram first"
-            if self._split_col:
-                ls_linkages = [x.Z for x in deform.col_dendrogram.orig_dens]
-                ls_orders = self._split_col_group_order
-                if ls_orders is None:
-                    ls_orders = list(range(len(ls_linkages)))
-                linkages = {x:y for x,y in zip(ls_orders, ls_linkages)}
-            else:
-                linkages = deform.col_dendrogram.Z
-        elif axis == "row":
-            assert deform.row_dendrogram, "Please add row dendrogram first"
-            if self._split_row:
-                ls_linkages = [x.Z for x in deform.row_dendrogram.orig_dens]
-                ls_orders = self._split_row_group_order
-                if ls_orders is None:
-                    ls_orders = list(range(len(ls_linkages)))
-                linkages = {x:y for x,y in zip(ls_orders, ls_linkages)}
-            else:
-                linkages = deform.row_dendrogram.Z
-        else:
-            raise ValueError("axis must be either 'col' or 'row'")
-        return linkages
-
-    def get_row_linkage(self):
-        return self.get_linkage(axis="row")
-
-    def get_col_linkage(self):
-        return self.get_linkage(axis="col")
         
     def hsplit(self, cut=None, labels=None, order=None, spacing=0.01):
         if self._split_row:
             raise SplitTwice(axis="horizontally")
         self._split_row = True
-        self._split_row_group_order = order
-        self.get_deform().set_split_group_order(order, 'row')
 
-        self._deform.hspace = spacing
+        deform = self.get_deform()
+        deform.hspace = spacing
         if cut is not None:
-            self._deform.set_split_row(breakpoints=cut)
+            deform.set_split_row(breakpoints=cut)
         else:
             labels = np.asarray(labels)
 
-            reindex = reorder_index(labels, order=order)
-            self._deform.set_data_row_reindex(reindex)
+            reindex, order = reorder_index(labels, order=order)
+            deform.set_data_row_reindex(reindex)
 
             breakpoints = get_breakpoints(labels[reindex])
-            self._deform.set_split_row(breakpoints=breakpoints)
+            deform.set_split_row(breakpoints=breakpoints, order=order)
 
     def vsplit(self, cut=None, labels=None, order=None, spacing=0.01):
         if self._split_col:
             raise SplitTwice(axis="vertically")
         self._split_col = True
-        self._split_col_group_order = order
-        self.get_deform().set_split_group_order(order, 'col')
 
-        self._deform.wspace = spacing
+        deform = self.get_deform()
+        deform.wspace = spacing
         if cut is not None:
-            self._deform.set_split_col(breakpoints=cut)
+            deform.set_split_col(breakpoints=cut)
         else:
             labels = np.asarray(labels)
 
-            reindex = reorder_index(labels, order=order)
-            self._deform.set_data_col_reindex(reindex)
+            reindex, order = reorder_index(labels, order=order)
+            deform.set_data_col_reindex(reindex)
 
             breakpoints = get_breakpoints(labels[reindex])
-            self._deform.set_split_col(breakpoints=breakpoints)
+            deform.set_split_col(breakpoints=breakpoints, order=order)
 
     def _setup_axes(self):
         deform = self.get_deform()
@@ -822,6 +782,12 @@ class ClusterBoard(WhiteBoard):
 
     def get_deform(self):
         return self._deform
+
+    def get_row_linkage(self):
+        return self._deform.get_row_linkage()
+
+    def get_col_linkage(self):
+        return self._deform.get_col_linkage()
 
     @property
     def row_cluster(self):
