@@ -233,7 +233,7 @@ class Deformation:
                 self.col_chunk_index = np.arange(len(dens))
             self.col_reorder_index = [d.reorder_index for d in dens]
         else:
-            dg = Dendrogram(col_data.T, **self.col_cluster_kws)
+            dg = Dendrogram(col_data.T, linkage=self.col_linkage, **self.col_cluster_kws)
             self.col_reorder_index = dg.reorder_index
         self.col_dendrogram = dg
 
