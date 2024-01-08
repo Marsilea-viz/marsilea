@@ -210,8 +210,8 @@ class Arc(StatsBase):
                             xy = (arc_mid, 0)
                             angle = 0
                         sizes.append(arc_width)
-                        arc = mArc(xy, arc_width, arc_width * 2, angle,
-                                   **options)
+                        arc = mArc(xy, arc_width, arc_width * 2,
+                                   angle=angle, **options)
                         ax.add_patch(arc)
 
         lim = np.max(sizes)

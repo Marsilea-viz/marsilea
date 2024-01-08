@@ -204,7 +204,7 @@ class CenterBar(_BarBase):
         if orient == "h":
             bar = ax.barh
             line = ax.axvline
-            data = data[::-1, ::-1]
+            data = data[::-1]
 
             del options["bottom"]
             options["left"] = 0
@@ -387,6 +387,10 @@ class StackBar(_BarBase):
         if self.side == "left":
             ax.invert_xaxis()
 
+        # Hanlde data
+        if orient == "h":
+            data = data[:, ::-1]
+
         locs = np.arange(0, lim) + 0.5
         bottom = np.zeros(lim)
 
@@ -395,8 +399,8 @@ class StackBar(_BarBase):
             labels = self.labels[::-1]
         else:
             labels = [None for _ in range(len(data))]
-        colors = self.bar_colors[:len(data)][::-1]
-        for ix, row in enumerate(data[::-1]):
+        colors = self.bar_colors[:len(data)]
+        for ix, row in enumerate(data):
             bars = bar(locs, row, self.width, bottom,
                        fc=colors[ix],
                        label=labels[ix], **self.options)
