@@ -357,10 +357,13 @@ class RenderPlan:
         return RenderSpec(ax=ax, data=spec_data, params=params)
 
     def get_render_spec(self, axes):
-        if self.is_split:
-            return self._get_split_render_spec(axes)
-        else:
-            return self._get_intact_render_spec(axes)
+        try:
+            if self.is_split:
+                return self._get_split_render_spec(axes)
+            else:
+                return self._get_intact_render_spec(axes)
+        except Exception as _:
+            raise DataError(f"Please check your data input with {self.__class__.__name__}")
 
     # def get_render_data(self):
     #     """Define how render data is organized

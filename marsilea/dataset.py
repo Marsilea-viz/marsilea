@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 from platformdirs import user_cache_path
 from urllib.request import urlretrieve
 
@@ -16,7 +17,8 @@ def load_data(name, cache=True):
                 (TCGA, PanCancer Atlas)
     - 'mouse_embryo': Spatial mapping of mouse embryo at E12.5
     - 'seq_align': Sequence alignment data
-    - 'les_miserables': Characters in Les Miserables
+    - 'les_miserables': Characters in Les Misérables
+    - 'sc_multiomics': Single-cell multi-omics dataset from COVID-19 patients
 
     Parameters
     ----------
@@ -33,6 +35,8 @@ def load_data(name, cache=True):
         return _load_imdb(cache)
     elif name == "pbmc3k":
         return _load_pbmc3k(cache)
+    elif name == "sc_multiomics":
+        return _load_sc_multiomics(cache)
     elif name == "oncoprint":
         return _load_oncoprint(cache)
     elif name == "mouse_embryo":
@@ -61,7 +65,11 @@ def _cache_remote(files, cache=True):
         dest = data_dir / dfname
         # Not download when cache and exist
         if not (cache and dest.exists()):
-            urlretrieve(url, dest)
+            try:
+                urlretrieve(url, dest)
+            except Exception as e:
+                print(url)
+                raise e
 
     if len(files) == 1:
         return data_dir / download_files[0]
@@ -84,6 +92,23 @@ def _load_pbmc3k(cache=True):
         'pct_cells': pd.read_csv(pct_cells, index_col=0),
         'count': pd.read_csv(count, index_col=0)
     }
+
+
+def _load_sc_multiomics(cache=True):
+    stack, interaction = _cache_remote(
+        ['sc-multiomics/sc-multiomics.npz',
+         'sc-multiomics/sc-multiomics-interaction.csv'
+    ])
+
+    dataset = np.load(stack, allow_pickle=True)
+    interaction = pd.read_csv(interaction)
+
+    data = {}
+    for key in dataset.files:
+        data[key] = dataset[key]
+    data['interaction'] = interaction
+
+    return data
 
 
 def _load_oncoprint(cache=True):

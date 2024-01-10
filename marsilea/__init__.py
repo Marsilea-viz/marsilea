@@ -1,6 +1,6 @@
 """Create x-layout visualization"""
 
-__version__ = "0.3.2"
+__version__ = "0.3.3"
 
 from ._deform import Deformation
 from .base import WhiteBoard, ClusterBoard
