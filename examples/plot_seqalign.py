@@ -10,10 +10,12 @@ import marsilea as ma
 import marsilea.plotter as mp
 import matplotlib as mpl
 
+# sphinx_gallery_start_ignore
 import mpl_fontkit as fk
 fk.install("Roboto Mono", verbose=False)
 
 mpl.rcParams["font.size"] = 30
+# sphinx_gallery_end_ignore
 
 # %%
 # Load data
@@ -112,3 +114,12 @@ ch.add_bottom(ma.plotter.Labels(max_aa, rotation=0), pad=.1)
 ch.render()
 
 ch.get_ax("freq_bar").set_axis_off()
+
+# sphinx_gallery_start_ignore
+if '__file__' in globals():
+    from pathlib import Path
+    import matplotlib.pyplot as plt
+    save_path = Path(__file__).parent / "imgs"
+    mpl.rcParams['svg.fonttype'] = 'none'
+    plt.savefig(save_path / "MSA.svg", bbox_inches="tight")
+# sphinx_gallery_end_ignore

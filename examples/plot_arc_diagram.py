@@ -12,6 +12,7 @@ import marsilea.plotter as mp
 
 # sphinx_gallery_start_ignore
 import mpl_fontkit as fk
+
 fk.install("Lato", verbose=False)
 # sphinx_gallery_end_ignore
 
@@ -58,3 +59,10 @@ sh.add_top(arc, size=3)
 sh.add_title(bottom="Character relationships in Les Miserables",
              align="right", fontstyle="italic")
 sh.render()
+
+# sphinx_gallery_start_ignore
+if '__file__' in globals():
+    from pathlib import Path
+    save_path = Path(__file__).parent / "imgs"
+    sh.save(save_path / "les_miserables_arc_diagram.svg")
+# sphinx_gallery_end_ignore

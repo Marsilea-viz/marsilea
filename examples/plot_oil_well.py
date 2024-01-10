@@ -35,44 +35,36 @@ fat_content = oils[['saturated', 'polyunsaturated (omega 3 & 6)',
 # Visualize the oil contents
 # --------------------------
 
-cb = ma.ClusterBoard(fat_content.to_numpy(), height=10)
-cb.add_layer(
-    mp.StackBar(fat_content.T * 100, colors=[red, yellow, green, gray],
-                width=.8, orient="h", label="Fat Content (%)",
-                legend_kws={'ncol': 2, 'fontsize': 10}))
-
+fat_stack_bar = mp.StackBar(fat_content.T * 100, colors=[red, yellow, green, gray],
+                            width=.8, orient="h", label="Fat Content (%)",
+                            legend_kws={'ncol': 2, 'fontsize': 10})
 fmt = lambda x: f"{x:.1f}" if x > 0 else ""
-cb.add_left(
-    mp.Numbers(oils['trans fat'] * 100, fmt=fmt,
-               label="Trans Fat (%)", color="#3A98B9"),
-    pad=.2, name="trans fat")
+trans_fat_bar = mp.Numbers(oils['trans fat'] * 100, fmt=fmt, color="#3A98B9", label="Trans Fat (%)", )
 
-cb.add_right(
-    mp.Labels(flavour, fontfamily="Font Awesome 6 Free",
-              text_props={'color': flavour_colors}))
+flavour_emoji = mp.Labels(flavour, fontfamily="Font Awesome 6 Free", text_props={'color': flavour_colors})
 
-cb.add_right(
-    mp.Labels(oils.index.str.capitalize()), pad=.1)
+oil_names = mp.Labels(oils.index.str.capitalize())
 
 fmt = lambda x: f"{int(x)}" if x > 0 else ""
-cb.add_right(
-    ma.plotter.CenterBar((oils[['omega 3', 'omega 6']] * 100).astype(int),
-                         names=["Omega 3 (%)", "Omega 6 (%)"],
-                         colors=["#7DB9B6", "#F5E9CF"],
-                         fmt=fmt, show_value=True),
-    size=2, pad=.2)
+
+omege_bar = ma.plotter.CenterBar((oils[['omega 3', 'omega 6']] * 100).astype(int), names=["Omega 3 (%)", "Omega 6 (%)"],
+                                 colors=["#7DB9B6", "#F5E9CF"], fmt=fmt, show_value=True)
+conditions_text = ["Control", ">230 °C\nDeep-frying", "200-229 °C\nStir-frying",
+                   "150-199 °C\nLight saute", "<150 °C\nDressings"]
+colors = ["#e5e7eb", "#c2410c", "#fb923c", "#fca5a5", "#fecaca"]
+conditions = ma.plotter.Chunk(conditions_text, colors, rotation=0, padding=10)
+
+cb = ma.ClusterBoard(fat_content.to_numpy(), height=10)
+cb.add_layer(fat_stack_bar)
+cb.add_left(trans_fat_bar, pad=.2, name="trans fat")
+cb.add_right(flavour_emoji)
+cb.add_right(oil_names, pad=.1)
+cb.add_right(omege_bar, size=2, pad=.2)
 
 order = ["Control", ">230 °C (Deep-frying)", "200-229 °C (Stir-frying)",
          "150-199 °C (Light saute)", "<150 °C (Dressings)"]
 cb.hsplit(labels=oils['cooking conditions'], order=order)
-colors = ["#e5e7eb", "#c2410c", "#fb923c", "#fca5a5", "#fecaca"]
-
-chunk_text = ["Control", ">230 °C\nDeep-frying", "200-229 °C\nStir-frying",
-              "150-199 °C\nLight saute", "<150 °C\nDressings"]
-cb.add_left(
-    ma.plotter.Chunk(chunk_text, colors, rotation=0, padding=10),
-    pad=.1)
-
+cb.add_left(conditions, pad=.1)
 cb.add_dendrogram("left", add_meta=False, colors=colors,
                   linewidth=1.5, size=.5, pad=.02)
 cb.add_title(top="Fat in Cooking Oils", fontsize=16)
@@ -82,3 +74,12 @@ cb.render()
 axes = cb.get_ax("trans fat")
 for ax in axes:
     ax.set_xlim(4.2, 0)
+
+# sphinx_gallery_start_ignore
+if '__file__' in globals():
+    from pathlib import Path
+    import matplotlib.pyplot as plt
+
+    save_path = Path(__file__).parent / "imgs"
+    plt.savefig(save_path / "oil_well.svg", bbox_inches="tight")
+# sphinx_gallery_end_ignore

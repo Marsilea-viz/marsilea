@@ -11,6 +11,11 @@ from scipy.stats import gaussian_kde
 
 import marsilea as ma
 
+# sphinx_gallery_start_ignore
+import mpl_fontkit as fk
+fk.install("Lato", verbose=False)
+# sphinx_gallery_end_ignore
+
 # %%
 # Create datasets
 
@@ -80,4 +85,10 @@ y2_ax.set_axis_off()
 y2_ax.pcolormesh(zy.reshape(-1, 1), cmap="Reds")
 y2_ax.invert_yaxis()
 
-plt.show()
+
+# sphinx_gallery_start_ignore
+if '__file__' in globals():
+    from pathlib import Path
+    save_path = Path(__file__).parent / "imgs"
+    plt.savefig(save_path / "bivariate_dist.svg", bbox_inches="tight")
+# sphinx_gallery_end_ignore

@@ -12,7 +12,12 @@ import marsilea.plotter as mp
 
 from sklearn.preprocessing import normalize
 
+# sphinx_gallery_start_ignore
+import mpl_fontkit as fk
+fk.install("Lato", verbose=False)
 mpl.rcParams['font.size'] = 8
+# sphinx_gallery_end_ignore
+
 
 pbmc3k = ma.load_data("pbmc3k")
 exp = pbmc3k['exp']
@@ -54,4 +59,13 @@ h.add_dendrogram("bottom")
 h.add_legends(pad=.1)
 h.set_margin(.2)
 h.render()
-plt.show()
+
+# sphinx_gallery_start_ignore
+if '__file__' in globals():
+    from pathlib import Path
+    import matplotlib.pyplot as plt
+    save_path = Path(__file__).parent / "imgs"
+    mpl.rcParams['svg.fonttype'] = 'none'
+    # mpl.rcParams["font.family"] = "Arial"
+    plt.savefig(save_path / "PBMC3K.svg", bbox_inches="tight")
+# sphinx_gallery_end_ignore

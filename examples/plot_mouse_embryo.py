@@ -14,12 +14,18 @@ import numpy as np
 from matplotlib.colors import LinearSegmentedColormap
 from legendkit import cat_legend
 import marsilea as ma
+
+# sphinx_gallery_start_ignore
+import mpl_fontkit as fk
+fk.install("Lato", verbose=False)
+# sphinx_gallery_end_ignore
+
 embryo = ma.load_data('mouse_embryo')
 
 xmax = embryo['cell_x'].max()
 ymax = embryo['cell_y'].max()
-xstart, xend = -xmax*0.05, xmax*1.05
-ystart, yend = -ymax*0.05, ymax*1.05
+xstart, xend = -xmax * 0.05, xmax * 1.05
+ystart, yend = -ymax * 0.05, ymax * 1.05
 
 xrange = np.linspace(xstart, xend, 200)
 yrange = np.linspace(ystart, yend, 200)
@@ -34,6 +40,7 @@ def get_xy_hist(ct):
     xhist, _ = np.histogram(x, bins=xrange)
     yhist, _ = np.histogram(y, bins=yrange)
     return xhist, yhist
+
 
 # %%
 # Here we have a predefined colormap for each cell type.
@@ -63,7 +70,6 @@ colormap = {
     'Kidney': '#62cfe8',
     'Ovary': '#c923b1'
 }
-
 
 width = 5
 height = width * (yend - ystart) / (xend - xstart)
@@ -99,3 +105,13 @@ for n in cell_types:
     y_ax.pcolormesh(yh.reshape(-1, 1), cmap=cmap)
     y_ax.set_axis_off()
     y_ax.text(0.5, 0, n, va="top", ha="center", rotation=90, transform=y_ax.transAxes)
+
+# sphinx_gallery_start_ignore
+if '__file__' in globals():
+    from pathlib import Path
+    import matplotlib.pyplot as plt
+
+    save_path = Path(__file__).parent / "imgs"
+    plt.savefig(save_path / "mouse_embryo.svg", bbox_inches="tight")
+# sphinx_gallery_end_ignore
+
