@@ -1,4 +1,5 @@
 import matplotlib as mpl
+import matplotlib.pyplot as plt
 import streamlit as st
 from components.cmap_selector import ColormapSelector
 from components.data_input import FileUpload
@@ -184,7 +185,7 @@ if s['data'] is not None:
                         row_labels, mark=row_marks, fontsize=font_size
                     )
                 else:
-                    row_label_plot = Labels(row_labels, text_pad=.1,
+                    row_label_plot = Labels(row_labels, padding=1,
                                             rotation=row_rotation,
                                             fontsize=font_size)
                 h.add_right(row_label_plot)
@@ -195,7 +196,7 @@ if s['data'] is not None:
                         col_labels, mark=col_marks, fontsize=font_size
                     )
                 else:
-                    col_label_plot = Labels(col_labels, text_pad=.1,
+                    col_label_plot = Labels(col_labels, padding=1,
                                             rotation=col_rotation,
                                             fontsize=font_size)
                 h.add_bottom(col_label_plot)
@@ -205,6 +206,8 @@ if s['data'] is not None:
                                  fontsize=title_fontsize), pad=.1)
 
             h.add_legends()
+            if s['figure'] is not None:
+                plt.close(s['figure'])
             h.render()
             s['figure'] = h.figure
 

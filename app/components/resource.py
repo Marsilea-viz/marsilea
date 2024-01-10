@@ -15,7 +15,7 @@ np.random.seed(0)
 
 @st.cache_resource
 def get_font_list():
-    fonts = ["Source Sans Pro", "Roboto", "Open Sans", "Noto Sans", "Raleway",
+    fonts = ["Source Sans 3", "Roboto", "Open Sans", "Noto Sans", "Raleway",
              "Lato", "Montserrat", "Inter", "Oswald"]
     for f in fonts:
         fk.install(f, as_global=False)

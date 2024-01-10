@@ -5,7 +5,7 @@ from components.initialize import init_page
 init_page("Manual")
 
 IMG_ROOT = "https://raw.githubusercontent.com/" \
-           "Heatgraphy/marsilea/main/app/img"
+           "Marsilea-viz/marsilea/main/app/img"
 
 st.header("Manual")
 
@@ -45,8 +45,8 @@ st.markdown("## How to report a bug?")
 
 st.markdown("Click the botton on the Top Right ➡️ **Report a bug**")
 
-st.markdown("## Can I host my own version of Heatgraphy?")
+st.markdown("## Can I host my own version of Marsilea?")
 
 st.markdown("Sure! Check our "
-            "[GitHub repository](https://github.com/heatgraphy/heatgraphy) "
+            "[GitHub repository](https://github.com/Marsilea-viz/marsilea) "
             "for detail instruction.")

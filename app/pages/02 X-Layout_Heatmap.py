@@ -26,7 +26,7 @@ st.warning("We are still in beta stage, you may report to us "
 st.markdown(
     '<video controls width="250" autoplay="true" muted="true" loop="true" '
     'playsinline style="pointer-events: none;">'
-    '<source src="https://raw.githubusercontent.com/Heatgraphy'
+    '<source src="https://raw.githubusercontent.com/Marsilea-viz'
     '/marsilea/main/app/img/V2.mp4" '
     'type="video/mp4" /></video>', unsafe_allow_html=True)
 

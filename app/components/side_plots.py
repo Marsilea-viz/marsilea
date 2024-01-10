@@ -6,7 +6,7 @@ import numpy as np
 import streamlit as st
 
 from marsilea.base import ClusterBoard
-from marsilea.plotter import (Bar, Box, Boxen, Colors, Count, Chunk, Strip,
+from marsilea.plotter import (Bar, Box, Boxen, Colors, Chunk, Strip,
                               Violin,
                               Point, Swarm, AnnoLabels, Labels,
                               Title)
@@ -134,7 +134,7 @@ class LabelAdder(PlotAdder):
                                        key=f"{self.plot_key}_label_pad")
 
     def get_options(self):
-        return dict(align=self.align, text_pad=self.pad,
+        return dict(align=self.align, padding=self.pad,
                     color=self.color)
 
 
@@ -524,19 +524,19 @@ class SwarmAdder(StripAdder):
     example_image = "swarm.png"
 
 
-class CountAdder(PlotAdder):
-    name = "Count"
-    plotter = Count
-    color: str
-
-    plot_explain = "Show the counts of observations in each categorical."
-    example_image = "count.svg"
-
-    def extra_options(self):
-        self.color = st.color_picker("Color", value="#00b796")
-
-    def get_options(self):
-        return dict(color=self.color)
+# class CountAdder(PlotAdder):
+#     name = "Count"
+#     plotter = Count
+#     color: str
+#
+#     plot_explain = "Show the counts of observations in each categorical."
+#     example_image = "count.svg"
+#
+#     def extra_options(self):
+#         self.color = st.color_picker("Color", value="#00b796")
+#
+#     def get_options(self):
+#         return dict(color=self.color)
 
 
 class AnnoLabelsAdder(PlotAdder):
@@ -605,7 +605,7 @@ class ChunkAdder(PlotAdder):
 
     def apply(self, h):
         p = Chunk(texts=self.labels, fill_colors=self.colors,
-                  text_pad=self.text_pad)
+                  padding=self.text_pad)
         h.add_plot(self.side, p, size=self.size, pad=self.pad)
 
 

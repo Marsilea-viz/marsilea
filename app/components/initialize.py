@@ -110,7 +110,7 @@ def inject_css():
 
 def init_page(title):
     IMG_ROOT = "https://raw.githubusercontent.com/" \
-               "Heatgraphy/marsilea/main/app/img"
+               "Marsilea-viz/marsilea/main/app/img"
 
     st.set_page_config(
         page_title=title,
@@ -118,7 +118,7 @@ def init_page(title):
         page_icon=f"{IMG_ROOT}/favicon.png",
         # initial_sidebar_state="collapsed",
         menu_items={
-            'Report a bug': 'https://github.com/heatgraphy/heatgraphy/issues/new/choose',
-            'About': 'A web interface for Heatgraphy'
+            'Report a bug': 'https://github.com/Marsilea-viz/marsilea/issues/new/choose',
+            'About': 'A web interface for Marsilea'
         }
     )

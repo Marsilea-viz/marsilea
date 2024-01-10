@@ -2,7 +2,7 @@ import streamlit as st
 
 from components.initialize import init_page, inject_css
 
-init_page("Heatgraphy")
+init_page("Marsilea")
 inject_css()
 
 banner, title = st.columns([1, 1.2])
@@ -10,12 +10,12 @@ with banner:
     st.markdown(
         '<video controls width="250" autoplay="true" muted="true" '
         'loop="true" playsinline style="pointer-events: none;">'
-        '<source src="https://raw.githubusercontent.com/Heatgraphy/'
+        '<source src="https://raw.githubusercontent.com/Marsilea-viz/'
         'marsilea/main/app/img/V1.mp4" '
         'type="video/mp4" /></video>', unsafe_allow_html=True)
 
 with title:
-    st.title("Heatgraphy")
+    st.title("Marsilea")
     st.subheader("Create :blue[x-layout] visualization")
     st.text("")
     st.markdown(
@@ -25,7 +25,7 @@ with title:
 st.markdown("---")
 
 st.subheader("About")
-st.markdown("Heatgraphy is a tool for you to create x-layout visualization. "
+st.markdown("Marsilea is a tool for you to create x-layout visualization. "
             "x-layout is a way to visualize a multi-feature dataset. "
             "Instead of creating one plot for each feature, x-layout groups "
             "the plots of different features together "
@@ -50,17 +50,17 @@ def tools(name, img, page, size=150):
 
 
 with t1:
-    tools("Simple Heatmap", "https://heatgraphy.readthedocs.io/en/latest/"
-                            "_images/customized_render-1.png",
+    tools("Simple Heatmap", "https://marsilea.readthedocs.io/en/latest/"
+                            "_images/concatenation-1.png",
           page="/Simple_Heatmap", size=130)
 
 with t2:
-    tools("x-layout", "https://heatgraphy.readthedocs.io/en/latest/"
+    tools("x-layout", "https://marsilea.readthedocs.io/en/latest/"
                       "_images/sphx_glr_plot_pbmc3k_thumb.png",
           page="X-Layout_Heatmap", size=200)
 
 with t3:
-    tools("Upset Plot", "https://heatgraphy.readthedocs.io/en/latest/"
+    tools("Upset Plot", "https://marsilea.readthedocs.io/en/latest/"
                         "_images/sphx_glr_plot_upset_thumb.png",
           page="/Upsetplot", size=220)
 
@@ -83,4 +83,4 @@ with s3:
 
 st.markdown("---")
 
-st.markdown("Copyright © 2023 [Heatgraphy](https://github.com/Heatgraphy)")
+st.markdown("Copyright © 2024 [Marsilea](https://github.com/Marsilea-viz)")

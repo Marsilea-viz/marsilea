@@ -8,7 +8,7 @@ from marsilea.plotter import ColorMesh, SizedMesh, MarkerMesh
 from .cmap_selector import ColormapSelector
 
 IMG_ROOT = "https://raw.githubusercontent.com/" \
-           "Heatgraphy/marsilea/main/app/img/"
+           "Marsilea-viz/marsilea/main/app/img/"
 
 
 class MainPlotter:
