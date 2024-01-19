@@ -15,6 +15,26 @@ import marsilea.plotter as mp
 
 from marsilea.layers import Rect, RightTri, FrameRect, FracRect
 
+# sphinx_gallery_start_ignore
+import mpl_fontkit as fk
+
+fk.install("Lato", verbose=False)
+
+# sphinx_gallery_end_ignore
+
+def label_ax(ax, text):
+    ax.text(1.05, .5, text, transform=ax.transAxes,
+            ha="left", va="center")
+
+
+# sphinx_gallery_start_ignore
+from pathlib import Path
+
+save_path = Path(__file__).parent / "imgs"
+plt.rcParams['svg.fonttype'] = 'none'
+# sphinx_gallery_end_ignore
+
+
 # %%
 # Mesh plotters
 plt.ion()
@@ -22,30 +42,36 @@ rng = np.random.default_rng(0)
 data = np.arange(5)
 data2d = np.arange(5).reshape(1, 5)
 pieces = {
-    0: FrameRect(color="g", label="2"),
-    1: Rect(color="g", label="2"),
-    2: RightTri(color="g", label="3"),
-    3: FracRect(color="b", label="3"),
-    4: RightTri(color="b", label="3", right_angle="upper right"),
+    0: FrameRect(color="#7E2E84", width=2),
+    1: Rect(color="#D14081"),
+    2: RightTri(color="#EF798A"),
+    3: FracRect(color="#F9F5E3", frac=(.5, .5)),
+    4: RightTri(color="#CCF5AC", right_angle="upper right"),
 }
 
 plotters = {
     "Color Mesh": mp.ColorMesh(data2d, cmap="Blues"),
-    "Sized Mesh": mp.SizedMesh(data2d, sizes=(100, 500), cmap="Greens"),
-    "Marker Mesh": mp.MarkerMesh(data2d >= 2, size=300, marker="*", color="red"),
+    "Sized Mesh": mp.SizedMesh(data2d, sizes=(100, 500), color="#A05F96"),
+    "Marker Mesh": mp.MarkerMesh(data2d > 0, size=300, marker="x", color="#AAD9BB"),
     "Layers Mesh": ma.layers.LayersMesh(data2d, pieces=pieces),
 }
 
 canvas = ma.Heatmap(data2d, width=5, height=0, cmap="Oranges", label="Color Mesh")
 for title, plotter in plotters.items():
-    plotter.set_label(title, "right")
-    canvas.add_bottom(plotter)
+    canvas.add_bottom(plotter, name=title)
 
-canvas.add_dendrogram("bottom", method="ward", colors="#FFDD95")
+canvas.add_dendrogram("bottom", method="ward", colors="#1D2B53", name="Dendrogram")
 canvas.render()
 
-for ax in canvas.figure.get_axes():
+for title in list(plotters.keys()) + ["Dendrogram"]:
+    ax = canvas.get_ax(title)
     ax.set_axis_off()
+    label_ax(ax, title)
+
+# sphinx_gallery_start_ignore
+if '__file__' in globals():
+    plt.savefig(save_path / "all_plotters_mesh.svg", bbox_inches="tight")
+# sphinx_gallery_end_ignore
 
 # %%
 # Label plotters
@@ -64,35 +90,44 @@ for t in labels:
         text_color.append(".1")
 matrix = rng.standard_normal((1, 100))
 canvas2 = ma.Heatmap(matrix, width=5, height=.1)
-canvas2.add_top(mp.Labels(text, text_props={'color': text_color}, rotation=0, label="Labels"))
-canvas2.add_bottom(mp.AnnoLabels(labels, mark=[3, 4, 5, 96, 97, 98], rotation=0))
+canvas2.add_top(mp.Labels(text, text_props={'color': text_color}, rotation=0), name="Labels")
+canvas2.add_bottom(mp.AnnoLabels(labels, mark=[3, 4, 5, 96, 97, 98], rotation=0), name="AnnoLabels")
 canvas2.render()
 
+for title in ["Labels", "AnnoLabels"]:
+    ax = canvas2.get_ax(title)
+    label_ax(ax, title)
+
+# sphinx_gallery_start_ignore
+if '__file__' in globals():
+    plt.savefig(save_path / "all_plotters_label.svg", bbox_inches="tight")
+# sphinx_gallery_end_ignore
 
 # %%
 # Statistics plotters
 
 data1d = np.arange(1, 6)
 data2d = rng.integers(1, 10, size=(10, 5))
-bar_width = .6
+bar_width = .5
 
 plotters = {
     "Simple Bar": mp.Numbers(data1d, color="#756AB6", width=bar_width),
     "Bar": mp.Bar(data2d, color="#5F8670", width=bar_width),
     "Boxen": mp.Boxen(data2d, color="#FFB534", width=bar_width),
     "Violin": mp.Violin(rng.standard_normal((20, 5)), color="#65B741"),
-    "Point": mp.Point(data2d, color="#4CB9E7"),
-    "Strip": mp.Strip(data2d, color="#FF004D"),
-    "Swarm": mp.Swarm(data2d, color="#647D87"),
+    "Point": mp.Point(data2d, color="#656176"),
+    "Strip": mp.Strip(rng.standard_normal((50, 5)), color="#FF004D"),
+    "Swarm": mp.Swarm(rng.standard_normal((50, 5)), color="#647D87"),
     "Stacked Bar": mp.StackBar(rng.integers(1, 10, (5, 5)), items="abcde", width=bar_width),
     "Center Bar": mp.CenterBar(rng.integers(1, 10, (5, 2)), colors=["#EE7214", "#527853"], width=bar_width),
 }
 
 canvas3 = ma.Heatmap(rng.standard_normal((10, 5)), width=4, height=0)
 for title, plotter in plotters.items():
-    plotter.allow_labeling = True
-    plotter.set_label(title, "right")
-    canvas3.add_bottom(plotter, pad=.3, size=2, name=title)
+    size = 1
+    if title in ["Violin", "Strip", "Swarm"]:
+        size = 1.5
+    canvas3.add_bottom(plotter, pad=.1, size=size, name=title)
 
 canvas3.vsplit(cut=[2])
 canvas3.add_bottom(mp.Chunk(["Lower", "Upper"], ["#FFDD95", "#FFB000"], padding=10))
@@ -104,19 +139,35 @@ for ax in canvas3.figure.get_axes():
         ax.spines[dir].set_visible(False)
     ax.tick_params(left=False, labelleft=False)
 
-# for title in plotters.keys():
-#     ax = canvas3.get_ax(title)[0]
-#     ax.text(-.1, .5, title, transform=ax.transAxes, fontsize=14, ha="right", va="center")
+for title in plotters.keys():
+    ax = canvas3.get_ax(title)[-1]
+    label_ax(ax, title)
+
+# sphinx_gallery_start_ignore
+if '__file__' in globals():
+    plt.savefig(save_path / "all_plotters_stat.svg", bbox_inches="tight")
+# sphinx_gallery_end_ignore
 
 
 # %%
 # Other plotters
 matrix = pd.DataFrame(data=rng.integers(1, 10, (4, 5)), index=list("ACGT"))
-colors = {"A": "r", "C": "b", "G": "g", "T": "black"}
+colors = {"A": "#D81159", "C": "#218380", "G": "#FBB13C", "T": "#73D2DE"}
+weights = rng.integers(1, 10, 4)
 seqlogo = mp.SeqLogo(matrix, color_encode=colors)
-arc = mp.Arc([1, 2, 3, 4, 5], [(1, 5), (2, 3), (1, 2), (4, 5)], width=1, colors="#FF004D")
+arc = mp.Arc([1, 2, 3, 4, 5], [(1, 5), (2, 3), (1, 2), (4, 5)],
+             weights=weights, width=(2, 5), colors="#534D56")
 
 canvas4 = ma.Heatmap(rng.standard_normal((10, 5)), width=4, height=0)
-canvas4.add_top(seqlogo, size=2)
-canvas4.add_top(arc, size=1, pad=.2)
+canvas4.add_top(seqlogo, size=2, name="Sequence Logo")
+canvas4.add_top(arc, size=1, pad=.2, name="Arc Diagram")
 canvas4.render()
+
+for title in ["Sequence Logo", "Arc Diagram"]:
+    ax = canvas4.get_ax(title)
+    label_ax(ax, title)
+
+# sphinx_gallery_start_ignore
+if '__file__' in globals():
+    plt.savefig(save_path / "all_plotters_other.svg", bbox_inches="tight")
+# sphinx_gallery_end_ignore

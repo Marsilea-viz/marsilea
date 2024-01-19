@@ -80,6 +80,7 @@ if '__file__' in globals():
     from pathlib import Path
     import matplotlib.pyplot as plt
 
+    plt.rcParams['svg.fonttype'] = 'none'
     save_path = Path(__file__).parent / "imgs"
     plt.savefig(save_path / "oil_well.svg", bbox_inches="tight")
 # sphinx_gallery_end_ignore

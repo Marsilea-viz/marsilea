@@ -102,6 +102,7 @@ mut_ax.text(0, .5, "Mutation Count", rotation=0, ha="right",
 if '__file__' in globals():
     from pathlib import Path
     import matplotlib.pyplot as plt
+    plt.rcParams['svg.fonttype'] = 'none'
     save_path = Path(__file__).parent / "imgs"
     plt.savefig(save_path / "oncoprint.svg", bbox_inches="tight")
 # sphinx_gallery_end_ignore
