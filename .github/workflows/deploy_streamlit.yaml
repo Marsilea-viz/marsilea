@@ -1,5 +1,11 @@
 name: Deploy streamlit docker to Azure
-on: [] # [push, pull_request]
+on:
+  push:
+    paths:
+      - '.github/**'
+      - 'app/**'
+      - 'marsilea/**'
+      - 'pyproject.toml'
 
 jobs:
   build:
@@ -30,4 +36,4 @@ jobs:
           registry-username: ${{ secrets.REGISTRY_USERNAME }}
           registry-password: ${{ secrets.REGISTRY_PASSWORD }}
           name: marsilea
-          location: 'west us'
+          location: 'northeurope'
