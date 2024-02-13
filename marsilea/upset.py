@@ -150,7 +150,7 @@ class UpsetData:
             raise ValueError("Sort by either `degree` or `cardinality`")
         if by == "cardinality":
             self._sets_table.sort_values(by=by, ascending=not ascending,
-                                         inplace=True)
+                                         inplace=True, kind="stable")
         else:
             matrix = self._sets_table.index.to_frame().reset_index(drop=True)
             _, num = matrix.shape
@@ -192,7 +192,8 @@ class UpsetData:
         if order is not None:
             sets_names = order
         else:
-            sets_sizes = self.sets_size().sort_values(ascending=ascending)
+            sets_sizes = self.sets_size().sort_values(ascending=ascending,
+                                                      kind="stable")
             sets_names = sets_sizes.index.to_list()
         self._binary_table = self._binary_table.loc[:, sets_names]
         self._sets_table = self._sets_table.reorder_levels(order=sets_names)
@@ -813,10 +814,7 @@ class Upset(WhiteBoard):
                     line_style = {'color': self.color, 'lw': self.linewidth,
                                   **custom_line_style}
                     xs, ys = ix1, (line_low, line_up)
-                    liner = ax.vlines
-                    if self.orient == "v":
-                        xs, ys = ys, xs
-                        liner = ax.hlines
+                    liner = ax.vlines if self.orient == "h" else ax.hlines
                     liner(xs, *ys, **line_style)
                 scatter_colors = self.sets_color[cy]
                 if self.orient == "v":
