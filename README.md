@@ -1,6 +1,9 @@
 <p align="center">
-    <img src="https://github.com/Marsilea-viz/marsilea/raw/main/img/banner-blue.jpg#gh-light-mode-only" width="500">
-    <img src="https://github.com/Marsilea-viz/marsilea/raw/main/img/banner-dark.jpg#gh-dark-mode-only" width="500">
+  <picture align="center">
+    <source media="(prefers-color-scheme: dark)" srcset="https://github.com/Marsilea-viz/marsilea/raw/main/img/banner-dark.jpg">
+    <source media="(prefers-color-scheme: light)" srcset="https://github.com/Marsilea-viz/marsilea/raw/main/img/banner-blue.jpg">
+    <img alt="Shows a bar chart with benchmark results." src="https://github.com/Marsilea-viz/marsilea/raw/main/img/banner-dark.jpg">
+  </picture>
 </p>
 
 [![Documentation Status](https://img.shields.io/readthedocs/marsilea?color=57B77E&logo=readthedocs&logoColor=white&style=flat-square)](https://marsilea.readthedocs.io/en/stable)
