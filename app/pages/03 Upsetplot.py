@@ -1,12 +1,11 @@
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
 import streamlit as st
 from components.data_input import FileUpload
 from components.initialize import init_page
 from components.initialize import inject_css
-from components.resource import get_font_list, upset_showcase_data,\
+from components.resource import get_font_list, upset_showcase_data, \
     upset_example_data
 from components.saver import ChartSaver
 from components.state import State
@@ -63,7 +62,7 @@ load = st.button("Load Example")
 if load:
     example = upset_example_data()
     s['upset_data'] = UpsetData(example.to_numpy(), items=example.index,
-                                names=example.columns,)
+                                sets_names=example.columns, )
     s["parse_success"] = True
     s['format'] = "Binary Table"
     st.experimental_rerun()
@@ -98,14 +97,13 @@ if data is not None:
 
 if s["parse_success"]:
     upset_data = s['upset_data']
-    filter, highlight, styles = st.tabs(["Filter", "Highlight", "Styles"])
+    filter, styles, highlight = st.tabs(["Filter", "Styles", "Highlight"])
 
     with filter:
-        sets_table = pd.DataFrame(upset_data.cardinality(),
-                                  columns=["size"])
+        sets_table = pd.DataFrame(upset_data.cardinality())
         sets_table["degree"] = sets_table.index.to_frame().sum(axis=1)
 
-        size_upper = int(sets_table['size'].max())
+        size_upper = int(sets_table['cardinality'].max())
         degree_upper = int(sets_table['degree'].max())
 
         c1, c2 = st.columns(2, gap="large")
@@ -118,8 +116,33 @@ if s["parse_success"]:
                                      value=(0, degree_upper),
                                      max_value=degree_upper)
 
+        sort_sets = st.selectbox("Sort sets", options=["ascending", "descending"])
+        sort_subsets = st.selectbox("Sort degree", options=["cardinality", "degree"])
+
     with styles:
         st.markdown("**General**")
+        orient_dict = {"h": "Horizontal", "v": "Vertical"}
+        orient = st.selectbox("Orientation",
+                              options=["h", "v"],
+                              format_func=lambda x: orient_dict[x]
+                              )
+
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            if orient == "v":
+                options = ["left", "right"]
+            else:
+                options = ["top", "bottom"]
+            intersection_plot_pos = st.selectbox("Intersection Plot Position", options=options)
+        with c2:
+            if orient == "v":
+                options = ["top", "bottom"]
+            else:
+                options = ["left", "right"]
+            sets_size_pos = st.selectbox("Sets size Plot Position", options=options)
+        with c3:
+            label_pos = st.selectbox("Label Position", options=options)
+
         g1, g2 = st.columns(2)
         with g1:
             linewidth = st.number_input("Line Width", min_value=.5,
@@ -146,7 +169,7 @@ if s["parse_success"]:
                 "Font size", min_value=1, step=1, value=10)
         with f2:
             font_list = get_font_list()
-            DEFAULT_FONT = font_list.index("Source Sans Pro")
+            DEFAULT_FONT = font_list.index("Lato")
             fontfamily = st.selectbox("Font Family", options=font_list,
                                       index=DEFAULT_FONT)
         with f3:
@@ -166,9 +189,10 @@ if s["parse_success"]:
                              'font.size': fontsize,
                              'font.family': fontfamily}):
             fig = plt.figure()
+            upset_data.reset()
             up = Upset(upset_data,
-                       min_size=size_range[0],
-                       max_size=size_range[1],
+                       min_cardinality=size_range[0],
+                       max_cardinality=size_range[1],
                        min_degree=degree_range[0],
                        max_degree=degree_range[1],
                        color=color,
@@ -176,6 +200,11 @@ if s["parse_success"]:
                        shading=shading,
                        grid_background=grid_background,
                        radius=dot_size,
+                       sort_sets=sort_sets,
+                       sort_subsets=sort_subsets,
+                       orient=orient,
+                       add_intersections=intersection_plot_pos,
+                       add_sets_size=sets_size_pos,
                        )
             up.render(fig)
             s['figure'] = fig
