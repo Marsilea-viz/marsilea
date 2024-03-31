@@ -1127,7 +1127,7 @@ class FixedChunk(_ChunkBase):
                  props=None, padding=8, bordercolor=None,
                  borderwidth=None, borderstyle=None,
                  **options):
-        super().__init__(texts, align, fill_colors, props, padding, bordercolor,
+        super().__init__(texts, fill_colors, align, props, padding, bordercolor,
                          borderwidth, borderstyle, **options)
         if ratio is not None:
             self.set_split_regroup(ratio)
