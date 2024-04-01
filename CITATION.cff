@@ -1,0 +1,37 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: Marsilea
+message: >-
+  An intuitive generalized visualization paradigm for
+  complex datasets
+type: software
+authors:
+  - given-names: Yimin
+    family-names: Zheng
+    email: yzheng@cemm.at
+    affiliation: CeMM
+    orcid: 'https://orcid.org/0000-0002-0394-9735'
+  - given-names: Zhihang
+    family-names: Zheng
+    affiliation: >-
+      Hong Kong University of Science and Technology
+      (Guangzhou)
+    orcid: 'https://orcid.org/0000-0001-7986-4925'
+  - given-names: Andre
+    family-names: Rendeiro
+    affiliation: CeMM
+    orcid: 'https://orcid.org/0000-0001-9362-5373'
+  - given-names: Edwin
+    family-names: Cheung
+    affiliation: University of Macau
+    orcid: 'https://orcid.org/0000-0001-8034-2833'
+identifiers:
+  - type: doi
+    value: 10.1101/2024.02.14.580236
+    description: Bioarxiv
+repository-code: 'https://github.com/Marsilea-viz/marsilea'
+keywords:
+  - Visualization
+license: MIT
