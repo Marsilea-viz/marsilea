@@ -145,7 +145,7 @@ class ColorMesh(MeshBase):
             else:
                 self.annot = True
                 self.annotated_texts = annot
-        self.fmt = "0" if fmt is None else fmt
+        self.fmt = ".2g" if fmt is None else fmt
         self.annot_kws = {} if annot_kws is None else annot_kws
         self._process_cmap(data, vmin, vmax, cmap, norm, center)
 
@@ -163,7 +163,8 @@ class ColorMesh(MeshBase):
         height, width = texts.shape
         xpos, ypos = np.meshgrid(np.arange(width) + .5, np.arange(height) + .5)
         for x, y, m, color, val in zip(xpos.flat, ypos.flat,
-                                       mesh.get_array(), mesh.get_facecolors(),
+                                       mesh.get_array().flatten(),
+                                       mesh.get_facecolors(),
                                        texts.flat):
             if m is not np.ma.masked:
                 lum = relative_luminance(color)
@@ -650,8 +651,25 @@ class MarkerMesh(MeshBase):
         ax.invert_yaxis()
 
 
-# TODO: Maybe a text mesh
 class TextMesh(MeshBase):
+    """The mesh that draw text on each cell
+
+    Parameters
+    ----------
+    texts : np.ndarray
+        The text to draw
+    color : color
+        The color of the text
+    label : str
+        The label of the plot, only show when added to the side plot
+    label_loc : str
+        The position of the label
+    props : dict
+        Props for label :class:`matplotlib.text.Text`
+    kwargs : dict
+        Pass to :meth:`matplotlib.axes.Axes.text`
+
+    """
     render_main = True
 
     def __init__(self, texts, color="black",
