@@ -32,12 +32,13 @@ class Heatmap(ClusterBoard):
                  mask=None, alpha=None, linewidth=0, linecolor="white",
                  annot=None, fmt=None, annot_kws=None, label=None,
                  cbar_kws=None, name=None,
-                 width=None, height=None, cluster_data=None
+                 width=None, height=None, cluster_data=None,
+                 init_main=True,
                  ):
         if cluster_data is None:
             cluster_data = data
         super().__init__(cluster_data, width=width, height=height,
-                         name=name)
+                         name=name, init_main=init_main)
         mesh = ColorMesh(data, vmin=vmin, vmax=vmax, cmap=cmap,
                          norm=norm, center=center,
                          mask=mask, alpha=alpha, linewidth=linewidth,

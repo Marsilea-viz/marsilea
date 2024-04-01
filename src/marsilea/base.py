@@ -220,7 +220,7 @@ class WhiteBoard(LegendMaker):
     _col_plan: List[RenderPlan]
     _layer_plan: List[RenderPlan]
 
-    def __init__(self, width=None, height=None, name=None, margin=.2):
+    def __init__(self, width=None, height=None, name=None, margin=.2, init_main=True):
         self.main_name = get_plot_name(name, "main", "board")
         self._main_size_updatable = (width is None) & (height is None)
         width = 4 if width is None else width
@@ -228,7 +228,8 @@ class WhiteBoard(LegendMaker):
         self.layout = CrossLayout(name=self.main_name,
                                   width=width,
                                   height=height,
-                                  margin=margin)
+                                  margin=margin,
+                                  init_main=init_main)
 
         # self._side_count = {"right": 0, "left": 0, "top": 0, "bottom": 0}
         self._col_plan = []
@@ -434,8 +435,8 @@ class WhiteBoard(LegendMaker):
 
 
 class CompositeBoard(LegendMaker):
-    layout: CompositeCrossLayout
-    figure: Figure
+    layout: CompositeCrossLayout = None
+    figure: Figure = None
 
     def __init__(self, main_board: WhiteBoard):
         self.main_board = self.new_board(main_board)
@@ -514,8 +515,8 @@ class ClusterBoard(WhiteBoard):
     square = False
 
     def __init__(self, cluster_data, width=None, height=None,
-                 name=None, margin=.2):
-        super().__init__(width=width, height=height, name=name, margin=margin)
+                 name=None, margin=.2, init_main=True):
+        super().__init__(width=width, height=height, name=name, margin=margin, init_main=init_main)
         self._row_den = []
         self._col_den = []
         self._cluster_data = cluster_data
@@ -657,7 +658,7 @@ class ClusterBoard(WhiteBoard):
             deform.set_cluster(col=True, method=method, metric=metric,
                                linkage=linkage, use_meta=add_meta,
                                get_meta_center=get_meta_center)
-        
+
     def hsplit(self, cut=None, labels=None, order=None, spacing=0.01):
         if self._split_row:
             raise SplitTwice(axis="horizontally")
