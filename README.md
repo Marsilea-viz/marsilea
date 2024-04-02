@@ -11,7 +11,7 @@
 
 ❗We are in beta, API may change and bugs expected
 
-### Declaritive creation of composable visualization!
+### Declarative creation of composable visualization!
 
 [Read Documentation](https://marsilea.readthedocs.io/)
 
