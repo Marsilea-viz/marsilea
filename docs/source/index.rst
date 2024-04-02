@@ -1,11 +1,40 @@
-Marsilea Documentation
-======================
+:html_theme.sidebar_secondary.remove:
 
 
 .. image:: https://raw.githubusercontent.com/Marsilea-viz/marsilea/main/img/banner-blue.jpg
     :alt: Marsilea banner
     :align: center
     :width: 600px
+
+.. raw:: html
+
+        <div id="space" style="text-align: center; margin-top: 20px; margin-bottom: 20px"></div>
+
+Marsilea: Declarative creation of composable visualization
+==========================================================
+
+
+.. grid:: 2
+
+
+
+    .. grid-item::
+
+        Marsilea is a Python library for creating composable visualizations in a declarative way.
+        It is built on top of Matplotlib and provides a high-level API for you to puzzle different visualizations
+        together like logo.
+
+        .. card :: Related Projects
+            :shadow: none
+
+            - Easy legend creation: `legendkit <https://github.com/Marsilea-viz/legendkit/>`_ | `Documentation <https://legendkit.rtfd.io/>`_
+            - Font management: `mpl-fontkit <https://github.com/Marsilea-viz/mpl-fontkit/>`_
+
+    .. grid-item::
+
+        .. image:: img/code_example.png
+            :align: center
+            :width: 600px
 
 
 Installation
@@ -15,7 +44,7 @@ Install via pip:
 
 .. code-block:: shell
 
-   pip install marsilea
+   $ pip install marsilea
 
 
 Documentation Sections
@@ -34,7 +63,7 @@ Documentation Sections
     .. grid-item-card:: :octicon:`device-camera;4em;sd-text-primary`
         :shadow: none
         :text-align: center
-        :link: auto_examples/index.html
+        :link: examples/index.html
         :margin: 1 1 0 0
 
         **Gallery**
@@ -62,6 +91,7 @@ Documentation Sections
    :hidden:
 
    Tutorial <tutorial/index>
-   Gallery <auto_examples/index>
+   Gallery <examples/index>
    API <api/index>
-   How-To <how-to>
+   Installation <installation>
+   How-To <how_to/index>

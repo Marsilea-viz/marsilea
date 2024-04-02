@@ -13,7 +13,7 @@
 # import os
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
-from sphinx_gallery.sorting import FileNameSortKey
+from sphinx_gallery.sorting import FileNameSortKey, ExplicitOrder
 from sphinx_gallery.scrapers import matplotlib_scraper
 import marsilea as ma
 
@@ -48,6 +48,7 @@ autodoc_typehints = 'none'
 # setting autosummary
 autosummary_generate = True
 numpydoc_show_class_members = False
+add_module_names = False
 
 # setting plot direction
 plot_include_source = True
@@ -73,6 +74,16 @@ html_theme = 'pydata_sphinx_theme'
 html_static_path = ['_static']
 html_css_files = ['css/custom.css']
 html_logo = "../../img/logo.png"
+html_show_sourcelink = False
+html_theme_options = {
+    "github_url": "https://github.com/Marsilea-viz/marsilea",
+    "navigation_with_keys": True
+}
+
+# Remove the sidebar from following pages
+html_sidebars = {
+    "installation": []
+}
 
 
 def matplotlib_tight_scraper(*args, **kwargs):
@@ -91,11 +102,20 @@ copybutton_prompt_text = r">>> |\.\.\. |\$ |In \[\d*\]: | {2,5}\.\.\.: | {5," \
 copybutton_prompt_is_regexp = True
 
 sphinx_gallery_conf = {
-    'examples_dirs': '../../examples',  # path to example scripts
-    'gallery_dirs': 'auto_examples',  # path to generated output
+    'examples_dirs': ['../examples', '../how_to'],  # path to example scripts
+    'gallery_dirs': ['examples', 'how_to'],  # path to generated output
     'within_subsection_order': FileNameSortKey,  # Order by file name
     'image_srcset': ["2x"],
     'image_scrapers': (matplotlib_tight_scraper,),
+    'subsection_order': ExplicitOrder(['../examples/Plotters',
+                                       '../examples/Gallery',
+                                       '../how_to/layout',
+                                       '../how_to/dendrogram',
+                                       '../how_to/legends',
+                                       '../how_to/customization',
+                                       '../how_to/save',
+                                       ]),
+
 }
 
 

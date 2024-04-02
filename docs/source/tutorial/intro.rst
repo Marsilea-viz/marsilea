@@ -176,6 +176,6 @@ Add dendrogram: :meth:`add_dendrogram() <marsilea.base.ClusterBoard.add_dendrogr
 
 Add title: :meth:`add_title() <marsilea.base.WhiteBoard.add_title>`
 
-Add legend: :meth:`add_legend() <marsilea.base.LegendMaker.add_legend>`
+Add legend: :meth:`add_legends() <marsilea.base.LegendMaker.add_legends>`
 
 Save the plot: :meth:`save() <marsilea.base.WhiteBoard.save>`

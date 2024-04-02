@@ -1,6 +1,8 @@
 html[data-theme="light"] {
     --pst-color-primary: #0098FF;
     --pst-color-secondary: #57B77E;
+    --pst-color-link: rgba(0, 152, 255, 0.7);
+    --pst-color-inline-code: rgb(96, 141, 130);
 }
 
 html[data-theme="dark"] {
@@ -17,6 +19,11 @@ img.plot-directive {
     max-height: 500px;
 }
 
+/* Use full page width without sidebars */
+.bd-content {
+  max-width: 100%;
+  flex-grow: 1;
+}
 
 .img-frame {
     display: flex;

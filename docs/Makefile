@@ -14,7 +14,17 @@ help:
 
 .PHONY: help Makefile
 
+deepclean:
+	@$(SPHINXBUILD) -M clean "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
+	rm -rf $(SOURCEDIR)/api/APIs/*
+	rm -rf $(SOURCEDIR)/examples
+	rm -rf $(SOURCEDIR)/how_to
+
+
+
 # Catch-all target: route all unknown targets to Sphinx using the new
 # "make mode" option.  $(O) is meant as a shortcut for $(SPHINXOPTS).
 %: Makefile
 	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
+
+
