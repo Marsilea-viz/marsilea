@@ -14,10 +14,17 @@ class _SeabornBase(StatsBase):
     hue = None
     data = None
 
-    def __init__(self, data, hue_order=None, palette=None,
-                 orient=None, label=None, legend_kws=None,
-                 group_kws=None, **kwargs):
-
+    def __init__(
+        self,
+        data,
+        hue_order=None,
+        palette=None,
+        orient=None,
+        label=None,
+        legend_kws=None,
+        group_kws=None,
+        **kwargs,
+    ):
         if isinstance(data, Mapping):
             datasets = []
             self.hue = []
@@ -25,8 +32,7 @@ class _SeabornBase(StatsBase):
                 hue_order = data.keys()
             for name in hue_order:
                 self.hue.append(name)
-                datasets.append(
-                    self.data_validator(data[name]))
+                datasets.append(self.data_validator(data[name]))
             if isinstance(palette, Mapping):
                 self.palette = palette
             else:
@@ -35,16 +41,16 @@ class _SeabornBase(StatsBase):
                 else:
                     colors = color_palette(palette, as_cmap=False)
                 self.palette = dict(zip(self.hue, colors))
-            kwargs['palette'] = self.palette
+            kwargs["palette"] = self.palette
             self.set_data(*datasets)
         else:
             data = self.data_validator(data)
             self.set_data(data)
-            kwargs.setdefault('color', 'C0')
+            # kwargs.setdefault('color', 'C0')
             # if (palette is None) and ('color' not in kwargs):
             #     kwargs['palette'] = "dark:C0"
             if palette is not None:
-                kwargs['palette'] = palette
+                kwargs["palette"] = palette
 
         kwargs.pop("x", None)
         kwargs.pop("y", None)
@@ -71,40 +77,45 @@ class _SeabornBase(StatsBase):
             return CatLegend(colors=colors, labels=labels, **options)
 
     def render_ax(self, spec):
-
         ax = spec.ax
         data = spec.data
         gp = spec.group_params
         if gp is None:
             gp = {}
-
+        x, y = "var", "value"
         if self.hue is not None:
-
-            x, y = "var", "value"
             dfs = []
             for d, hue in zip(data, self.hue):
                 df = pd.DataFrame(d)
                 df = df.melt(var_name="var", value_name="value")
-                df['hue'] = hue
+                df["hue"] = hue
                 dfs.append(df)
 
             pdata = pd.concat(dfs)
-            self.kws['hue'] = 'hue'
-            self.kws['hue_order'] = self.hue
+            self.kws["hue"] = "hue"
+            self.kws["hue_order"] = self.hue
             if self.get_orient() == "h":
                 x, y = y, x
-            self.kws['x'] = x
-            self.kws['y'] = y
+            self.kws["x"] = x
+            self.kws["y"] = y
+            options = {**self.kws, **gp}
 
         else:
-            pdata = pd.DataFrame(data)
+            pdata = pd.DataFrame(data).melt(var_name="var", value_name="value")
+            if self.get_orient() == "h":
+                x, y = y, x
+            self.kws["x"] = x
+            self.kws["y"] = y
+            options = {**self.kws, **gp}
+            if options.get("palette") is not None:
+                options["hue"] = "var"
 
         orient = self.get_orient()
         if self.side == "left":
             ax.invert_xaxis()
         # barplot(data=data, orient=orient, ax=ax, **self.kws)
         plotter = getattr(seaborn, self._seaborn_plot)
-        options = {**self.kws, **gp}
+
         plotter(data=pdata, orient=orient, ax=ax, **options)
         ax.set(xlabel=None, ylabel=None)
         leg = ax.get_legend()
@@ -122,13 +133,13 @@ def _seaborn_doc(obj: _SeabornBase):
 
     if cls_name == "Swarm":
         sdata = "np.random.rand(50, 10)"
-        kws = "palette='dark:#DB4D6D', size=2"
-        h_kws = "group_kws={'palette': [f'dark:{c}'for c in colors]}, size=2"
+        kws = "color='#DB4D6D', size=2"
+        h_kws = "group_kws={'color': colors}, size=2"
 
     elif cls_name == "Strip":
         sdata = "np.random.rand(50, 10)"
-        kws = "palette='dark:#DB4D6D', size=2"
-        h_kws = "group_kws={'palette': [f'dark:{c}'for c in colors]}, size=2"
+        kws = "color='#DB4D6D', size=2"
+        h_kws = "group_kws={'color': colors}, size=2"
 
     elif cls_name == "Point":
         hue_data = "{'a': sdata, 'b': sdata * 2}"

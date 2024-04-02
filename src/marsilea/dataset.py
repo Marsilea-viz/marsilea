@@ -83,22 +83,23 @@ def _load_imdb(cache=True):
 
 
 def _load_pbmc3k(cache=True):
-    exp, pct_cells, count = _cache_remote(['pbmc3k/exp.csv',
-                                           'pbmc3k/pct_cells.csv',
-                                           'pbmc3k/count.csv'],
-                                          cache=cache)
+    exp, pct_cells, count = _cache_remote(
+        ["pbmc3k/exp.csv", "pbmc3k/pct_cells.csv", "pbmc3k/count.csv"], cache=cache
+    )
     return {
-        'exp': pd.read_csv(exp, index_col=0),
-        'pct_cells': pd.read_csv(pct_cells, index_col=0),
-        'count': pd.read_csv(count, index_col=0)
+        "exp": pd.read_csv(exp, index_col=0),
+        "pct_cells": pd.read_csv(pct_cells, index_col=0),
+        "count": pd.read_csv(count, index_col=0),
     }
 
 
 def _load_sc_multiomics(cache=True):
     stack, interaction = _cache_remote(
-        ['sc-multiomics/sc-multiomics.npz',
-         'sc-multiomics/sc-multiomics-interaction.csv'
-    ])
+        [
+            "sc-multiomics/sc-multiomics.npz",
+            "sc-multiomics/sc-multiomics-interaction.csv",
+        ]
+    )
 
     dataset = np.load(stack, allow_pickle=True)
     interaction = pd.read_csv(interaction)
@@ -106,22 +107,26 @@ def _load_sc_multiomics(cache=True):
     data = {}
     for key in dataset.files:
         data[key] = dataset[key]
-    data['interaction'] = interaction
+    data["interaction"] = interaction
 
     return data
 
 
 def _load_oncoprint(cache=True):
     cna, mrna, methyl, clinical = _cache_remote(
-        ['oncoprint/cna.csv', 'oncoprint/mrna_exp.csv',
-         'oncoprint/methyl_exp.csv', 'oncoprint/clinical.csv'],
-        cache=cache
+        [
+            "oncoprint/cna.csv",
+            "oncoprint/mrna_exp.csv",
+            "oncoprint/methyl_exp.csv",
+            "oncoprint/clinical.csv",
+        ],
+        cache=cache,
     )
     return {
-        'cna': pd.read_csv(cna, index_col=0),
-        'mrna_exp': pd.read_csv(mrna, index_col=0),
-        'methyl_exp': pd.read_csv(methyl, index_col=0),
-        'clinical': pd.read_csv(clinical, index_col=0)
+        "cna": pd.read_csv(cna, index_col=0),
+        "mrna_exp": pd.read_csv(mrna, index_col=0),
+        "methyl_exp": pd.read_csv(methyl, index_col=0),
+        "clinical": pd.read_csv(clinical, index_col=0),
     }
 
 
@@ -142,11 +147,7 @@ def _load_cooking_oils(cache=True):
 
 def _load_les_miserables(cache=True):
     nodes, links = _cache_remote(
-        ['les-miserables/miserables_nodes.csv',
-         'les-miserables/miserables_links.csv'
-         ], cache=cache
+        ["les-miserables/miserables_nodes.csv", "les-miserables/miserables_links.csv"],
+        cache=cache,
     )
-    return {
-        'nodes': pd.read_csv(nodes),
-        'links': pd.read_csv(links)
-    }
+    return {"nodes": pd.read_csv(nodes), "links": pd.read_csv(links)}

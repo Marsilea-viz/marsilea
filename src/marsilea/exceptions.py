@@ -1,5 +1,4 @@
 class DuplicateName(Exception):
-
     def __init__(self, name):
         self.name = name
 
@@ -8,7 +7,6 @@ class DuplicateName(Exception):
 
 
 class SplitTwice(Exception):
-
     def __init__(self, axis="col"):
         self.axis = axis
 
@@ -21,11 +19,12 @@ class SplitConflict(Exception):
 
 
 class AppendLayoutError(Exception):
-
     def __str__(self):
-        return "Append a concatenated plot is not allowed," \
-               "you can only append " \
-               "plots to a concatenated plot."
+        return (
+            "Append a concatenated plot is not allowed,"
+            "you can only append "
+            "plots to a concatenated plot."
+        )
 
 
 class DataError(Exception):

@@ -8,18 +8,19 @@ from .base import StatsBase
 from ..utils import pairwise, ECHARTS16
 
 
-def path_char(pos,
-              extend,
-              t,
-              ax,
-              width=1.,
-              flip=False,
-              mirror=False,
-              direction="h",
-              prop=None,
-              usetex=False,
-              **kwargs
-              ):
+def path_char(
+    pos,
+    extend,
+    t,
+    ax,
+    width=1.0,
+    flip=False,
+    mirror=False,
+    direction="h",
+    prop=None,
+    usetex=False,
+    **kwargs,
+):
     w = width
     h = extend[1] - extend[0]
 
@@ -63,10 +64,12 @@ def path_char(pos,
         tx = bbox.xmin
         ty = bbox.ymin + char_shift
 
-    transformation = (Affine2D()
-                      .translate(tx=-tmp_bbox.xmin, ty=-tmp_bbox.ymin)
-                      .scale(sx=hs, sy=vs)
-                      .translate(tx=tx, ty=ty))
+    transformation = (
+        Affine2D()
+        .translate(tx=-tmp_bbox.xmin, ty=-tmp_bbox.ymin)
+        .scale(sx=hs, sy=vs)
+        .translate(tx=tx, ty=ty)
+    )
 
     char_path = transformation.transform_path(tmp_path)
 
@@ -109,12 +112,14 @@ class SeqLogo(StatsBase):
 
     render_main = False
 
-    def __init__(self,
-                 matrix: pd.DataFrame,
-                 width=.9,
-                 color_encode=None,
-                 stack="descending",  # "descending", "ascending", "normal"
-                 **kwargs):
+    def __init__(
+        self,
+        matrix: pd.DataFrame,
+        width=0.9,
+        color_encode=None,
+        stack="descending",  # "descending", "ascending", "normal"
+        **kwargs,
+    ):
         self.matrix = matrix
         self.letters = matrix.index.to_numpy()
         self.set_data(matrix.to_numpy())
@@ -143,15 +148,21 @@ class SeqLogo(StatsBase):
                 col = col[ix]
 
             extends = [0] + list(np.cumsum(col))
-            pos = i + .5
+            pos = i + 0.5
             for t, extend in zip(letters, pairwise(extends)):
                 facecolor = self.color_encode[t]
-                options = {"facecolor": facecolor,
-                           "edgecolor": "none",
-                           **self.options}
-                path_char(pos, extend, t, ax, flip=flip, mirror=mirror,
-                          width=self.width, direction=direction,
-                          **options)
+                options = {"facecolor": facecolor, "edgecolor": "none", **self.options}
+                path_char(
+                    pos,
+                    extend,
+                    t,
+                    ax,
+                    flip=flip,
+                    mirror=mirror,
+                    width=self.width,
+                    direction=direction,
+                    **options,
+                )
         if self.is_body:
             ax.set_xlim(0, data.shape[1])
             ax.set_ylim(0, lim)
@@ -165,4 +176,3 @@ class SeqLogo(StatsBase):
         if self.side == "bottom":
             ax.invert_yaxis()
         ax.set_axis_off()
-

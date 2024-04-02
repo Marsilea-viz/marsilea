@@ -12,16 +12,17 @@ from .base import StatsBase
 from ..utils import ECHARTS16
 
 
-def simple_bar(data,
-               ax: Axes = None,
-               orient="v",
-               width=.8,
-               show_value=True,
-               fmt=None,
-               label_pad=2,
-               text_props=None,
-               **kwargs
-               ):
+def simple_bar(
+    data,
+    ax: Axes = None,
+    orient="v",
+    width=0.8,
+    show_value=True,
+    fmt=None,
+    label_pad=2,
+    text_props=None,
+    **kwargs,
+):
     if ax is None:
         ax = plt.gca()
     if text_props is None:
@@ -29,18 +30,22 @@ def simple_bar(data,
     bar = ax.bar if orient == "v" else ax.barh
     bars = bar(np.arange(0, len(data)) + 0.5, data, width, **kwargs)
     if show_value:
-        ax.bar_label(bars, data, fmt=fmt,
-                     padding=label_pad,
-                     **text_props)
+        ax.bar_label(bars, data, fmt=fmt, padding=label_pad, **text_props)
     return ax
 
 
 class _BarBase(StatsBase):
-
-    def _process_params(self, width=.7, orient=None, show_value=True,
-                        fmt=None, label=None, value_pad=2.,
-                        props=None, **kwargs):
-
+    def _process_params(
+        self,
+        width=0.7,
+        orient=None,
+        show_value=True,
+        fmt=None,
+        label=None,
+        value_pad=2.0,
+        props=None,
+        **kwargs,
+    ):
         self.width = width
         self.orient = orient
         self.show_value = show_value
@@ -86,18 +91,29 @@ class Numbers(_BarBase):
         >>> data = np.random.randint(1, 10, 10)
         >>> _, ax = plt.subplots()
         >>> Numbers(data).render(ax)
-    
+
     """
 
-    def __init__(self, data, width=.8, color="C0", orient=None,
-                 show_value=True, fmt=None, label=None, value_pad=2.,
-                 props=None, **kwargs):
+    def __init__(
+        self,
+        data,
+        width=0.8,
+        color="C0",
+        orient=None,
+        show_value=True,
+        fmt=None,
+        label=None,
+        value_pad=2.0,
+        props=None,
+        **kwargs,
+    ):
         self.set_data(self.data_validator(data, target="1d"))
         self.color = color
         self.bars = None
 
-        self._process_params(width, orient, show_value, fmt, label,
-                             value_pad, props, **kwargs)
+        self._process_params(
+            width, orient, show_value, fmt, label, value_pad, props, **kwargs
+        )
 
     def render_ax(self, spec):
         ax = spec.ax
@@ -108,8 +124,9 @@ class Numbers(_BarBase):
         bar = ax.bar if orient == "v" else ax.barh
         if orient == "h":
             data = data[::-1]
-        self.bars = bar(np.arange(0, lim) + 0.5, data,
-                        self.width, color=self.color, **self.options)
+        self.bars = bar(
+            np.arange(0, lim) + 0.5, data, self.width, color=self.color, **self.options
+        )
 
         if orient == "v":
             ax.set_xlim(0, lim)
@@ -120,9 +137,7 @@ class Numbers(_BarBase):
             ax.invert_xaxis()
 
         if self.show_value:
-            ax.bar_label(self.bars, fmt=self.fmt,
-                         padding=self.value_pad,
-                         **self.props)
+            ax.bar_label(self.bars, fmt=self.fmt, padding=self.value_pad, **self.props)
 
 
 class CenterBar(_BarBase):
@@ -175,10 +190,20 @@ class CenterBar(_BarBase):
 
     """
 
-    def __init__(self, data, names=None, width=.8, colors=None, orient=None,
-                 show_value=True, fmt=None, label=None, value_pad=2.,
-                 props=None, **kwargs):
-
+    def __init__(
+        self,
+        data,
+        names=None,
+        width=0.8,
+        colors=None,
+        orient=None,
+        show_value=True,
+        fmt=None,
+        label=None,
+        value_pad=2.0,
+        props=None,
+        **kwargs,
+    ):
         self.set_data(self.data_validator(data.T, target="2d"))
         if names is None:
             if isinstance(data, pd.DataFrame):
@@ -188,11 +213,11 @@ class CenterBar(_BarBase):
             colors = ["C0", "C1"]
         self.colors = colors
 
-        self._process_params(width, orient, show_value, fmt, label,
-                             value_pad, props, **kwargs)
+        self._process_params(
+            width, orient, show_value, fmt, label, value_pad, props, **kwargs
+        )
 
     def render_ax(self, spec):
-
         ax = spec.ax
         data = spec.data
 
@@ -212,36 +237,28 @@ class CenterBar(_BarBase):
         left_bar, right_bar = data[0], data[1]
         locs = np.arange(0, len(left_bar)) + 0.5
 
-        bar1 = bar(locs, left_bar, self.width,
-                   color=self.colors[0], **self.options)
-        bar2 = bar(locs, -right_bar, self.width,
-                   color=self.colors[1], **self.options)
+        bar1 = bar(locs, left_bar, self.width, color=self.colors[0], **self.options)
+        bar2 = bar(locs, -right_bar, self.width, color=self.colors[1], **self.options)
         line(0, color="black", lw=1)
         if self.names is not None:
             n1, n2 = self.names
             if orient == "h" and spec.is_first:
-                ax.text(.45, 1, n1, ha="right", va="bottom",
-                        transform=ax.transAxes)
-                ax.text(.55, 1, n2, ha="left", va="bottom",
-                        transform=ax.transAxes)
+                ax.text(0.45, 1, n1, ha="right", va="bottom", transform=ax.transAxes)
+                ax.text(0.55, 1, n2, ha="left", va="bottom", transform=ax.transAxes)
             elif orient == "v" and spec.is_last:
-                ax.text(1, .75, n1, ha="left", va="center",
-                        transform=ax.transAxes)
-                ax.text(1, .25, n2, ha="left", va="center",
-                        transform=ax.transAxes)
+                ax.text(1, 0.75, n1, ha="left", va="center", transform=ax.transAxes)
+                ax.text(1, 0.25, n2, ha="left", va="center", transform=ax.transAxes)
 
         lim_value = np.max(data) * 1.05
 
         if orient == "v":
             ax.set_xlim(0, len(left_bar))
             ax.set_ylim(-lim_value, lim_value)
-            ax.yaxis.set_major_formatter(
-                FuncFormatter(lambda x, p: f"{np.abs(x):g}"))
+            ax.yaxis.set_major_formatter(FuncFormatter(lambda x, p: f"{np.abs(x):g}"))
         else:
             ax.set_ylim(0, len(left_bar))
             ax.set_xlim(-lim_value, lim_value)
-            ax.xaxis.set_major_formatter(
-                FuncFormatter(lambda x, p: f"{np.abs(x):g}"))
+            ax.xaxis.set_major_formatter(FuncFormatter(lambda x, p: f"{np.abs(x):g}"))
 
         if self.is_flank:
             ax.invert_yaxis()
@@ -249,12 +266,8 @@ class CenterBar(_BarBase):
         if self.show_value:
             left_label = _format_labels(left_bar, self.fmt)
             right_label = _format_labels(right_bar, self.fmt)
-            ax.bar_label(bar1, left_label,
-                         padding=self.value_pad,
-                         **self.props)
-            ax.bar_label(bar2, right_label,
-                         padding=self.value_pad,
-                         **self.props)
+            ax.bar_label(bar1, left_label, padding=self.value_pad, **self.props)
+            ax.bar_label(bar2, right_label, padding=self.value_pad, **self.props)
 
 
 class StackBar(_BarBase):
@@ -282,7 +295,7 @@ class StackBar(_BarBase):
         The spacing between value and the bar
     props : dict
         See :class:`matplotlib.text.Text`
-    kwargs:
+    kwargs :
         Other keyword arguments passed to :meth:`matplotlib.axes.Axes.bar`
 
 
@@ -299,8 +312,7 @@ class StackBar(_BarBase):
         >>> StackBar(stack_data).render(ax)
 
 
-    You may find the text is too big for a bar to display on, to not display
-    certain value.
+    You may find the text is too big for a bar to display on, to not display certain value.
 
     .. plot::
         :context: close-figs
@@ -309,23 +321,25 @@ class StackBar(_BarBase):
         >>> _, ax = plt.subplots()
         >>> StackBar(stack_data, show_value=True, fmt=fmt).render(ax)
 
-     """
+    """
 
-    def __init__(self, data,
-                 items=None,
-                 colors=None,
-                 orient=None,
-                 show_value=False,
-                 value_loc="center",
-                 width=.8,
-                 value_size=6,
-                 fmt=None,
-                 props=None,
-                 label=None,
-                 value_pad=0,
-                 legend_kws=None,
-                 **kwargs,
-                 ):
+    def __init__(
+        self,
+        data,
+        items=None,
+        colors=None,
+        orient=None,
+        show_value=False,
+        value_loc="center",
+        width=0.8,
+        value_size=6,
+        fmt=None,
+        props=None,
+        label=None,
+        value_pad=0,
+        legend_kws=None,
+        **kwargs,
+    ):
         # TODO: Support bare bone numpy array as input
         item_names = None
         if isinstance(data, pd.DataFrame):
@@ -341,8 +355,10 @@ class StackBar(_BarBase):
         else:
             if isinstance(colors, Mapping):
                 if item_names is None:
-                    raise ValueError("Please provide the name of each item "
-                                     "before assigning color.")
+                    raise ValueError(
+                        "Please provide the name of each item "
+                        "before assigning color."
+                    )
                 bar_colors = [colors[name] for name in item_names]
             else:
                 bar_colors = colors
@@ -359,8 +375,9 @@ class StackBar(_BarBase):
         value_props = dict(label_type=value_loc)
         value_props.update(props)
 
-        self._process_params(width, orient, show_value, fmt, label,
-                             value_pad, value_props, **kwargs)
+        self._process_params(
+            width, orient, show_value, fmt, label, value_pad, value_props, **kwargs
+        )
 
         self.value_size = value_size
         self._legend_kws = dict(title=self.label, size=1)
@@ -369,8 +386,9 @@ class StackBar(_BarBase):
 
     def get_legends(self):
         if self.labels is not None:
-            return CatLegend(colors=self.bar_colors, labels=self.labels,
-                             **self._legend_kws)
+            return CatLegend(
+                colors=self.bar_colors, labels=self.labels, **self._legend_kws
+            )
 
     def render_ax(self, spec):
         ax = spec.ax
@@ -399,13 +417,18 @@ class StackBar(_BarBase):
             labels = self.labels[::-1]
         else:
             labels = [None for _ in range(len(data))]
-        colors = self.bar_colors[:len(data)]
+        colors = self.bar_colors[: len(data)]
         for ix, row in enumerate(data):
-            bars = bar(locs, row, self.width, bottom,
-                       fc=colors[ix],
-                       label=labels[ix], **self.options)
+            bars = bar(
+                locs,
+                row,
+                self.width,
+                bottom,
+                fc=colors[ix],
+                label=labels[ix],
+                **self.options,
+            )
             bottom += row
 
             if self.show_value:
-                ax.bar_label(bars, fmt=self.fmt, padding=self.value_pad,
-                             **self.props)
+                ax.bar_label(bars, fmt=self.fmt, padding=self.value_pad, **self.props)

@@ -65,13 +65,13 @@ class LegendMaker:
         """
         raise NotImplementedError("Should be implemented in derived class")
 
-    def custom_legends(self, legends, name=None):
-        """Add custom legends
+    def custom_legend(self, legend, name=None):
+        """Add a custom legend
 
         Parameters
         ----------
 
-        legends : `Artist <matplotlib.artist.Artists>`
+        legend : `Artist <matplotlib.artist.Artists>`
             A legend object
         name : str, optional
             The name of the legend
@@ -79,16 +79,21 @@ class LegendMaker:
         """
         if name is None:
             name = str(uuid4())
-        self._user_legends[name] = legends
+        self._user_legends[name] = legend
 
-    def add_legends(self, side="right", pad=0, order=None,
-                    stack_by=None, stack_size=3,
-                    align_legends=None,
-                    align_stacks=None,
-                    legend_spacing=10,
-                    stack_spacing=10,
-                    box_padding=2,
-                    ):
+    def add_legends(
+        self,
+        side="right",
+        pad=0,
+        order=None,
+        stack_by=None,
+        stack_size=3,
+        align_legends=None,
+        align_stacks=None,
+        legend_spacing=10,
+        stack_spacing=10,
+        box_padding=2,
+    ):
         """Draw legend based on the order of annotation
 
         .. note::
@@ -99,21 +104,26 @@ class LegendMaker:
 
         Parameters
         ----------
-        side : str, default: 'left'
+        side : {'right', 'left', 'top', 'bottom'}, default: 'right'
             Which side to draw legend
         pad : number, default: 0
+            The padding of the legend in inches
         order : array of plot name
-        stack_by :
-        stack_size :
-        align_legends : str
+            The order of the legend, if None, the order will be the same as the order when adding plotters.
+            You need to set name for each plotter when adding them, and specify the order here.
+        stack_by : {'row', 'col'}
+            The direction to stack legends
+        stack_size : int, default: 3
+            The number of legends in a stack
+        align_legends : {'left', 'right', 'top', 'bottom'}
             The side to align legends in a stack
-        align_stacks : str
+        align_stacks : {'left', 'right', 'top', 'bottom'}
             The side to align stacks
-        legend_spacing : float
+        legend_spacing : float, default: 10
             The space between legends
-        stack_spacing : float
+        stack_spacing : float, default: 10
             The space between stacks
-        box_padding : float
+        box_padding : float, default: 2
             Add pad around the whole legend box
 
         """
@@ -128,10 +138,15 @@ class LegendMaker:
 
         self._legend_grid_kws = dict(side=side, size=0.01, pad=pad)
         self._legend_draw_kws = dict(
-            order=order, stack_by=stack_by, stack_size=stack_size,
-            align_legends=align_legends, align_stacks=align_stacks,
-            legend_spacing=legend_spacing, stack_spacing=stack_spacing,
-            box_padding=box_padding)
+            order=order,
+            stack_by=stack_by,
+            stack_size=stack_size,
+            align_legends=align_legends,
+            align_stacks=align_stacks,
+            legend_spacing=legend_spacing,
+            stack_spacing=stack_spacing,
+            box_padding=box_padding,
+        )
 
     def remove_legends(self):
         self._draw_legend = False
@@ -150,14 +165,14 @@ class LegendMaker:
                 except Exception:
                     pass
 
-        legend_order = self._legend_draw_kws['order']
-        stack_by = self._legend_draw_kws['stack_by']
-        stack_size = self._legend_draw_kws['stack_size']
-        align_legends = self._legend_draw_kws['align_legends']
-        align_stacks = self._legend_draw_kws['align_stacks']
-        legend_spacing = self._legend_draw_kws['legend_spacing']
-        stack_spacing = self._legend_draw_kws['stack_spacing']
-        box_padding = self._legend_draw_kws['box_padding']
+        legend_order = self._legend_draw_kws["order"]
+        stack_by = self._legend_draw_kws["stack_by"]
+        stack_size = self._legend_draw_kws["stack_size"]
+        align_legends = self._legend_draw_kws["align_legends"]
+        align_stacks = self._legend_draw_kws["align_stacks"]
+        legend_spacing = self._legend_draw_kws["legend_spacing"]
+        stack_spacing = self._legend_draw_kws["stack_spacing"]
+        box_padding = self._legend_draw_kws["box_padding"]
 
         inner, outer = vstack, hstack
         if stack_by == "row":
@@ -175,8 +190,13 @@ class LegendMaker:
         for legs in batched(all_legs, stack_size):
             box = inner(legs, align=align_legends, spacing=legend_spacing)
             bboxes.append(box)
-        legend_box = outer(bboxes, align=align_stacks, loc="center left",
-                           spacing=stack_spacing, padding=box_padding)
+        legend_box = outer(
+            bboxes,
+            align=align_stacks,
+            loc="center left",
+            spacing=stack_spacing,
+            padding=box_padding,
+        )
         ax.add_artist(legend_box)
         # uncomment this to visualize legend ax
         # from matplotlib.patches import Rectangle
@@ -195,7 +215,7 @@ class LegendMaker:
             legend_ax = figure.add_axes([0, 0, 1, 1])
             legends_box = self._legends_drawer(legend_ax)
             bbox = legends_box.get_window_extent(renderer)
-            if self._legend_grid_kws['side'] in ["left", "right"]:
+            if self._legend_grid_kws["side"] in ["left", "right"]:
                 size = bbox.xmax - bbox.xmin
             else:
                 size = bbox.ymax - bbox.ymin
@@ -213,23 +233,67 @@ class LegendMaker:
 class WhiteBoard(LegendMaker):
     """The base class that handle all rendering process
 
+    Parameters
+    ----------
+    width : int, optional
+        The width of the main canvas in inches
+    height : int, optional
+        The height of the main canvas in inches
+    name : str, optional
+        The name of the main canvas
+    margin : float, 4-tuple, optional
+        The margin of the main canvas in inches
+    init_main : bool, optional
+        If True, the main canvas will be initialized
+
+
+    See Also
+    --------
+    :class:`~marsilea.base.ClusterBoard`
+
+
+    Attributes
+    ----------
+    layout : CrossLayout
+        The layout manager
+    figure : Figure
+        The matplotlib figure object
+
+    Examples
+    --------
+    Create a violin plot in white board
+
+    .. plot::
+        :context: close-figs
+
+        >>> import numpy as np
+        >>> import marsilea as ma
+        >>> data = np.random.rand(10, 10)
+        >>> h = ma.WhiteBoard(height=2)
+        >>> h.add_layer(ma.plotter.Violin(data))
+        >>> h.render()
+
+
     """
+
     layout: CrossLayout
     figure: Figure = None
     _row_plan: List[RenderPlan]
     _col_plan: List[RenderPlan]
     _layer_plan: List[RenderPlan]
 
-    def __init__(self, width=None, height=None, name=None, margin=.2, init_main=True):
+    def __init__(self, width=None, height=None, name=None, margin=0.2, init_main=True):
         self.main_name = get_plot_name(name, "main", "board")
         self._main_size_updatable = (width is None) & (height is None)
         width = 4 if width is None else width
         height = 4 if height is None else height
-        self.layout = CrossLayout(name=self.main_name,
-                                  width=width,
-                                  height=height,
-                                  margin=margin,
-                                  init_main=init_main)
+        self.layout = CrossLayout(
+            name=self.main_name,
+            width=width,
+            height=height,
+            margin=margin,
+            init_main=init_main,
+        )
 
         # self._side_count = {"right": 0, "left": 0, "top": 0, "bottom": 0}
         self._col_plan = []
@@ -239,8 +303,27 @@ class WhiteBoard(LegendMaker):
         self._legend_switch = {}
         super().__init__()
 
-    def add_plot(self, side, plot: RenderPlan, name=None,
-                 size=None, pad=0., legend=True):
+    def add_plot(
+        self, side, plot: RenderPlan, name=None, size=None, pad=0.0, legend=True
+    ):
+        """Add a plotter to the board
+
+        Parameters
+        ----------
+        side : {"left", "right", "top", "bottom"}
+            Which side to add the plotter
+        plot : RenderPlan
+            The plotter to add
+        name : str, optional
+            The name of the plot
+        size : float, optional
+            The size of the plot in inches
+        pad : float, optional
+            The padding of the plot in inches
+        legend : bool, optional
+            If True, the legend will be included when calling :meth:`~marsilea.base.LegendMaker.add_legends`
+
+        """
         plot_name = get_plot_name(name, side, plot.__class__.__name__)
         self._legend_switch[plot_name] = legend
 
@@ -250,7 +333,7 @@ class WhiteBoard(LegendMaker):
             if plot.size is not None:
                 ax_size = plot.size
             else:
-                ax_size = 1.
+                ax_size = 1.0
 
         self.layout.add_ax(side, name=plot_name, size=ax_size, pad=pad)
 
@@ -263,20 +346,80 @@ class WhiteBoard(LegendMaker):
 
         plan.append(plot)
 
-    def add_left(self, plot: RenderPlan, name=None,
-                 size=None, pad=0., legend=True):
+    def add_left(self, plot: RenderPlan, name=None, size=None, pad=0.0, legend=True):
+        """Add a plotter to the left-side of main canvas
+
+        Parameters
+        ----------
+        plot : RenderPlan
+            The plotter to add
+        name : str, optional
+            The name of the plot
+        size : float, optional
+            The size of the plot in inches
+        pad : float, optional
+            The padding of the plot in inches
+        legend : bool, optional
+            If True, the legend will be included when calling :meth:`~marsilea.base.LegendMaker.add_legends`
+
+        """
         self.add_plot("left", plot, name, size, pad, legend)
 
-    def add_right(self, plot: RenderPlan, name=None,
-                  size=None, pad=0., legend=True):
+    def add_right(self, plot: RenderPlan, name=None, size=None, pad=0.0, legend=True):
+        """Add a plotter to the right-side of main canvas
+
+        Parameters
+        ----------
+        plot : RenderPlan
+            The plotter to add
+        name : str, optional
+            The name of the plot
+        size : float, optional
+            The size of the plot in inches
+        pad : float, optional
+            The padding of the plot in inches
+        legend : bool, optional
+            If True, the legend will be included when calling :meth:`~marsilea.base.LegendMaker.add_legends`
+
+        """
         self.add_plot("right", plot, name, size, pad, legend)
 
-    def add_top(self, plot: RenderPlan, name=None,
-                size=None, pad=0., legend=True):
+    def add_top(self, plot: RenderPlan, name=None, size=None, pad=0.0, legend=True):
+        """Add a plotter to the top-side of main canvas
+
+        Parameters
+        ----------
+        plot : RenderPlan
+            The plotter to add
+        name : str, optional
+            The name of the plot
+        size : float, optional
+            The size of the plot in inches
+        pad : float, optional
+            The padding of the plot in inches
+        legend : bool, optional
+            If True, the legend will be included when calling :meth:`~marsilea.base.LegendMaker.add_legends`
+
+        """
         self.add_plot("top", plot, name, size, pad, legend)
 
-    def add_bottom(self, plot: RenderPlan, name=None,
-                   size=None, pad=0., legend=True):
+    def add_bottom(self, plot: RenderPlan, name=None, size=None, pad=0.0, legend=True):
+        """Add a plotter to the bottom-side of main canvas
+
+        Parameters
+        ----------
+        plot : RenderPlan
+            The plotter to add
+        name : str, optional
+            The name of the plot
+        size : float, optional
+            The size of the plot in inches
+        pad : float, optional
+            The padding of the plot in inches
+        legend : bool, optional
+            If True, the legend will be included when calling :meth:`~marsilea.base.LegendMaker.add_legends`
+
+        """
         self.add_plot("bottom", plot, name, size, pad, legend)
 
     def _render_plan(self):
@@ -294,14 +437,31 @@ class WhiteBoard(LegendMaker):
             plan.render(main_ax)
 
     def add_layer(self, plot: RenderPlan, zorder=None, name=None, legend=True):
+        """Add a plotter to the main canvas
+
+        .. note::
+
+            Not every plotter can be added as a layer.
+
+        Parameters
+        ----------
+        plot : RenderPlan
+            The plotter to add
+        zorder : int, optional
+            The zorder of the plot
+        name : str, optional
+            The name of the plot
+        legend : bool, optional
+            If True, the legend will be included when calling :meth:`~marsilea.base.LegendMaker.add_legends`
+
+        """
         if name is None:
             name = plot.name
         plot_type = plot.__class__.__name__
         name = get_plot_name(name, side="main", chart=plot_type)
         self._legend_switch[name] = legend
         if not plot.render_main:
-            msg = f"{plot_type} " \
-                  f"cannot be rendered as another layer."
+            msg = f"{plot_type} " f"cannot be rendered as another layer."
             raise TypeError(msg)
         if zorder is not None:
             plot.zorder = zorder
@@ -324,13 +484,57 @@ class WhiteBoard(LegendMaker):
         return sorted(self._layer_plan, key=lambda p: p.zorder)
 
     def add_pad(self, side, size):
+        """Add padding to the main canvas
+
+        Parameters
+        ----------
+        side : {"left", "right", "top", "bottom"}
+            Which side to add padding
+        size : float
+            The size of padding in inches
+
+        """
         self.layout.add_pad(side, size)
 
-    def add_canvas(self, side, name, size, pad=0.):
+    def add_canvas(self, side, name, size, pad=0.0):
+        """Add an axes to the main canvas
+
+        Parameters
+        ----------
+        side : {"left", "right", "top", "bottom"}
+            Which side to add the axes
+        name : str
+            The name of the axes
+        size : float
+            The size of the axes in inches
+        pad : float, optional
+            The padding of the axes in inches
+
+        """
         self.layout.add_ax(side, name, size, pad=pad)
 
-    def add_title(self, top=None, bottom=None, left=None, right=None,
-                  pad=0, **props):
+    def add_title(self, top=None, bottom=None, left=None, right=None, pad=0, **props):
+        """A shortcut to add title to the main canvas
+
+        Parameters
+        ----------
+        top : str, optional
+            The title of the top side
+        bottom : str, optional
+            The title of the bottom side
+        left : str, optional
+            The title of the left side
+        right : str, optional
+            The title of the right side
+        pad : float, optional
+            The padding of the title in inches
+        props : dict
+            The properties of the title
+
+        Returns
+        -------
+
+        """
         if left is not None:
             self.add_plot("left", Title(left, **props), pad=pad)
         if right is not None:
@@ -364,6 +568,7 @@ class WhiteBoard(LegendMaker):
         return {}
 
     def get_legends(self):
+        """Get all legends from the main canvas"""
         legends = {}
         legends.update(self._extra_legends())
         for plan in self._layer_plan + self._col_plan + self._row_plan:
@@ -385,6 +590,7 @@ class WhiteBoard(LegendMaker):
         return self.append("bottom", other)
 
     def append(self, side, other):
+        """Append two :class:`~marsilea.base.CrossLayout` together"""
         compose_board = CompositeBoard(self)
         compose_board.append(side, other)
         return compose_board
@@ -397,12 +603,15 @@ class WhiteBoard(LegendMaker):
                     self.layout.set_render_size(plan.name, render_size)
 
     def render(self, figure=None, scale=1):
-        """
+        """Finalize the layout and render all plots
 
         Parameters
         ----------
-        figure
-        scale
+        figure : :class:`~matplotlib.figure.FigureBase`, optional
+            The matplotlib figure object
+        scale : float, optional
+            The scale value of the figure size. You can use this to
+            adjust the overall size of the figure
 
         Returns
         -------
@@ -414,10 +623,6 @@ class WhiteBoard(LegendMaker):
         self._freeze_legend(figure)
         self._freeze_flex_plots(figure)
 
-        # if refreeze:
-        #     self.figure = self.layout.freeze(figure=figure, scale=scale)
-        # else:
-        #     self.figure = self.layout.figure
         self.layout.freeze(figure=figure, scale=scale)
 
         # render other plots
@@ -425,6 +630,18 @@ class WhiteBoard(LegendMaker):
         self._render_legend()
 
     def save(self, fname, **kwargs):
+        """Save the figure to a file
+
+        This will force a re-render of the figure
+
+        Parameters
+        ----------
+        fname : str, path-like
+            The file name to save
+        kwargs : dict
+            Additional options for saving the figure, will be passed to :meth:`~matplotlib.pyplot.savefig`
+
+        """
         self.render()
         save_options = dict(bbox_inches="tight")
         save_options.update(kwargs)
@@ -488,8 +705,9 @@ class CompositeBoard(LegendMaker):
             save_options.update(kwargs)
             self.figure.savefig(fname, **save_options)
         else:
-            warnings.warn("Figure does not exist, "
-                          "please render it before saving as file.")
+            warnings.warn(
+                "Figure does not exist, " "please render it before saving as file."
+            )
 
     def get_legends(self):
         legends = {}
@@ -505,6 +723,31 @@ class CompositeBoard(LegendMaker):
 
 
 class ClusterBoard(WhiteBoard):
+    """A main canvas class that can handle cluster data
+
+    Parameters
+    ----------
+    cluster_data : ndarray
+        The cluster data
+    width : int, optional
+        The width of the main canvas in inches
+    height : int, optional
+        The height of the main canvas in inches
+    name : str, optional
+        The name of the main canvas
+    margin : float, 4-tuple, optional
+        The margin of the main canvas in inches
+    init_main : bool, optional
+        If True, the main canvas will be initialized
+
+
+    See Also
+    --------
+    :class:`~marsilea.base.WhiteBoard`
+
+
+    """
+
     _row_reindex: List[int] = None
     _col_reindex: List[int] = None
     # If cluster data need to be defined by user
@@ -512,21 +755,44 @@ class ClusterBoard(WhiteBoard):
     _split_col: bool = False
     _split_row: bool = False
     _mesh = None
-    square = False
 
-    def __init__(self, cluster_data, width=None, height=None,
-                 name=None, margin=.2, init_main=True):
-        super().__init__(width=width, height=height, name=name, margin=margin, init_main=init_main)
+    def __init__(
+        self,
+        cluster_data,
+        width=None,
+        height=None,
+        name=None,
+        margin=0.2,
+        init_main=True,
+    ):
+        super().__init__(
+            width=width, height=height, name=name, margin=margin, init_main=init_main
+        )
         self._row_den = []
         self._col_den = []
         self._cluster_data = cluster_data
         self._deform = Deformation(cluster_data)
 
-    def add_dendrogram(self, side, method=None, metric=None, linkage=None,
-                       add_meta=True, add_base=True, add_divider=True,
-                       meta_color=None, linewidth=None, colors=None,
-                       divider_style="--", meta_ratio=.2,
-                       show=True, name=None, size=0.5, pad=0., get_meta_center=None):
+    def add_dendrogram(
+        self,
+        side,
+        method=None,
+        metric=None,
+        linkage=None,
+        add_meta=True,
+        add_base=True,
+        add_divider=True,
+        meta_color=None,
+        linewidth=None,
+        colors=None,
+        divider_style="--",
+        meta_ratio=0.2,
+        show=True,
+        name=None,
+        size=0.5,
+        pad=0.0,
+        get_meta_center=None,
+    ):
         """Run cluster and add dendrogram
 
         .. note::
@@ -620,15 +886,16 @@ class ClusterBoard(WhiteBoard):
 
         """
         if not self._allow_cluster:
-            msg = f"Please specify cluster data when initialize " \
-                  f"'{self.__class__.__name__}' class."
+            msg = (
+                f"Please specify cluster data when initialize "
+                f"'{self.__class__.__name__}' class."
+            )
             raise ValueError(msg)
         plot_name = get_plot_name(name, side, "Dendrogram")
 
         # if only colors is passed
         # the color should be applied to all
-        if (colors is not None) & (is_color_like(colors)) & (
-                meta_color is None):
+        if (colors is not None) & (is_color_like(colors)) & (meta_color is None):
             meta_color = colors
 
         # if nothing is added
@@ -639,27 +906,85 @@ class ClusterBoard(WhiteBoard):
         if show:
             self.layout.add_ax(side, name=plot_name, size=size, pad=pad)
 
-        den_options = dict(name=plot_name, show=show, side=side,
-                           add_meta=add_meta, add_base=add_base,
-                           add_divider=add_divider, meta_color=meta_color,
-                           linewidth=linewidth, colors=colors,
-                           divider_style=divider_style, meta_ratio=meta_ratio)
+        den_options = dict(
+            name=plot_name,
+            show=show,
+            side=side,
+            add_meta=add_meta,
+            add_base=add_base,
+            add_divider=add_divider,
+            meta_color=meta_color,
+            linewidth=linewidth,
+            colors=colors,
+            divider_style=divider_style,
+            meta_ratio=meta_ratio,
+        )
 
         deform = self.get_deform()
         if side in ["right", "left"]:
-            den_options['pos'] = "row"
+            den_options["pos"] = "row"
             self._row_den.append(den_options)
-            deform.set_cluster(row=True, method=method, metric=metric,
-                               linkage=linkage, use_meta=add_meta,
-                               get_meta_center=get_meta_center)
+            deform.set_cluster(
+                row=True,
+                method=method,
+                metric=metric,
+                linkage=linkage,
+                use_meta=add_meta,
+                get_meta_center=get_meta_center,
+            )
         else:
-            den_options['pos'] = "col"
+            den_options["pos"] = "col"
             self._col_den.append(den_options)
-            deform.set_cluster(col=True, method=method, metric=metric,
-                               linkage=linkage, use_meta=add_meta,
-                               get_meta_center=get_meta_center)
+            deform.set_cluster(
+                col=True,
+                method=method,
+                metric=metric,
+                linkage=linkage,
+                use_meta=add_meta,
+                get_meta_center=get_meta_center,
+            )
 
     def hsplit(self, cut=None, labels=None, order=None, spacing=0.01):
+        """Split the main canvas horizontally
+
+        Parameters
+        ----------
+        cut : array-like, optional
+            The index of your data to specify where to split the canvas
+        labels : array-like, optional
+            The labels of your data, must be the same length as the data
+        order : array-like, optional
+            The order of the unique labels
+        spacing : float, optional
+            The spacing between each split chunks, default is 0.01
+
+        Examples
+        --------
+        Split the canvas by the unique labels
+
+        .. plot::
+            :context: close-figs
+
+            >>> data = np.random.rand(10, 11)
+            >>> import marsilea as ma
+            >>> h = ma.Heatmap(data)
+            >>> labels = ["A", "B", "C", "A", "B", "C", "A", "B", "C", "A"]
+            >>> h.hsplit(labels=labels, order=["A", "B", "C"])
+            >>> h.add_left(ma.plotter.Labels(labels), pad=.1)
+            >>> h.render()
+
+
+        Split the canvas by the index
+
+        .. plot::
+            :context: close-figs
+
+            >>> h = ma.Heatmap(data)
+            >>> h.hsplit(cut=[4, 8])
+            >>> h.render()
+
+
+        """
         if self._split_row:
             raise SplitTwice(axis="horizontally")
         self._split_row = True
@@ -678,6 +1003,46 @@ class ClusterBoard(WhiteBoard):
             deform.set_split_row(breakpoints=breakpoints, order=order)
 
     def vsplit(self, cut=None, labels=None, order=None, spacing=0.01):
+        """Split the main canvas vertically
+
+        Parameters
+        ----------
+        cut : array-like, optional
+            The index of your data to specify where to split the canvas
+        labels : array-like, optional
+            The labels of your data, must be the same length as the data
+        order : array-like, optional
+            The order of the unique labels
+        spacing : float, optional
+            The spacing between each split chunks, default is 0.01
+
+        Examples
+        --------
+        Split the canvas by the unique labels
+
+        .. plot::
+            :context: close-figs
+
+            >>> data = np.random.rand(10, 11)
+            >>> import marsilea as ma
+            >>> h = ma.Heatmap(data)
+            >>> labels = ["A", "B", "C", "A", "B", "C", "A", "B", "C", "A", "B"]
+            >>> h.vsplit(labels=labels, order=["A", "B", "C"])
+            >>> h.add_top(ma.plotter.Labels(labels), pad=.1)
+            >>> h.render()
+
+
+        Split the canvas by the index
+
+        .. plot::
+            :context: close-figs
+
+            >>> h = ma.Heatmap(data)
+            >>> h.vsplit(cut=[4, 8])
+            >>> h.render()
+
+
+        """
         if self._split_col:
             raise SplitTwice(axis="vertically")
         self._split_col = True
@@ -717,8 +1082,7 @@ class ClusterBoard(WhiteBoard):
                         group_ratios = None
                     else:
                         group_ratios = plan.get_split_regroup()
-                    self.layout.vsplit(plan.name, w_ratios, wspace,
-                                       group_ratios)
+                    self.layout.vsplit(plan.name, w_ratios, wspace, group_ratios)
 
         # split row axes
         if deform.is_row_split:
@@ -728,38 +1092,40 @@ class ClusterBoard(WhiteBoard):
                         group_ratios = None
                     else:
                         group_ratios = plan.get_split_regroup()
-                    self.layout.hsplit(plan.name, h_ratios, hspace,
-                                       group_ratios)
+                    self.layout.hsplit(plan.name, h_ratios, hspace, group_ratios)
 
     def _render_dendrogram(self):
         deform = self.get_deform()
-        for den in (self._row_den + self._col_den):
-            if den['show']:
-                ax = self.layout.get_ax(den['name'])
+        for den in self._row_den + self._col_den:
+            if den["show"]:
+                ax = self.layout.get_ax(den["name"])
                 ax.set_axis_off()
                 spacing = deform.hspace
                 den_obj = deform.get_row_dendrogram()
-                if den['pos'] == "col":
+                if den["pos"] == "col":
                     spacing = deform.wspace
                     den_obj = deform.get_col_dendrogram()
                 if isinstance(den_obj, Dendrogram):
-                    color = den['colors']
+                    color = den["colors"]
                     if (color is not None) & (not is_color_like(color)):
                         color = color[0]
-                    den_obj.draw(ax, orient=den['side'], color=color,
-                                 linewidth=den['linewidth'])
+                    den_obj.draw(
+                        ax, orient=den["side"], color=color, linewidth=den["linewidth"]
+                    )
                 else:
-                    den_obj.draw(ax, orient=den['side'],
-                                 spacing=spacing,
-                                 add_meta=den['add_meta'],
-                                 add_base=den['add_base'],
-                                 base_colors=den['colors'],
-                                 meta_color=den['meta_color'],
-                                 linewidth=den['linewidth'],
-                                 divide=den['add_divider'],
-                                 divide_style=den['divider_style'],
-                                 meta_ratio=den['meta_ratio']
-                                 )
+                    den_obj.draw(
+                        ax,
+                        orient=den["side"],
+                        spacing=spacing,
+                        add_meta=den["add_meta"],
+                        add_base=den["add_base"],
+                        base_colors=den["colors"],
+                        meta_color=den["meta_color"],
+                        linewidth=den["linewidth"],
+                        divide=den["add_divider"],
+                        divide_style=den["divider_style"],
+                        meta_ratio=den["meta_ratio"],
+                    )
 
     def _render_plan(self):
         deform = self.get_deform()
@@ -782,20 +1148,37 @@ class ClusterBoard(WhiteBoard):
             plan.render(main_ax)
 
     def get_deform(self):
+        """Return the deformation object of the cluster data"""
         return self._deform
 
     def get_row_linkage(self):
+        """Return the linkage matrix of row dendrogram
+
+        If the canvas is not split, the linkage matrix will be returned;
+        otherwise, a dictionary of linkage matrix will be returned, the key is either
+        index or the name of each chunk.
+
+        """
         return self._deform.get_row_linkage()
 
     def get_col_linkage(self):
+        """Return the linkage matrix of column dendrogram
+
+        If the canvas is not split, the linkage matrix will be returned;
+        otherwise, a dictionary of linkage matrix will be returned, the key is either
+        index or the name of each chunk.
+
+        """
         return self._deform.get_col_linkage()
 
     @property
     def row_cluster(self):
+        """If row dendrogram is added"""
         return len(self._row_den) > 0
 
     @property
     def col_cluster(self):
+        """If column dendrogram is added"""
         return len(self._col_den) > 0
 
     def render(self, figure=None, scale=1):

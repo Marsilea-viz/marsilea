@@ -15,6 +15,7 @@ class Deformation:
     #. Compute the ratio to split axes that match with data
 
     """
+
     is_row_split = False
     is_col_split = False
     is_row_cluster = False
@@ -65,22 +66,25 @@ class Deformation:
 
     def set_data_row_reindex(self, reindex):
         if len(reindex) != self._nrow:
-            msg = f"Length of reindex ({len(reindex)}) should match " \
-                  f"data row with {self._nrow} elements"
+            msg = (
+                f"Length of reindex ({len(reindex)}) should match "
+                f"data row with {self._nrow} elements"
+            )
             raise ValueError(msg)
         self.data_row_reindex = reindex
         self._row_clustered = False
 
     def set_data_col_reindex(self, reindex):
         if len(reindex) != self._ncol:
-            msg = f"Length of reindex ({len(reindex)}) should match " \
-                  f"data col with {self._ncol} elements"
+            msg = (
+                f"Length of reindex ({len(reindex)}) should match "
+                f"data col with {self._ncol} elements"
+            )
             raise ValueError(msg)
         self.data_col_reindex = reindex
         self._col_clustered = False
 
-    def set_cluster(self, col=None, row=None, use_meta=True,
-                    linkage=None, **kwargs):
+    def set_cluster(self, col=None, row=None, use_meta=True, linkage=None, **kwargs):
         if col is not None:
             self.is_col_cluster = col
             self.col_cluster_kws = kwargs
@@ -105,8 +109,7 @@ class Deformation:
     def set_split_row(self, breakpoints=None, order=None):
         if breakpoints is not None:
             self.is_row_split = True
-            self.row_breakpoints = [0, *np.sort(np.asarray(breakpoints)),
-                                    self._nrow]
+            self.row_breakpoints = [0, *np.sort(np.asarray(breakpoints)), self._nrow]
             if order is None:
                 order = np.arange(len(breakpoints) + 1)
             self.row_split_order = order
@@ -114,8 +117,7 @@ class Deformation:
     def set_split_col(self, breakpoints=None, order=None):
         if breakpoints is not None:
             self.is_col_split = True
-            self.col_breakpoints = [0, *np.sort(np.asarray(breakpoints)),
-                                    self._ncol]
+            self.col_breakpoints = [0, *np.sort(np.asarray(breakpoints)), self._ncol]
             if order is None:
                 order = np.arange(len(breakpoints) + 1)
             self.col_split_order = order
@@ -125,8 +127,7 @@ class Deformation:
         self._run_cluster()
         if self.row_breakpoints is None:
             return None
-        ratios = np.array([
-            ix2 - ix1 for ix1, ix2 in pairwise(self.row_breakpoints)])
+        ratios = np.array([ix2 - ix1 for ix1, ix2 in pairwise(self.row_breakpoints)])
 
         if self.row_chunk_index is not None:
             return ratios[self.row_chunk_index]
@@ -138,8 +139,7 @@ class Deformation:
         self._run_cluster()
         if self.col_breakpoints is None:
             return None
-        ratios = np.array([
-            ix2 - ix1 for ix1, ix2 in pairwise(self.col_breakpoints)])
+        ratios = np.array([ix2 - ix1 for ix1, ix2 in pairwise(self.col_breakpoints)])
 
         if self.col_chunk_index is not None:
             return ratios[self.col_chunk_index]
@@ -161,11 +161,9 @@ class Deformation:
         if not self.is_col_split:
             return data
         if data.ndim == 1:
-            return [data[ix1:ix2] for ix1, ix2 in pairwise(
-                self.col_breakpoints)]
+            return [data[ix1:ix2] for ix1, ix2 in pairwise(self.col_breakpoints)]
         else:
-            return [data[:, ix1:ix2] for ix1, ix2 in pairwise(
-                self.col_breakpoints)]
+            return [data[:, ix1:ix2] for ix1, ix2 in pairwise(self.col_breakpoints)]
 
     def split_cross(self, data: np.ndarray):
         if self.is_col_split & self.is_row_split:
@@ -173,9 +171,7 @@ class Deformation:
             for ix1, ix2 in pairwise(self.row_breakpoints):
                 row = []
                 for iy1, iy2 in pairwise(self.col_breakpoints):
-                    row.append(
-                        data[ix1:ix2, iy1:iy2]
-                    )
+                    row.append(data[ix1:ix2, iy1:iy2])
                 split_data.append(row)
             return split_data
         if self.is_row_split:
@@ -184,14 +180,18 @@ class Deformation:
             return self.split_by_col(data)
         return data
 
-    _linkage_check_msg = ("If you want to specific linkage when splitting, "
-                          "it must be a dict-like object, "
-                          "with keys as group names and values as linkage")
+    _linkage_check_msg = (
+        "If you want to specific linkage when splitting, "
+        "it must be a dict-like object, "
+        "with keys as group names and values as linkage"
+    )
 
     def cluster_row(self):
         row_data = self.split_by_row(self.get_data())
         if self.is_row_split:
-            if not (isinstance(self.row_linkage, Mapping) or (self.row_linkage is None)):
+            if not (
+                isinstance(self.row_linkage, Mapping) or (self.row_linkage is None)
+            ):
                 raise TypeError(self._linkage_check_msg)
             dens = []
             for chunk, k in zip(row_data, self.row_split_order):
@@ -200,7 +200,9 @@ class Deformation:
                     linkage = self.row_linkage.get(k)
                     if linkage is None:
                         raise KeyError(f"Linkage for group {k} is not specified")
-                dens.append(Dendrogram(chunk, linkage=linkage, key=k, **self.row_cluster_kws))
+                dens.append(
+                    Dendrogram(chunk, linkage=linkage, key=k, **self.row_cluster_kws)
+                )
 
             dg = GroupDendrogram(dens, **self.row_cluster_kws)
             if self._use_row_meta:
@@ -216,7 +218,9 @@ class Deformation:
     def cluster_col(self):
         col_data = self.split_by_col(self.get_data())
         if self.is_col_split:
-            if not (isinstance(self.col_linkage, Mapping) or (self.col_linkage is None)):
+            if not (
+                isinstance(self.col_linkage, Mapping) or (self.col_linkage is None)
+            ):
                 raise TypeError(self._linkage_check_msg)
             dens = []
             for chunk, k in zip(col_data, self.col_split_order):
@@ -225,7 +229,9 @@ class Deformation:
                     linkage = self.col_linkage.get(k)
                     if linkage is None:
                         raise KeyError(f"Linkage for group {k} is not specified")
-                dens.append(Dendrogram(chunk.T, linkage=linkage, key=k, **self.col_cluster_kws))
+                dens.append(
+                    Dendrogram(chunk.T, linkage=linkage, key=k, **self.col_cluster_kws)
+                )
             dg = GroupDendrogram(dens, **self.col_cluster_kws)
             if self._use_col_meta:
                 self.col_chunk_index = dg.reorder_index
@@ -233,7 +239,9 @@ class Deformation:
                 self.col_chunk_index = np.arange(len(dens))
             self.col_reorder_index = [d.reorder_index for d in dens]
         else:
-            dg = Dendrogram(col_data.T, linkage=self.col_linkage, **self.col_cluster_kws)
+            dg = Dendrogram(
+                col_data.T, linkage=self.col_linkage, **self.col_cluster_kws
+            )
             self.col_reorder_index = dg.reorder_index
         self.col_dendrogram = dg
 
@@ -279,19 +287,15 @@ class Deformation:
             if self.is_row_split & self.is_col_split:
                 final_data = []
                 for row in data:
-                    for ix, order in zip(range(len(row)),
-                                         self.col_reorder_index):
+                    for ix, order in zip(range(len(row)), self.col_reorder_index):
                         if row[ix].ndim == 2:
                             row[ix] = row[ix][:, order]
                         else:
                             row[ix] = row[ix][order]
-                    final_data.append(
-                        [row[ix] for ix in self.col_chunk_index]
-                    )
+                    final_data.append([row[ix] for ix in self.col_chunk_index])
                 return final_data
             elif self.is_col_split:
-                for ix, order in zip(range(len(data)),
-                                     self.col_reorder_index):
+                for ix, order in zip(range(len(data)), self.col_reorder_index):
                     data[ix] = data[ix][:, order]
 
                 return [data[ix] for ix in self.col_chunk_index]
@@ -317,8 +321,10 @@ class Deformation:
     def transform(self, data: np.ndarray):
         """data must be 2d array with the same shape as cluster data"""
         if not data.shape == (self._nrow, self._ncol):
-            msg = f"The shape of input data {data.shape} does not align with" \
-                  f" the shape of cluster data {(self._nrow, self._ncol)}"
+            msg = (
+                f"The shape of input data {data.shape} does not align with"
+                f" the shape of cluster data {(self._nrow, self._ncol)}"
+            )
             raise ValueError(msg)
         if self.data_row_reindex is not None:
             data = data[self.data_row_reindex]

@@ -6,10 +6,22 @@ from matplotlib.colors import Colormap
 from uuid import uuid4
 
 ECHARTS16 = [
-    "#5470c6", "#91cc75", "#fac858", "#ee6666",
-    "#9a60b4", "#73c0de", "#3ba272", "#fc8452",
-    "#27727b", "#ea7ccc", "#d7504b", "#e87c25",
-    "#b5c334", "#fe8463", "#26c0c0", "#f4e001"
+    "#5470c6",
+    "#91cc75",
+    "#fac858",
+    "#ee6666",
+    "#9a60b4",
+    "#73c0de",
+    "#3ba272",
+    "#fc8452",
+    "#27727b",
+    "#ea7ccc",
+    "#d7504b",
+    "#e87c25",
+    "#b5c334",
+    "#fe8463",
+    "#26c0c0",
+    "#f4e001",
 ]
 
 
@@ -30,9 +42,9 @@ def batched(iterable, n):
     """Batch data into lists of length n. The last batch may be shorter."""
     # batched('ABCDEFG', 3) --> ABC DEF G
     if n < 1:
-        raise ValueError('n must be at least one')
+        raise ValueError("n must be at least one")
     it = iter(iterable)
-    while (batch := list(islice(it, n))):
+    while batch := list(islice(it, n)):
         yield batch
 
 
@@ -48,8 +60,8 @@ def relative_luminance(color):
     luminance : float(s) between 0 and 1
     """
     rgb = mcolors.colorConverter.to_rgba_array(color)[:, :3]
-    rgb = np.where(rgb <= .03928, rgb / 12.92, ((rgb + .055) / 1.055) ** 2.4)
-    lum = rgb.dot([.2126, .7152, .0722])
+    rgb = np.where(rgb <= 0.03928, rgb / 12.92, ((rgb + 0.055) / 1.055) ** 2.4)
+    lum = rgb.dot([0.2126, 0.7152, 0.0722])
     try:
         return lum.item()
     except ValueError:
@@ -65,8 +77,9 @@ def get_colormap(cmap):
         return mpl.cm.get_cmap(cmap)
 
 
-def get_canvas_size_by_data(shape, width=None, height=None,
-                            scale=.3, aspect=1, max_side=15):
+def get_canvas_size_by_data(
+    shape, width=None, height=None, scale=0.3, aspect=1, max_side=15
+):
     h, w = shape
     no_w = width is None
     no_h = height is None

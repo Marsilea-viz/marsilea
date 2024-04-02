@@ -22,6 +22,7 @@ class Segment:
     """
     The total length is unchanged
     """
+
     up: float
     low: float
 
@@ -111,8 +112,9 @@ def adjust_segments(lim: Segment, segments: List[Segment]):
     segments_length = np.sum(sl)
     space = lim.length
     if segments_length > space:
-        warnings.warn("No enough space to place all labels, "
-                      "try reducing the fontsize.")
+        warnings.warn(
+            "No enough space to place all labels, " "try reducing the fontsize."
+        )
 
     segments_length_r = segments_length
     space_r = space
@@ -201,15 +203,23 @@ def plot_segments(segments, lim=None):
 
 
 class AdjustableText:
-
-    def __init__(self, x, y, text,
-                 ax=None, renderer=None,
-                 pointer=None,
-                 expand=(1.05, 1.05),
-                 va=None, ha=None, rotation=None,
-                 connectionstyle=None, relpos=None,
-                 linewidth=None,
-                 **kwargs):
+    def __init__(
+        self,
+        x,
+        y,
+        text,
+        ax=None,
+        renderer=None,
+        pointer=None,
+        expand=(1.05, 1.05),
+        va=None,
+        ha=None,
+        rotation=None,
+        connectionstyle=None,
+        relpos=None,
+        linewidth=None,
+        **kwargs,
+    ):
         if ax is None:
             ax = plt.gca()
         if renderer is None:
@@ -230,14 +240,19 @@ class AdjustableText:
         self.connectionstyle = connectionstyle
         self.relpos = relpos
         self.linewidth = linewidth
-        self.text_obj = Text(x, y, text, va=va, ha=ha,
-                             rotation=rotation,
-                             transform=self.ax.transAxes,
-                             **kwargs)
+        self.text_obj = Text(
+            x,
+            y,
+            text,
+            va=va,
+            ha=ha,
+            rotation=rotation,
+            transform=self.ax.transAxes,
+            **kwargs,
+        )
         self.text_options = kwargs
         ax.add_artist(self.text_obj)
-        self._bbox = self.text_obj.get_window_extent(self.renderer) \
-            .expanded(*expand)
+        self._bbox = self.text_obj.get_window_extent(self.renderer).expanded(*expand)
         self.annotation = None
 
     def get_display_coordinate(self):
@@ -282,8 +297,9 @@ class AdjustableText:
                 arrowstyle="-",
                 connectionstyle=self.connectionstyle,
                 linewidth=self.linewidth,
-                relpos=self.relpos),
-            **self.text_options
+                relpos=self.relpos,
+            ),
+            **self.text_options,
         )
 
 
@@ -307,11 +323,7 @@ class TextParams:
                 self._params[k] = v
 
     def to_dict(self):
-        p = dict(
-            va=self._va,
-            ha=self._ha,
-            rotation=self.rotation
-        )
+        p = dict(va=self._va, ha=self._ha, rotation=self.rotation)
         p.update(self._params)
         return p
 
@@ -350,16 +362,15 @@ class _LabelBase(RenderPlan):
     def get_text_color(bgcolor):
         """Get text color by background color"""
         lum = relative_luminance(bgcolor)
-        return ".15" if lum > .408 else "w"
+        return ".15" if lum > 0.408 else "w"
 
     def get_expand(self):
         if self.is_flank:
-            return 1. + self.text_pad, 1. + self.text_gap
+            return 1.0 + self.text_pad, 1.0 + self.text_gap
         else:
-            return 1. + self.text_gap, 1. + self.text_pad
+            return 1.0 + self.text_gap, 1.0 + self.text_pad
 
-    def silent_render(self, figure, expand=(1., 1.)):
-
+    def silent_render(self, figure, expand=(1.0, 1.0)):
         renderer = figure.canvas.get_renderer()
         ax = figure.add_axes([0, 0, 1, 1])
         params = self.get_text_params()
@@ -398,26 +409,28 @@ class AnnoTextConfig:
     def get_connectionstyle(self, armA=None, armB=None):
         armA = self.armA if armA is None else armA
         armB = self.armB if armB is None else armB
-        return f"arc,angleA={self.angleA}," \
-               f"angleB={self.angleB}," \
-               f"armA={armA}," \
-               f"armB={armB}," \
-               f"rad=0"
+        return (
+            f"arc,angleA={self.angleA},"
+            f"angleB={self.angleB},"
+            f"armA={armA},"
+            f"armB={armB},"
+            f"rad=0"
+        )
 
 
 anno_default_params = {
-    "top": AnnoTextConfig(va="bottom", ha="center", rotation=90,
-                          angleA=-90, angleB=90,
-                          relpos=(0.5, 0)),
-    "bottom": AnnoTextConfig(va="top", ha="center", rotation=-90,
-                             angleA=90, angleB=-90,
-                             relpos=(0.5, 1)),
-    "right": AnnoTextConfig(va="center", ha="left", rotation=0,
-                            angleA=-180, angleB=0,
-                            relpos=(0, 0.5)),
-    "left": AnnoTextConfig(va="center", ha="right", rotation=0,
-                           angleA=0, angleB=-180,
-                           relpos=(1, 0.5)),
+    "top": AnnoTextConfig(
+        va="bottom", ha="center", rotation=90, angleA=-90, angleB=90, relpos=(0.5, 0)
+    ),
+    "bottom": AnnoTextConfig(
+        va="top", ha="center", rotation=-90, angleA=90, angleB=-90, relpos=(0.5, 1)
+    ),
+    "right": AnnoTextConfig(
+        va="center", ha="left", rotation=0, angleA=-180, angleB=0, relpos=(0, 0.5)
+    ),
+    "left": AnnoTextConfig(
+        va="center", ha="right", rotation=0, angleA=0, angleB=-180, relpos=(1, 0.5)
+    ),
 }
 
 
@@ -447,6 +460,12 @@ class AnnoLabels(_LabelBase):
     connectionstyle :
     relpos : 2-tuple
     armA, armB : float
+    label : str
+        The label of the plot
+    label_loc : {'top', 'bottom', 'left', 'right'}
+        The location of the label
+    label_props : dict
+        The label properties
     options :
         Pass to :class:`matplotlib.text.Text`
 
@@ -469,22 +488,32 @@ class AnnoLabels(_LabelBase):
 
     """
 
-    def __init__(self,
-                 labels: Iterable | np.ma.MaskedArray,
-                 mark=None,
-                 text_pad=.5,
-                 text_gap=.5, pointer_size=0.5,
-                 linewidth=None, connectionstyle=None, relpos=None,
-                 armA=None, armB=None,
-                 **options):
-
+    def __init__(
+        self,
+        labels: Iterable | np.ma.MaskedArray,
+        mark=None,
+        text_pad=0.5,
+        text_gap=0.5,
+        pointer_size=0.5,
+        linewidth=None,
+        connectionstyle=None,
+        relpos=None,
+        armA=None,
+        armB=None,
+        label=None,
+        label_loc=None,
+        label_props=None,
+        **options,
+    ):
         if not np.ma.isMaskedArray(labels):
             if mark is not None:
                 labels = np.ma.masked_where(~np.in1d(labels, mark), labels)
             else:
-                raise TypeError("Must be numpy masked array or "
-                                "use `marks` to mark "
-                                "the labels you want to draw")
+                raise TypeError(
+                    "Must be numpy masked array or "
+                    "use `marks` to mark "
+                    "the labels you want to draw"
+                )
         texts = self.data_validator(labels, target="1d")
         self.set_data(texts)
         self.texts = texts
@@ -501,15 +530,17 @@ class AnnoLabels(_LabelBase):
 
         super().__init__()
         self._sort_params(**options)
+        self.set_label(label, label_loc, label_props)
 
     def get_text_params(self):
         default_params = anno_default_params[self.side]
         self.relpos = default_params.relpos
-        self.connectionstyle = (default_params
-                                .get_connectionstyle(armA=self.armA,
-                                                     armB=self.armB))
-        params = dict(va=default_params.va, ha=default_params.ha,
-                      rotation=default_params.rotation)
+        self.connectionstyle = default_params.get_connectionstyle(
+            armA=self.armA, armB=self.armB
+        )
+        params = dict(
+            va=default_params.va, ha=default_params.ha, rotation=default_params.rotation
+        )
         p = TextParams(**params)
         p.update_params(self._user_params)
         return p
@@ -531,12 +562,15 @@ class AnnoLabels(_LabelBase):
         ax_bbox = ax.get_window_extent(renderer)
         params = self.get_text_params()
 
-        text_options = dict(ax=ax, renderer=renderer,
-                            expand=self.get_expand(),
-                            linewidth=self.linewidth,
-                            relpos=self.relpos,
-                            connectionstyle=self.connectionstyle,
-                            **params.to_dict())
+        text_options = dict(
+            ax=ax,
+            renderer=renderer,
+            expand=self.get_expand(),
+            linewidth=self.linewidth,
+            relpos=self.relpos,
+            connectionstyle=self.connectionstyle,
+            **params.to_dict(),
+        )
 
         texts = []
         segments = []
@@ -544,8 +578,7 @@ class AnnoLabels(_LabelBase):
             y = self.text_anchor
             for x, s in zip(locs, labels):
                 if not np.ma.is_masked(s):
-                    t = AdjustableText(x=x, y=y, text=s, pointer=(x, 0),
-                                       **text_options)
+                    t = AdjustableText(x=x, y=y, text=s, pointer=(x, 0), **text_options)
                     texts.append(t)
                     segments.append(t.get_segment_x())
 
@@ -558,8 +591,7 @@ class AnnoLabels(_LabelBase):
             x = self.text_anchor
             for y, s in zip(locs, labels):
                 if not np.ma.is_masked(s):
-                    t = AdjustableText(x=x, y=y, text=s, pointer=(0, y),
-                                       **text_options)
+                    t = AdjustableText(x=x, y=y, text=s, pointer=(0, y), **text_options)
                     texts.append(t)
                     segments.append(t.get_segment_y())
             lim = Segment(ax_bbox.ymin, ax_bbox.ymax)
@@ -576,10 +608,10 @@ class AnnoLabels(_LabelBase):
 
 
 label_default_params = {
-    'right': dict(align='left', rotation=0),
-    'left': dict(align='right', rotation=0),
-    'top': dict(align='bottom', rotation=90),
-    'bottom': dict(align='top', rotation=90)
+    "right": dict(align="left", rotation=0),
+    "left": dict(align="right", rotation=0),
+    "top": dict(align="bottom", rotation=90),
+    "bottom": dict(align="top", rotation=90),
 }
 
 
@@ -595,6 +627,12 @@ class Labels(_LabelBase):
         The buffer space between text and the adjcent plots, in points unit
     text_props : dict
         A dict of array that control the text properties for each text.
+    label : str
+        The label of the plot
+    label_loc : {'top', 'bottom', 'left', 'right'}
+        The location of the label
+    label_props : dict
+        The label properties
     options : dict
         Pass to :class:`matplotlib.text.Text`
 
@@ -618,10 +656,17 @@ class Labels(_LabelBase):
 
     """
 
-    def __init__(self, labels, align=None,
-                 padding=2,
-                 text_props=None,
-                 **options):
+    def __init__(
+        self,
+        labels,
+        align=None,
+        padding=2,
+        text_props=None,
+        label=None,
+        label_loc=None,
+        label_props=None,
+        **options,
+    ):
         labels = self.data_validator(labels, target="1d")
         self.set_data(labels)
         self.texts = labels
@@ -634,6 +679,7 @@ class Labels(_LabelBase):
         self._sort_params(**options)
         if text_props is not None:
             self.set_params(text_props)
+        self.set_label(label, label_loc, label_props)
 
     def _align_compact(self, align):
         """Make align keyword compatible to any side"""
@@ -646,14 +692,14 @@ class Labels(_LabelBase):
     def get_text_params(self) -> TextParams:
         default_params = label_default_params[self.side]
         if self.align is None:
-            self.align = default_params['align']
+            self.align = default_params["align"]
 
         self.align = self._align_compact(self.align)
-        va, ha = self.align, 'center'
+        va, ha = self.align, "center"
         if self.is_flank:
             va, ha = ha, va
 
-        p = TextParams(va=va, ha=ha, rotation=default_params['rotation'])
+        p = TextParams(va=va, ha=ha, rotation=default_params["rotation"])
         p.update_params(self._user_params)
 
         return p
@@ -676,7 +722,7 @@ class Labels(_LabelBase):
         if self.is_flank:
             coords = coords[::-1]
         if self.align == "center":
-            const = .5
+            const = 0.5
         elif self.align in ["right", "top"]:
             const = 1 - offset_ratio / 2
         else:
@@ -685,8 +731,7 @@ class Labels(_LabelBase):
         for s, c, p in zip(data, coords, text_props):
             x, y = (const, c) if self.is_flank else (c, const)
             options = {**params.to_dict(), **p}
-            ax.text(x, y, s=s, transform=ax.transAxes,
-                    **options)
+            ax.text(x, y, s=s, transform=ax.transAxes, **options)
         ax.set_axis_off()
         # from matplotlib.patches import Rectangle
         # ax.add_artist(Rectangle((0, 0), 1, 1, edgecolor="r",
@@ -742,16 +787,21 @@ class Title(_LabelBase):
 
 
     """
+
     allow_split = False
 
-    def __init__(self, title, align="center",
-                 padding=10,
-                 fontsize=None,
-                 fill_color=None,
-                 bordercolor=None,
-                 borderwidth=None,
-                 borderstyle=None,
-                 **options):
+    def __init__(
+        self,
+        title,
+        align="center",
+        padding=10,
+        fontsize=None,
+        fill_color=None,
+        bordercolor=None,
+        borderwidth=None,
+        borderstyle=None,
+        **options,
+    ):
         self.title = title
         self.texts = [title]
         self.align = align
@@ -766,25 +816,18 @@ class Title(_LabelBase):
         self.bordercolor = bordercolor
         self.borderwidth = borderwidth
         self.borderstyle = borderstyle
-        self._draw_bg = (self.fill_color is not None) \
-                        or (self.bordercolor is not None)
+        self._draw_bg = (self.fill_color is not None) or (self.bordercolor is not None)
 
         super().__init__()
         self._sort_params(**options)
 
-    align_pos = {
-        'right': 1,
-        'left': 0,
-        'top': 1,
-        'bottom': 0,
-        'center': 0.5
-    }
+    align_pos = {"right": 1, "left": 0, "top": 1, "bottom": 0, "center": 0.5}
 
     default_rotation = {
-        'right': -90,
-        'left': 90,
-        'top': 0,
-        'bottom': 0,
+        "right": -90,
+        "left": 90,
+        "top": 0,
+        "bottom": 0,
     }
 
     def _align_compact(self, align):
@@ -797,12 +840,11 @@ class Title(_LabelBase):
 
     def get_text_params(self) -> TextParams:
         self.align = self._align_compact(self.align)
-        va, ha = 'center', self.align
+        va, ha = "center", self.align
         if self.is_flank:
             va, ha = ha, va
 
-        p = TextParams(rotation=self.default_rotation[self.side],
-                       va=va, ha=ha)
+        p = TextParams(rotation=self.default_rotation[self.side], va=va, ha=ha)
         p.update_params(self._user_params)
         return p
 
@@ -812,34 +854,44 @@ class Title(_LabelBase):
 
         if self._draw_bg:
             bgcolor = "white" if self.fill_color is None else self.fill_color
-            ax.add_artist(Rectangle((0, 0), 1, 1,
-                                    facecolor=self.fill_color,
-                                    edgecolor=self.bordercolor,
-                                    linewidth=self.borderwidth,
-                                    linestyle=self.borderstyle,
-                                    transform=ax.transAxes
-                                    ))
+            ax.add_artist(
+                Rectangle(
+                    (0, 0),
+                    1,
+                    1,
+                    facecolor=self.fill_color,
+                    edgecolor=self.bordercolor,
+                    linewidth=self.borderwidth,
+                    linestyle=self.borderstyle,
+                    transform=ax.transAxes,
+                )
+            )
 
-            fontdict.setdefault('color', self.get_text_color(bgcolor))
+            fontdict.setdefault("color", self.get_text_color(bgcolor))
 
         const = self.align_pos[self.align]
 
-        pos = .5
+        pos = 0.5
         x, y = (const, pos) if self.is_body else (pos, const)
-        ax.text(x, y, self.title, fontsize=self.fontsize,
-                transform=ax.transAxes, **fontdict)
+        ax.text(
+            x, y, self.title, fontsize=self.fontsize, transform=ax.transAxes, **fontdict
+        )
         ax.set_axis_off()
 
 
 class _ChunkBase(_LabelBase):
-
-    def __init__(self, texts,
-                 fill_colors=None,
-                 align=None,
-                 props=None, padding=2, bordercolor=None,
-                 borderwidth=None, borderstyle=None,
-                 **options):
-
+    def __init__(
+        self,
+        texts,
+        fill_colors=None,
+        align=None,
+        props=None,
+        padding=2,
+        bordercolor=None,
+        borderwidth=None,
+        borderstyle=None,
+        **options,
+    ):
         n = len(texts)
         self.n = n
         self.texts = texts
@@ -872,27 +924,15 @@ class _ChunkBase(_LabelBase):
             borderstyle = [borderstyle for _ in range(n)]
         self.borderstyle = borderstyle
 
-        self._draw_bg = (self.fill_colors is not None) \
-                        or (self.bordercolor is not None)
+        self._draw_bg = (self.fill_colors is not None) or (self.bordercolor is not None)
         self.text_pad = 0
 
         super().__init__()
         self._sort_params(**options)
 
-    align_pos = {
-        'right': 1,
-        'left': 0,
-        'top': 1,
-        'bottom': 0,
-        'center': 0.5
-    }
+    align_pos = {"right": 1, "left": 0, "top": 1, "bottom": 0, "center": 0.5}
 
-    default_align = {
-        "right": "left",
-        "left": "right",
-        "top": "bottom",
-        "bottom": "top"
-    }
+    default_align = {"right": "left", "left": "right", "top": "bottom", "bottom": "top"}
 
     default_rotation = {
         "right": -90,
@@ -920,7 +960,7 @@ class _ChunkBase(_LabelBase):
             self.align = self.default_align[self.side]
 
         self.align = self._align_compact(self.align)
-        va, ha = self.align, 'center'
+        va, ha = self.align, "center"
         if self.is_flank:
             va, ha = ha, va
 
@@ -929,9 +969,9 @@ class _ChunkBase(_LabelBase):
         p.update_params(self._user_params)
         return p
 
-    def _render(self, axes, texts, fill_colors, border_colors,
-                borderwidth, borderstyle, props):
-
+    def _render(
+        self, axes, texts, fill_colors, border_colors, borderwidth, borderstyle, props
+    ):
         params = self.get_text_params()
         if self.texts_size is not None:
             padding_px = self.padding / 72
@@ -940,14 +980,14 @@ class _ChunkBase(_LabelBase):
             offset_ratio = 0
 
         if self.align == "center":
-            const = .5
+            const = 0.5
         elif self.align in ["right", "top"]:
             const = 1 - offset_ratio / 2
         else:
             const = offset_ratio / 2  # self.text_pad / (1 + self.text_pad) / 2
 
         # adjust the text alignment based on the alignment position and rotation
-        c = .5
+        c = 0.5
         x, y = (const, c) if self.is_flank else (c, const)
 
         fill_colors = [] if fill_colors is None else fill_colors
@@ -956,19 +996,27 @@ class _ChunkBase(_LabelBase):
         borderstyle = [] if borderstyle is None else borderstyle
         props = [] if props is None else props
 
-        specs = zip_longest(axes, texts, fill_colors, border_colors,
-                            borderwidth, borderstyle, props)
+        specs = zip_longest(
+            axes, texts, fill_colors, border_colors, borderwidth, borderstyle, props
+        )
         for ax, t, bgcolor, bc, lw, ls, prop in specs:
             ax.set_axis_off()
             fontdict = params.to_dict()
             if self._draw_bg:
                 if bgcolor is None:
                     bgcolor = "white"
-                rect = Rectangle((0, 0), 1, 1, facecolor=bgcolor,
-                                 edgecolor=bc, linewidth=lw, linestyle=ls,
-                                 transform=ax.transAxes)
+                rect = Rectangle(
+                    (0, 0),
+                    1,
+                    1,
+                    facecolor=bgcolor,
+                    edgecolor=bc,
+                    linewidth=lw,
+                    linestyle=ls,
+                    transform=ax.transAxes,
+                )
                 ax.add_artist(rect)
-                fontdict.setdefault('color', self.get_text_color(bgcolor))
+                fontdict.setdefault("color", self.get_text_color(bgcolor))
 
             if prop is not None:
                 fontdict.update(prop)
@@ -989,7 +1037,7 @@ class Chunk(_ChunkBase):
         The label for each chunk
     fill_colors : color, array of color
         The color used as background color for each chunk
-    borderwidth, bordercolor, borderstyle : 
+    borderwidth, bordercolor, borderstyle :
         Control the style of border, you can pass an array to style each group.
         For borderstyle, see :meth:`linestyles <matplotlib.lines.Line2D.set_linestyle>`
     props : dict or array of dict
@@ -998,6 +1046,12 @@ class Chunk(_ChunkBase):
         How many angle to rotate the text coutner-clockwise, in degree unit
     padding : float
         The buffer space between text and the adjcent plots, in points unit
+    label : str
+        The label of the plot
+    label_loc : {'right', 'left', 'top', 'bottom'}
+        The location of the label
+    label_props : dict
+        The label properties
 
     See Also
     --------
@@ -1021,33 +1075,46 @@ class Chunk(_ChunkBase):
         >>> h.add_right(Chunk(chunk, bordercolor="gray"), pad=.1)
         >>> h.add_dendrogram("left")
         >>> h.render()
-    
+
     """
 
-    def __init__(self, texts,
-                 fill_colors=None,
-                 *,
-                 align=None,
-                 props=None, padding=8, bordercolor=None,
-                 borderwidth=None, borderstyle=None,
-                 **options):
-
-        super().__init__(texts, fill_colors=fill_colors,
-                         align=align,
-                         props=props, padding=padding,
-                         bordercolor=bordercolor,
-                         borderwidth=borderwidth,
-                         borderstyle=borderstyle,
-                         **options)
+    def __init__(
+        self,
+        texts,
+        fill_colors=None,
+        *,
+        align=None,
+        props=None,
+        padding=8,
+        bordercolor=None,
+        borderwidth=None,
+        borderstyle=None,
+        label=None,
+        label_loc=None,
+        label_props=None,
+        **options,
+    ):
+        super().__init__(
+            texts,
+            fill_colors=fill_colors,
+            align=align,
+            props=props,
+            padding=padding,
+            bordercolor=bordercolor,
+            borderwidth=borderwidth,
+            borderstyle=borderstyle,
+            **options,
+        )
+        self.set_label(label, label_loc, label_props)
 
     def render(self, axes):
-
         if isinstance(axes, Axes):
             axes = [axes]
 
         if len(axes) != self.n:
-            raise ValueError(f"You have {len(axes)} axes "
-                             f"but you only provide {self.n} texts.")
+            raise ValueError(
+                f"You have {len(axes)} axes " f"but you only provide {self.n} texts."
+            )
 
         texts = self.reindex_by_chunk(self.texts)
         fill_colors = self.reindex_by_chunk(self.fill_colors)
@@ -1056,8 +1123,12 @@ class Chunk(_ChunkBase):
         borderstyle = self.reindex_by_chunk(self.borderstyle)
         props = self.reindex_by_chunk(self.props)
 
-        self._render(axes, texts, fill_colors, border_colors,
-                     borderwidth, borderstyle, props)
+        self._render(
+            axes, texts, fill_colors, border_colors, borderwidth, borderstyle, props
+        )
+
+        if self._plan_label is not None:
+            self._plan_label.add(axes, self.side)
 
 
 class FixedChunk(_ChunkBase):
@@ -1080,6 +1151,12 @@ class FixedChunk(_ChunkBase):
         How many to rotate the text
     padding : float
         The buffer space between text and the adjcent plots, in points unit
+    label : str
+        The label of the plot
+    label_loc : {'right', 'left', 'top', 'bottom'}
+        The location of the label
+    label_props : dict
+        The label properties
 
 
     See Also
@@ -1115,31 +1192,63 @@ class FixedChunk(_ChunkBase):
         >>> labels = np.random.choice(chunk, size=20)
         >>> h.hsplit(labels=labels, order=chunk)
         >>> h.add_right(FixedChunk(chunk, bordercolor="gray"), pad=.1)
-        >>> h.add_right(FixedChunk(['C1', 'C2', 'C3'], fill_colors="red"
+        >>> h.add_right(FixedChunk(['C1', 'C2', 'C3'], fill_colors="red",
         ...                        ratio=[1, 2, 1], ), pad=.1)
         >>> h.render()
 
 
     """
 
-    def __init__(self, texts, fill_colors=None, *,
-                 align=None, ratio=None,
-                 props=None, padding=8, bordercolor=None,
-                 borderwidth=None, borderstyle=None,
-                 **options):
-        super().__init__(texts, fill_colors, align, props, padding, bordercolor,
-                         borderwidth, borderstyle, **options)
+    def __init__(
+        self,
+        texts,
+        fill_colors=None,
+        *,
+        align=None,
+        ratio=None,
+        props=None,
+        padding=8,
+        bordercolor=None,
+        borderwidth=None,
+        borderstyle=None,
+        label=None,
+        label_loc=None,
+        label_props=None,
+        **options,
+    ):
+        super().__init__(
+            texts,
+            fill_colors,
+            align,
+            props,
+            padding,
+            bordercolor,
+            borderwidth,
+            borderstyle,
+            **options,
+        )
         if ratio is not None:
             self.set_split_regroup(ratio)
+        self.set_label(label, label_loc, label_props)
 
     def render(self, axes):
-
         if isinstance(axes, Axes):
             axes = [axes]
 
         if len(axes) != self.n:
-            raise ValueError(f"You have {len(axes)} axes "
-                             f"but you only provide {self.n} texts.")
+            raise ValueError(
+                f"You have {len(axes)} axes " f"but you only provide {self.n} texts."
+            )
 
-        self._render(axes, self.texts, self.fill_colors, self.bordercolor,
-                     self.borderwidth, self.borderstyle, self.props)
+        self._render(
+            axes,
+            self.texts,
+            self.fill_colors,
+            self.bordercolor,
+            self.borderwidth,
+            self.borderstyle,
+            self.props,
+        )
+
+        if self._plan_label is not None:
+            self._plan_label.add(axes, self.side)

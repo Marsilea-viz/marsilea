@@ -24,7 +24,8 @@ from .utils import _check_side
 # It's unlikely to return axes right after being added, the split operation
 # is unknown, this will create more than one axes.
 
-def _split(chunk_ratios, spacing=.05, group_ratios=None):
+
+def _split(chunk_ratios, spacing=0.05, group_ratios=None):
     """Return the relative anchor point, in ratio"""
 
     ratios = np.asarray(chunk_ratios) / np.sum(chunk_ratios)
@@ -53,13 +54,13 @@ def _split(chunk_ratios, spacing=.05, group_ratios=None):
             if g == 1:
                 gratio = ratios[start_ix]
             else:
-                mr = ratios[start_ix:start_ix+g].sum()
-                ms = spacing[start_ix:start_ix+g-1].sum()
+                mr = ratios[start_ix : start_ix + g].sum()
+                ms = spacing[start_ix : start_ix + g - 1].sum()
                 gratio = mr + ms
 
             if i < last_ix:
-                gspacing = spacing[start_ix+g-1]
-                start_anchor += (gratio+gspacing)
+                gspacing = spacing[start_ix + g - 1]
+                start_anchor += gratio + gspacing
                 anchors.append(start_anchor)
             else:
                 start_anchor += gratio
@@ -116,7 +117,7 @@ class BaseCell:
 
         return cx, cy, cw, ch
 
-    def hsplit(self, chunk_ratios, spacing=.05, group_ratios=None):
+    def hsplit(self, chunk_ratios, spacing=0.05, group_ratios=None):
         """
         Parameters
         ----------
@@ -128,12 +129,13 @@ class BaseCell:
             Regroup the split chunks
 
         """
-        ratios, anchors = _split(chunk_ratios[::-1], spacing=spacing,
-                                 group_ratios=group_ratios)
+        ratios, anchors = _split(
+            chunk_ratios[::-1], spacing=spacing, group_ratios=group_ratios
+        )
         self.h_ratios = ratios
         self.h_anchors = anchors
 
-    def vsplit(self, chunk_ratios, spacing=.05, group_ratios=None):
+    def vsplit(self, chunk_ratios, spacing=0.05, group_ratios=None):
         """
         Parameters
         ----------
@@ -145,8 +147,9 @@ class BaseCell:
             Regroup the split chunks
 
         """
-        ratios, anchors = _split(chunk_ratios, spacing=spacing,
-                                 group_ratios=group_ratios)
+        ratios, anchors = _split(
+            chunk_ratios, spacing=spacing, group_ratios=group_ratios
+        )
         self.v_ratios = ratios
         self.v_anchors = anchors
 
@@ -204,7 +207,7 @@ class GridCell(BaseCell):
 
     def get_cell_size(self):
         """Get width, height of a cell"""
-        if self.side in ['top', 'bottom']:
+        if self.side in ["top", "bottom"]:
             return self.attach.width, self.size
         else:
             return self.size, self.attach.height
@@ -228,8 +231,10 @@ class _MarginMixin:
             if len(margin) == 4:
                 self.margin = Margin(*margin)
             else:
-                msg = "margin must be one number or a tuple with 4 numbers" \
-                      "(top, right, bottom, left)"
+                msg = (
+                    "margin must be one number or a tuple with 4 numbers"
+                    "(top, right, bottom, left)"
+                )
                 raise ValueError(msg)
 
     def get_margin_w(self):
@@ -269,14 +274,14 @@ class CrossLayout(_MarginMixin):
 
     """
 
-    def __init__(self, name, width, height,
-                 init_main=True, projection=None,
-                 margin=.2):
-
+    def __init__(
+        self, name, width, height, init_main=True, projection=None, margin=0.2
+    ):
         self._legend_ax_name = None
-        self.main_cell = MainCell(name, width, height, is_canvas=init_main,
-                                  projection=projection)
-        self._side_cells = {'top': [], 'bottom': [], 'left': [], 'right': []}
+        self.main_cell = MainCell(
+            name, width, height, is_canvas=init_main, projection=projection
+        )
+        self._side_cells = {"top": [], "bottom": [], "left": [], "right": []}
         self.cells: Dict[str, BaseCell] = {name: self.main_cell}
         self._pads = {}
 
@@ -294,7 +299,7 @@ class CrossLayout(_MarginMixin):
             raise ValueError(f"Axes with name {name} not exist")
         return cell
 
-    def add_ax(self, side, name, size, pad=0., projection=None):
+    def add_ax(self, side, name, size, pad=0.0, projection=None):
         """Add an axes to the layout
 
         Parameters
@@ -313,11 +318,15 @@ class CrossLayout(_MarginMixin):
         if self.cells.get(name) is not None:
             raise DuplicateName(name)
 
-        new_cell = GridCell(name=name, side=side, size=size,
-                            attach=self.main_cell,
-                            projection=projection)
+        new_cell = GridCell(
+            name=name,
+            side=side,
+            size=size,
+            attach=self.main_cell,
+            projection=projection,
+        )
         # Add pad before add canvas
-        if pad > 0.:
+        if pad > 0.0:
             self.add_pad(side, pad)
         self._side_cells[side].append(new_cell)
         self.cells[name] = new_cell
@@ -335,8 +344,13 @@ class CrossLayout(_MarginMixin):
 
         """
         _check_side(side)
-        new_pad = GridCell(name=uuid4().hex, side=side, size=size,
-                           is_canvas=False, attach=self.main_cell)
+        new_pad = GridCell(
+            name=uuid4().hex,
+            side=side,
+            size=size,
+            is_canvas=False,
+            attach=self.main_cell,
+        )
         self._side_cells[side].append(new_pad)
 
     def remove_ax(self, name):
@@ -356,7 +370,7 @@ class CrossLayout(_MarginMixin):
     def get_main_ax(self):
         return self.main_cell.ax
 
-    def add_legend_ax(self, side, size, pad=0.):
+    def add_legend_ax(self, side, size, pad=0.0):
         """Add a legend axes
 
         Parameters
@@ -370,8 +384,7 @@ class CrossLayout(_MarginMixin):
 
         """
         # TODO: Ensure the legend axes always add at last
-        self._legend_ax_name = "-".join(
-            [self.main_cell.name, "legend", uuid4().hex])
+        self._legend_ax_name = "-".join([self.main_cell.name, "legend", uuid4().hex])
         self.add_ax(side, self._legend_ax_name, size, pad=pad)
 
     def get_legend_ax(self):
@@ -385,19 +398,15 @@ class CrossLayout(_MarginMixin):
         legend_cell = self._get_cell(self._legend_ax_name)
         legend_cell.size = size
 
-    def vsplit(self, name, chunk_ratios,
-               spacing=.05, group_ratios=None):
+    def vsplit(self, name, chunk_ratios, spacing=0.05, group_ratios=None):
         cell = self._get_cell(name)
         cell.is_split = True
-        cell.vsplit(chunk_ratios, spacing=spacing,
-                    group_ratios=group_ratios)
+        cell.vsplit(chunk_ratios, spacing=spacing, group_ratios=group_ratios)
 
-    def hsplit(self, name, chunk_ratios,
-               spacing=.05, group_ratios=None):
+    def hsplit(self, name, chunk_ratios, spacing=0.05, group_ratios=None):
         cell = self._get_cell(name)
         cell.is_split = True
-        cell.hsplit(chunk_ratios, spacing=spacing,
-                    group_ratios=group_ratios)
+        cell.hsplit(chunk_ratios, spacing=spacing, group_ratios=group_ratios)
 
     def is_split(self, name):
         """Query if a cell is split"""
@@ -408,14 +417,20 @@ class CrossLayout(_MarginMixin):
 
     def get_bbox_width(self):
         """Get the bbox width in inches"""
-        box_w = self.main_cell.width + self.get_side_size(
-            'left') + self.get_side_size('right')
+        box_w = (
+            self.main_cell.width
+            + self.get_side_size("left")
+            + self.get_side_size("right")
+        )
         return box_w
 
     def get_bbox_height(self):
         """Get the bbox height in inches"""
-        box_h = self.main_cell.height + self.get_side_size(
-            'top') + self.get_side_size('bottom')
+        box_h = (
+            self.main_cell.height
+            + self.get_side_size("top")
+            + self.get_side_size("bottom")
+        )
         return box_h
 
     def get_bbox_size(self):
@@ -428,13 +443,12 @@ class CrossLayout(_MarginMixin):
             if self.is_composite:
                 return self.get_bbox_size()
             w, h = self.get_bbox_size()
-            return (w + self.get_margin_w(),
-                    h + self.get_margin_h())
+            return (w + self.get_margin_w(), h + self.get_margin_h())
 
         else:
             ox, oy = self.anchor
-            fig_w = ox + self.get_main_width() + self.get_side_size('right')
-            fig_h = ox + self.get_main_height() + self.get_side_size('top')
+            fig_w = ox + self.get_main_width() + self.get_side_size("right")
+            fig_h = ox + self.get_main_height() + self.get_side_size("top")
             if self.is_composite:
                 return fig_w, fig_h
             return fig_w + self.get_margin_w(), fig_h + self.get_margin_h()
@@ -442,8 +456,8 @@ class CrossLayout(_MarginMixin):
     def get_main_anchor(self):
         """Get the main anchor point"""
         if self.anchor is None:
-            x = self.get_side_size('left')
-            y = self.get_side_size('bottom')
+            x = self.get_side_size("left")
+            y = self.get_side_size("bottom")
             if self.is_composite:
                 return x, y
             x += self.margin.bottom
@@ -534,10 +548,14 @@ class CrossLayout(_MarginMixin):
                     ax = figure.add_axes(ax_rect, projection=c.projection)
                     c.set_ax(ax)
                     if _debug:
-                        _debug_ax(ax, side=c.side,
-                                  text=f"{c.name}{c.get_cell_size()}")
+                        _debug_ax(ax, side=c.side, text=f"{c.name}{c.get_cell_size()}")
 
-    def freeze(self, figure=None, scale=1, _debug=False, ):
+    def freeze(
+        self,
+        figure=None,
+        scale=1,
+        _debug=False,
+    ):
         """Freeze the current layout and draw on figure
 
         Freeze is safe to be called multiple times, it will update
@@ -598,12 +616,12 @@ def _debug_ax(ax, side, text=None):
     close_ticks(ax)
     options = dict(transform=ax.transAxes, va="center", ha="center")
     if side == "left":
-        options['rotation'] = 90
+        options["rotation"] = 90
     elif side == "right":
-        options['rotation'] = -90
+        options["rotation"] = -90
 
     if text is not None:
-        ax.text(.5, .5, text, **options)
+        ax.text(0.5, 0.5, text, **options)
 
 
 def _remove_axes(ax: Axes | List[Axes]):
@@ -617,10 +635,16 @@ def _remove_axes(ax: Axes | List[Axes]):
 
 
 def close_ticks(ax):
-    ax.tick_params(bottom=False, top=False, left=False, right=False,
-                   labelbottom=False, labeltop=False,
-                   labelleft=False, labelright=False,
-                   )
+    ax.tick_params(
+        bottom=False,
+        top=False,
+        left=False,
+        right=False,
+        labelbottom=False,
+        labeltop=False,
+        labelleft=False,
+        labelright=False,
+    )
 
 
 @dataclass
@@ -646,14 +670,19 @@ class CompositeCrossLayout(_MarginMixin):
         The main cross layout
 
     """
+
     figure = None
 
     def __init__(self, main_layout, margin=0) -> None:
         self.main_layout = self._reset_layout(main_layout)
         self.main_cell_height = self.main_layout.get_main_height()
         self.main_cell_width = self.main_layout.get_main_width()
-        self._side_layouts: Dict[str, List[CrossLayout]] = \
-            {"top": [], "bottom": [], "right": [], "left": []}
+        self._side_layouts: Dict[str, List[CrossLayout]] = {
+            "top": [],
+            "bottom": [],
+            "right": [],
+            "left": [],
+        }
         self._legend_axes = None
         self.layouts = {self.main_layout.main_cell.name: self.main_layout}
         self.set_margin(margin)
@@ -674,10 +703,9 @@ class CompositeCrossLayout(_MarginMixin):
                 width, height = other, self.main_cell_height
             else:
                 width, height = self.main_cell_height, other
-            other = CrossLayout(name=uuid4().hex,
-                                width=width,
-                                height=height,
-                                init_main=False)
+            other = CrossLayout(
+                name=uuid4().hex, width=width, height=height, init_main=False
+            )
             other.is_composite = True
             self._side_layouts[side].append(other)
         elif isinstance(other, CrossLayout):
@@ -691,12 +719,12 @@ class CompositeCrossLayout(_MarginMixin):
             raise TypeError(f"Cannot append object type of {type(other)}")
 
     def __truediv__(self, other: CrossLayout):
-        self.append('bottom', other)
+        self.append("bottom", other)
 
     def __add__(self, other: CrossLayout):
-        self.append('right', other)
+        self.append("right", other)
 
-    def add_legend_ax(self, side, size, pad=0.):
+    def add_legend_ax(self, side, size, pad=0.0):
         """Extend the layout
 
         This is used to draw legends after concatenation
@@ -722,18 +750,16 @@ class CompositeCrossLayout(_MarginMixin):
         other_size = []
         size += self.main_layout.get_side_size(side)
         if side in ["left", "right"]:
-
             for g in self._side_layouts.get(side):
                 size += g.get_bbox_width()
 
-            for g in self._side_layouts['top'] + self._side_layouts['bottom']:
+            for g in self._side_layouts["top"] + self._side_layouts["bottom"]:
                 other_size.append(g.get_side_size(side))
         else:
-
             for g in self._side_layouts.get(side):
                 size += g.get_bbox_height()
 
-            for g in self._side_layouts['left'] + self._side_layouts['right']:
+            for g in self._side_layouts["left"] + self._side_layouts["right"]:
                 other_size.append(g.get_side_size(side))
 
         other_size = np.max(other_size, initial=0)
@@ -744,12 +770,18 @@ class CompositeCrossLayout(_MarginMixin):
         return max(size, other_size) + legend_size
 
     def get_bbox_width(self):
-        return self.main_cell_width + self.get_side_size('left') + \
-            self.get_side_size('right')
+        return (
+            self.main_cell_width
+            + self.get_side_size("left")
+            + self.get_side_size("right")
+        )
 
     def get_bbox_height(self):
-        return self.main_cell_height + self.get_side_size('top') + \
-            self.get_side_size('bottom')
+        return (
+            self.main_cell_height
+            + self.get_side_size("top")
+            + self.get_side_size("bottom")
+        )
 
     def get_bbox_size(self):
         """Get the minimum figsize that fits all layouts inside"""
@@ -762,8 +794,8 @@ class CompositeCrossLayout(_MarginMixin):
         return fig_w, fig_h
 
     def get_main_anchor(self):
-        x = self.get_side_size('left') + self.margin.left
-        y = self.get_side_size('bottom') + self.margin.bottom
+        x = self.get_side_size("left") + self.margin.left
+        y = self.get_side_size("bottom") + self.margin.bottom
         return x, y
 
     def set_anchor(self, anchor):
@@ -790,39 +822,37 @@ class CompositeCrossLayout(_MarginMixin):
 
         # The left and right share the y
         offset_x = mx - self.main_layout.get_side_size("left")
-        for g in self._side_layouts['left']:
-            offset_x -= (g.get_side_size('right') + g.get_main_width())
+        for g in self._side_layouts["left"]:
+            offset_x -= g.get_side_size("right") + g.get_main_width()
             g.set_anchor((offset_x, my))
             g.set_figsize(figsize)
             g.freeze(figure, _debug=_debug)
-            offset_x -= g.get_side_size('left')
+            offset_x -= g.get_side_size("left")
 
-        offset_x = (mx + self.main_cell_width +
-                    self.main_layout.get_side_size('right'))
-        for g in self._side_layouts['right']:
-            offset_x += g.get_side_size('left')
+        offset_x = mx + self.main_cell_width + self.main_layout.get_side_size("right")
+        for g in self._side_layouts["right"]:
+            offset_x += g.get_side_size("left")
             g.set_anchor((offset_x, my))
             g.set_figsize(figsize)
             g.freeze(figure, _debug=_debug)
-            offset_x += (g.get_main_width() + g.get_side_size('right'))
+            offset_x += g.get_main_width() + g.get_side_size("right")
 
         # The top and bottom share the x
-        offset_y = my - self.main_layout.get_side_size('bottom')
-        for g in self._side_layouts['bottom']:
-            offset_y -= (g.get_side_size('top') + g.get_main_height())
+        offset_y = my - self.main_layout.get_side_size("bottom")
+        for g in self._side_layouts["bottom"]:
+            offset_y -= g.get_side_size("top") + g.get_main_height()
             g.set_anchor((mx, offset_y))
             g.set_figsize(figsize)
             g.freeze(figure, _debug=_debug)
-            offset_y -= g.get_side_size('bottom')
+            offset_y -= g.get_side_size("bottom")
 
-        offset_y = (my + self.main_cell_height +
-                    self.main_layout.get_side_size('top'))
-        for g in self._side_layouts['top']:
-            offset_y += g.get_side_size('bottom')
+        offset_y = my + self.main_cell_height + self.main_layout.get_side_size("top")
+        for g in self._side_layouts["top"]:
+            offset_y += g.get_side_size("bottom")
             g.set_anchor((mx, offset_y))
             g.set_figsize(figsize)
             g.freeze(figure, _debug=_debug)
-            offset_y += (g.get_main_height() + g.get_side_size('top'))
+            offset_y += g.get_main_height() + g.get_side_size("top")
 
         # Add legend axes
         # The range is limited to the main_cell in each layout
@@ -834,10 +864,10 @@ class CompositeCrossLayout(_MarginMixin):
             side = self._legend_axes.side
             size = self._legend_axes.size
 
-            if side == 'right':
+            if side == "right":
                 cx, cy = fig_w - size - self.margin.right, ymin
                 cw, ch = size, legend_h
-            elif side == 'left':
+            elif side == "left":
                 cx, cy = self.margin.left, ymin
                 cw, ch = size, legend_h
             elif side == "top":
@@ -857,26 +887,26 @@ class CompositeCrossLayout(_MarginMixin):
 
     def _edge_main_point(self):
         """This will return the edge point of all the main cell"""
-        left_side = self._side_layouts['left']
+        left_side = self._side_layouts["left"]
         if len(left_side) > 0:
             xmin = left_side[-1].main_cell.anchor[0]
         else:
             xmin = self.main_layout.main_cell.anchor[0]
 
-        right_side = self._side_layouts['right']
+        right_side = self._side_layouts["right"]
         if len(right_side) > 0:
             cell = right_side[-1].main_cell
         else:
             cell = self.main_layout.main_cell
         xmax = cell.anchor[0] + cell.width
 
-        bottom_side = self._side_layouts['bottom']
+        bottom_side = self._side_layouts["bottom"]
         if len(bottom_side) > 0:
             ymin = bottom_side[-1].main_cell.anchor[1]
         else:
             ymin = self.main_layout.main_cell.anchor[1]
 
-        top_side = self._side_layouts['top']
+        top_side = self._side_layouts["top"]
         if len(top_side) > 0:
             cell = top_side[-1].main_cell
         else:

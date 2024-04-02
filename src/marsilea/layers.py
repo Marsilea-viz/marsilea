@@ -22,8 +22,8 @@ class LayersMesh(RenderPlan):
     It offers two flexible ways to specify layers:
 
     #. A single layer of data containing different elements.
-    #. Multiple layers of data, where each layer represents a customized element,
-    overlaying elements on top of one another
+    #. Multiple layers of data, where each layer represents a customized element, \
+    overlaying elements on top of one another.
 
     When supplying multiple layers,
     the drawing order follows the order of the input array.
@@ -47,6 +47,7 @@ class LayersMesh(RenderPlan):
         The label location.
     props : dict
         See :class:`matplotlib.text.Text`
+
 
     Examples
     --------
@@ -78,23 +79,27 @@ class LayersMesh(RenderPlan):
         >>> _, ax = plt.subplots()
         >>> LayersMesh(layers=[d1, d2, d3], pieces=pieces).render(ax)
 
+
     """
+
     render_main = True
 
-    def __init__(self,
-                 data=None,
-                 layers=None,
-                 pieces=None,
-                 shrink=(1., 1.),
-                 label=None, label_loc=None, props=None,
-                 legend_kws=None,
-                 ):
+    def __init__(
+        self,
+        data=None,
+        layers=None,
+        pieces=None,
+        shrink=(1.0, 1.0),
+        label=None,
+        label_loc=None,
+        props=None,
+        legend_kws=None,
+    ):
         # render one layer
         # with different elements
         if data is not None:
             if not isinstance(pieces, Mapping):
-                msg = f"Expect pieces to be dict " \
-                      f"but found {type(pieces)} instead."
+                msg = f"Expect pieces to be dict " f"but found {type(pieces)} instead."
                 raise TypeError(msg)
             self.pieces_mapper = pieces
             self.mode = "cell"
@@ -104,8 +109,7 @@ class LayersMesh(RenderPlan):
         # each layer is an elements
         else:
             if not isinstance(pieces, Iterable):
-                msg = f"Expect pieces to be list " \
-                      f"but found {type(pieces)} instead."
+                msg = f"Expect pieces to be list " f"but found {type(pieces)} instead."
                 raise TypeError(msg)
             self.pieces, data = self._sort_by_zorder(pieces, layers)
             self.mode = "layer"
@@ -118,8 +122,7 @@ class LayersMesh(RenderPlan):
         self.label = label
         self.label_loc = label_loc
         self.props = props
-        default_legend_kws = dict(frameon=False, handlelength=1,
-                                  handleheight=1)
+        default_legend_kws = dict(frameon=False, handlelength=1, handleheight=1)
         if legend_kws is not None:
             default_legend_kws.update(legend_kws)
         self._legend_kws = default_legend_kws
@@ -129,7 +132,7 @@ class LayersMesh(RenderPlan):
         ix_pieces = sorted(enumerate(pieces), key=lambda x: x[1].zorder)
         sorted_pieces = []
         sorted_layers = []
-        for (ix, piece) in ix_pieces:
+        for ix, piece in ix_pieces:
             sorted_pieces.append(piece)
             sorted_layers.append(layers[ix])
         return sorted_pieces, sorted_layers
@@ -147,8 +150,12 @@ class LayersMesh(RenderPlan):
                 new_handles.append(h)
                 labels.append(h.get_label())
                 handler_map[h] = h
-        return ListLegend(handles=new_handles, labels=labels,
-                          handler_map=handler_map, **self._legend_kws)
+        return ListLegend(
+            handles=new_handles,
+            labels=labels,
+            handler_map=handler_map,
+            **self._legend_kws,
+        )
 
     def render_ax(self, spec):
         ax = spec.ax
@@ -172,36 +179,43 @@ class LayersMesh(RenderPlan):
                 for iy, row in enumerate(layer):
                     for ix, v in enumerate(row):
                         if v:
-                            art = piece.draw(ix + self.x_offset,
-                                             iy + self.y_offset,
-                                             self.width, self.height, ax)
+                            art = piece.draw(
+                                ix + self.x_offset,
+                                iy + self.y_offset,
+                                self.width,
+                                self.height,
+                                ax,
+                            )
                             ax.add_artist(art)
         else:
             for iy, row in enumerate(data):
                 for ix, v in enumerate(row):
                     piece = self.pieces_mapper[v]
-                    art = piece.draw(ix + self.x_offset, iy + self.y_offset,
-                                     self.width, self.height, ax)
+                    art = piece.draw(
+                        ix + self.x_offset,
+                        iy + self.y_offset,
+                        self.width,
+                        self.height,
+                        ax,
+                    )
                     ax.add_artist(art)
         ax.invert_yaxis()
 
 
 class Layers(ClusterBoard):
-
-    def __init__(self,
-                 data=None,
-                 layers=None,
-                 pieces=None,
-                 cluster_data=None,
-                 shrink=(1., 1.),
-                 height=None,
-                 width=None,
-                 aspect=1.,
-                 name=None,
-                 ):
-
-        mesh = LayersMesh(data=data, layers=layers, pieces=pieces,
-                          shrink=shrink)
+    def __init__(
+        self,
+        data=None,
+        layers=None,
+        pieces=None,
+        cluster_data=None,
+        shrink=(1.0, 1.0),
+        height=None,
+        width=None,
+        aspect=1.0,
+        name=None,
+    ):
+        mesh = LayersMesh(data=data, layers=layers, pieces=pieces, shrink=shrink)
         if cluster_data is None:
             self._allow_cluster = False
             data_shape = mesh.get_data()[0].shape
@@ -235,8 +249,8 @@ class Piece:
 
     @staticmethod
     def draw_center(x, y, w, h):
-        cx = x + w / 2.
-        cy = y + h / 2.
+        cx = x + w / 2.0
+        cy = y + h / 2.0
         return cx, cy
 
     def draw(self, x, y, w, h, ax) -> Artist:
@@ -254,7 +268,6 @@ class Piece:
 
 
 class Rect(Piece):
-
     def __init__(self, color="C0", label=None, legend=True, zorder=0):
         self.color = color
         self.label = label
@@ -262,16 +275,16 @@ class Rect(Piece):
         self.zorder = zorder
 
     def __repr__(self):
-        return f"{self.__class__.__name__}(color='{self.color}', " \
-               f"label='{self.label}')"
+        return (
+            f"{self.__class__.__name__}(color='{self.color}', " f"label='{self.label}')"
+        )
 
     def draw(self, x, y, w, h, ax) -> Artist:
         return Rectangle((x, y), w, h, facecolor=self.color)
 
 
 class FracRect(Piece):
-    def __init__(self, color="C0", frac=(.9, .5), label=None, legend=True,
-                 zorder=0):
+    def __init__(self, color="C0", frac=(0.9, 0.5), label=None, legend=True, zorder=0):
         self.color = color
         self.label = label
         self.frac = frac
@@ -279,16 +292,17 @@ class FracRect(Piece):
         self.zorder = zorder
 
     def __repr__(self):
-        return f"{self.__class__.__name__}(color='{self.color}', " \
-               f"label='{self.label}')"
+        return (
+            f"{self.__class__.__name__}(color='{self.color}', " f"label='{self.label}')"
+        )
 
     def draw(self, x, y, w, h, ax):
         fx, fy = self.frac
         draw_w, draw_h = w * fx, h * fy
         # compute the actual drawing bbox
         # Lower-left corner
-        draw_x = x + (w - draw_w) / 2.
-        draw_y = y + (h - draw_h) / 2.
+        draw_x = x + (w - draw_w) / 2.0
+        draw_y = y + (h - draw_h) / 2.0
         return Rectangle((draw_x, draw_y), draw_w, draw_h, fc=self.color)
 
 
@@ -301,14 +315,10 @@ class FrameRect(Piece):
         self.zorder = zorder
 
     def __repr__(self):
-        return f"{self.__class__.__name__}(color={self.color}, " \
-               f"label={self.label})"
+        return f"{self.__class__.__name__}(color={self.color}, " f"label={self.label})"
 
     def draw(self, x, y, w, h, ax):
-        return Rectangle((x, y), w, h,
-                         fill=False,
-                         ec=self.color,
-                         linewidth=self.width)
+        return Rectangle((x, y), w, h, fill=False, ec=self.color, linewidth=self.width)
 
 
 class RightTri(Piece):
@@ -319,8 +329,9 @@ class RightTri(Piece):
         "upper right": [1, 2, 3],
     }
 
-    def __init__(self, color="C0", right_angle="lower left",
-                 label=None, legend=True, zorder=0):
+    def __init__(
+        self, color="C0", right_angle="lower left", label=None, legend=True, zorder=0
+    ):
         self.color = color
         self.pos = right_angle
         self.label = label
@@ -328,8 +339,7 @@ class RightTri(Piece):
         self.zorder = zorder
 
     def __repr__(self):
-        return f"{self.__class__.__name__}(color={self.color}, " \
-               f"label={self.label})"
+        return f"{self.__class__.__name__}(color={self.color}, " f"label={self.label})"
 
     def draw(self, x, y, w, h, ax):
         p0 = (x, y)
@@ -342,22 +352,20 @@ class RightTri(Piece):
 
 
 class Marker(Piece):
-
-    def __init__(self, marker, color="C0", size=32,
-                 label=None, legend=True, zorder=0):
+    def __init__(self, marker, color="C0", size=32, label=None, legend=True, zorder=0):
         self.color = color
         self.label = label
         self.legend_entry = legend
         self.zorder = zorder
         self.size = size
         m = MarkerStyle(marker)
-        self.path = m.get_path().transformed(
-            m.get_transform())
+        self.path = m.get_path().transformed(m.get_transform())
 
     def draw(self, x, y, w, h, ax):
         c = self.draw_center(x, y, w, h)
         collection = PathCollection(
-            (self.path,), [self.size],
+            (self.path,),
+            [self.size],
             offsets=[c],
             offset_transform=ax.transData,
             facecolors=self.color,
@@ -367,9 +375,9 @@ class Marker(Piece):
         return collection
 
     def legend(self, x, y, w, h):
-        return Line2D([0], [0],
-                      marker=self.marker,
-                      color=self.color, markersize=self.size)
+        return Line2D(
+            [0], [0], marker=self.marker, color=self.color, markersize=self.size
+        )
 
 
 def preview(piece: Piece, figsize=(1, 1)):

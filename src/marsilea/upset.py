@@ -14,14 +14,23 @@ from matplotlib.patches import Rectangle, Patch
 from typing import List, Set, Mapping
 
 from .base import WhiteBoard
-from .plotter import Numbers, Labels, StackBar, Bar, Box, \
-    Boxen, Violin, Point, Strip, Swarm
+from .plotter import (
+    Numbers,
+    Labels,
+    StackBar,
+    Bar,
+    Box,
+    Boxen,
+    Violin,
+    Point,
+    Strip,
+    Swarm,
+)
 from .utils import get_canvas_size_by_data
 
 
 def _get_sets_table(binary_table):
-    cardinality = binary_table.groupby(list(binary_table.columns),
-                                       observed=True).size()
+    cardinality = binary_table.groupby(list(binary_table.columns), observed=True).size()
     sets_table = pd.DataFrame(cardinality, columns=["cardinality"])
     sets_table["degree"] = sets_table.index.to_frame().sum(axis=1)
     return sets_table
@@ -71,8 +80,9 @@ class UpsetData:
         nitems, nsets = self._binary_table.shape
         return f"UpsetData: {nsets} sets, {nitems} items"
 
-    def __init__(self, data, sets_names=None, items=None,
-                 sets_attrs=None, items_attrs=None):
+    def __init__(
+        self, data, sets_names=None, items=None, sets_attrs=None, items_attrs=None
+    ):
         if isinstance(data, pd.DataFrame):
             if sets_names is None:
                 sets_names = data.columns.tolist()
@@ -84,8 +94,7 @@ class UpsetData:
         if items is None:
             raise ValueError("The name of items must be provided")
 
-        assert len(sets_names) == len(set(sets_names)), \
-            "Duplicates in set names"
+        assert len(sets_names) == len(set(sets_names)), "Duplicates in set names"
         assert len(items) == len(set(items)), "Duplicates in items"
 
         if sets_attrs is not None:
@@ -96,16 +105,16 @@ class UpsetData:
             items_attrs = items_attrs.loc[list(items)]
         self._items_attrs = items_attrs
 
-        self._binary_table = pd.DataFrame(columns=sets_names, index=items,
-                                          data=data)
+        self._binary_table = pd.DataFrame(columns=sets_names, index=items, data=data)
         self._sets_table = _get_sets_table(self._binary_table)
 
-    def filter(self,
-               min_degree=None,
-               max_degree=None,
-               min_cardinality=None,
-               max_cardinality=None,
-               ):
+    def filter(
+        self,
+        min_degree=None,
+        max_degree=None,
+        min_cardinality=None,
+        max_cardinality=None,
+    ):
         """Filter by degree or cardinality
 
         Parameters
@@ -126,11 +135,9 @@ class UpsetData:
         if max_degree is not None:
             sets_table = sets_table[sets_table["degree"] <= max_degree]
         if min_cardinality is not None:
-            sets_table = sets_table[
-                sets_table["cardinality"] >= min_cardinality]
+            sets_table = sets_table[sets_table["cardinality"] >= min_cardinality]
         if max_cardinality is not None:
-            sets_table = sets_table[
-                sets_table["cardinality"] <= max_cardinality]
+            sets_table = sets_table[sets_table["cardinality"] <= max_cardinality]
         self._sets_table = sets_table
         return self
 
@@ -149,17 +156,18 @@ class UpsetData:
         if by not in ["degree", "cardinality"]:
             raise ValueError("Sort by either `degree` or `cardinality`")
         if by == "cardinality":
-            self._sets_table.sort_values(by=by, ascending=not ascending,
-                                         inplace=True, kind="stable")
+            self._sets_table.sort_values(
+                by=by, ascending=not ascending, inplace=True, kind="stable"
+            )
         else:
             matrix = self._sets_table.index.to_frame().reset_index(drop=True)
             _, num = matrix.shape
 
-            matrix['SUM'] = matrix.sum(axis=1)
+            matrix["SUM"] = matrix.sum(axis=1)
 
             reorder_ix = []
-            for n, df in matrix.groupby('SUM'):
-                del df['SUM']
+            for n, df in matrix.groupby("SUM"):
+                del df["SUM"]
                 rows = df.to_numpy()
                 c_rows = []
                 for row in rows:
@@ -192,8 +200,9 @@ class UpsetData:
         if order is not None:
             sets_names = order
         else:
-            sets_sizes = self.sets_size().sort_values(ascending=ascending,
-                                                      kind="stable")
+            sets_sizes = self.sets_size().sort_values(
+                ascending=ascending, kind="stable"
+            )
             sets_names = sets_sizes.index.to_list()
         self._binary_table = self._binary_table.loc[:, sets_names]
         self._sets_table = self._sets_table.reorder_levels(order=sets_names)
@@ -201,14 +210,15 @@ class UpsetData:
             self._sets_attrs = self._sets_attrs.loc[sets_names]
         return self
 
-    def mark(self,
-             present=None,
-             absent=None,
-             min_cardinality=None,
-             max_cardinality=None,
-             min_degree=None,
-             max_degree=None
-             ):
+    def mark(
+        self,
+        present=None,
+        absent=None,
+        min_cardinality=None,
+        max_cardinality=None,
+        min_degree=None,
+        max_degree=None,
+    ):
         sets_table = self._sets_table
         marks = np.ones(len(sets_table), dtype=int)
 
@@ -238,9 +248,13 @@ class UpsetData:
         return self
 
     @classmethod
-    def from_sets(cls, sets: List[Set], sets_names=None,
-                  sets_attrs: pd.DataFrame = None,
-                  items_attrs: pd.DataFrame = None) -> UpsetData:
+    def from_sets(
+        cls,
+        sets: List[Set],
+        sets_names=None,
+        sets_attrs: pd.DataFrame = None,
+        items_attrs: pd.DataFrame = None,
+    ) -> UpsetData:
         """Create UpsetData from a series of sets
 
         Parameters
@@ -257,7 +271,7 @@ class UpsetData:
             The attributes of items, the input index should be the
             same as items
 
-        
+
         """
         items = set()
         new_sets = []
@@ -284,15 +298,23 @@ class UpsetData:
             d = [i in s for i in items]
             data.append(d)
         data = np.array(data, dtype=int).T
-        container = cls(data, sets_names=new_names, items=items,
-                        sets_attrs=sets_attrs,
-                        items_attrs=items_attrs)
+        container = cls(
+            data,
+            sets_names=new_names,
+            items=items,
+            sets_attrs=sets_attrs,
+            items_attrs=items_attrs,
+        )
         return container
 
     @classmethod
-    def from_memberships(cls, items, items_names=None,
-                         sets_attrs: pd.DataFrame = None,
-                         items_attrs: pd.DataFrame = None):
+    def from_memberships(
+        cls,
+        items,
+        items_names=None,
+        sets_attrs: pd.DataFrame = None,
+        items_attrs: pd.DataFrame = None,
+    ):
         """Describe the sets an item are in
 
         Parameters
@@ -326,10 +348,14 @@ class UpsetData:
         if items_names is not None:
             new_items_names = items_names
 
-        df = pd.DataFrame(sets).fillna(False).astype(int)
-        container = cls(df.to_numpy(), sets_names=df.columns,
-                        items=new_items_names, sets_attrs=sets_attrs,
-                        items_attrs=items_attrs)
+        df = pd.DataFrame(sets).astype(float).fillna(False).astype(int)
+        container = cls(
+            df.to_numpy(),
+            sets_names=df.columns,
+            items=new_items_names,
+            sets_attrs=sets_attrs,
+            items_attrs=items_attrs,
+        )
         return container
 
     def has_item(self, item):
@@ -354,11 +380,11 @@ class UpsetData:
 
     def cardinality(self):
         """The number of items in intersections"""
-        return self._sets_table['cardinality']
+        return self._sets_table["cardinality"]
 
     def degree(self):
         """Intersection between how many sets"""
-        return self._sets_table['degree']
+        return self._sets_table["degree"]
 
     def sets_size(self):
         return self._binary_table.sum()[self.sets_names]
@@ -461,38 +487,42 @@ class Upset(WhiteBoard):
         >>>                             [3, 4, 5, 6],
         >>>                             [1, 6, 10, 11]])
         >>> Upset(data).render()
-    
+
 
     """
 
-    def __init__(self, data: UpsetData,
-                 orient="h",
-                 sort_sets=None,  # ascending, descending
-                 sets_order=None,
-                 sets_color=None,
-                 sort_subsets="cardinality",  # cardinality, degree
-                 min_degree=None,
-                 max_degree=None,
-                 min_cardinality=None,
-                 max_cardinality=None,
-                 color=".1",
-                 shading=.3,
-                 radius=50,
-                 linewidth=1.5,
-                 grid_background=0.1,
-                 fontsize=None,
-                 add_intersections=True,
-                 add_sets_size=True,
-                 add_labels=True,
-                 width=None,
-                 height=None,
-                 ):
+    def __init__(
+        self,
+        data: UpsetData,
+        orient="h",
+        sort_sets=None,  # ascending, descending
+        sets_order=None,
+        sets_color=None,
+        sort_subsets="cardinality",  # cardinality, degree
+        min_degree=None,
+        max_degree=None,
+        min_cardinality=None,
+        max_cardinality=None,
+        color=".1",
+        shading=0.3,
+        radius=50,
+        linewidth=1.5,
+        grid_background=0.1,
+        fontsize=None,
+        add_intersections=True,
+        add_sets_size=True,
+        add_labels=True,
+        width=None,
+        height=None,
+    ):
         # The modification happens inplace
         upset_data = data
-        upset_data.filter(min_degree=min_degree,
-                          max_degree=max_degree,
-                          min_cardinality=min_cardinality,
-                          max_cardinality=max_cardinality)
+        upset_data.filter(
+            min_degree=min_degree,
+            max_degree=max_degree,
+            min_cardinality=min_cardinality,
+            max_cardinality=max_cardinality,
+        )
 
         ascending = sort_subsets.startswith("-")
         if ascending:
@@ -537,7 +567,8 @@ class Upset(WhiteBoard):
         self.orient = orient
 
         width, height = get_canvas_size_by_data(
-            main_shape, scale=.3, width=width, height=height, aspect=1)
+            main_shape, scale=0.3, width=width, height=height, aspect=1
+        )
 
         super().__init__(width=width, height=height)
         if add_intersections:
@@ -559,13 +590,21 @@ class Upset(WhiteBoard):
                 side = "left" if orient == "h" else "top"
             self.add_sets_size(side, color=self.sets_color)
 
-    def highlight_subsets(self, present=None, absent=None,
-                          min_cardinality=None, max_cardinality=None,
-                          min_degree=None, max_degree=None,
-                          facecolor=None, edgecolor=None,
-                          edgewidth=None, hatch=None, edgestyle=None,
-                          label=None,
-                          ):
+    def highlight_subsets(
+        self,
+        present=None,
+        absent=None,
+        min_cardinality=None,
+        max_cardinality=None,
+        min_degree=None,
+        max_degree=None,
+        facecolor=None,
+        edgecolor=None,
+        edgewidth=None,
+        hatch=None,
+        edgestyle=None,
+        label=None,
+    ):
         """Highlight a subset of the data.
 
         Notice that the color of hatch is determined by the edgecolor.
@@ -598,11 +637,14 @@ class Upset(WhiteBoard):
             The label for the highlighting
 
         """
-        marks = self.data.mark(present=present, absent=absent,
-                               min_cardinality=min_cardinality,
-                               max_cardinality=max_cardinality,
-                               min_degree=min_degree,
-                               max_degree=max_degree)
+        marks = self.data.mark(
+            present=present,
+            absent=absent,
+            min_cardinality=min_cardinality,
+            max_cardinality=max_cardinality,
+            min_degree=min_degree,
+            max_degree=max_degree,
+        )
 
         def _label(name, value):
             if value is not None:
@@ -618,13 +660,29 @@ class Upset(WhiteBoard):
             min_degree = _label("min_degree", min_degree)
             max_degree = _label("max_degree", max_degree)
 
-            label = ", ".join([s for s in [present, absent, min_cardinality,
-                                           max_cardinality, min_degree,
-                                           max_degree] if s])
+            label = ", ".join(
+                [
+                    s
+                    for s in [
+                        present,
+                        absent,
+                        min_cardinality,
+                        max_cardinality,
+                        min_degree,
+                        max_degree,
+                    ]
+                    if s
+                ]
+            )
 
-        styles = dict(facecolor=facecolor, edgecolor=edgecolor,
-                      linestyle=edgestyle, linewidth=edgewidth,
-                      hatch=hatch, label=label)
+        styles = dict(
+            facecolor=facecolor,
+            edgecolor=edgecolor,
+            linestyle=edgestyle,
+            linewidth=edgewidth,
+            hatch=hatch,
+            label=label,
+        )
         styles = {k: v for k, v in styles.items() if v is not None}
 
         line_styles = dict()
@@ -643,63 +701,68 @@ class Upset(WhiteBoard):
                     self._subset_styles[i] = current_styles
                     self._subset_line_styles[i] = {**line_styles}
 
-        if 'facecolor' not in styles.keys():
-            styles['facecolor'] = 'none'
-        if 'edgecolor' not in styles.keys():
-            styles['edgecolor'] = 'none'
+        if "facecolor" not in styles.keys():
+            styles["facecolor"] = "none"
+        if "edgecolor" not in styles.keys():
+            styles["edgecolor"] = "none"
         self._legend_entries.append(styles)
 
     def _check_side(self, side, chart_name, allow):
         options = allow[self.orient]
         if side not in options:
-            msg = f"{chart_name} cannot be placed at '{side}', " \
-                  f"try {' ,'.join(options)}"
+            msg = (
+                f"{chart_name} cannot be placed at '{side}', "
+                f"try {' ,'.join(options)}"
+            )
             raise ValueError(msg)
 
-    def add_intersections(self, side, pad=.1, size=1.):
-        self._check_side(side, 'Intersections',
-                         dict(h=["top", "bottom"], v=["left", "right"]))
+    def add_intersections(self, side, pad=0.1, size=1.0):
+        self._check_side(
+            side, "Intersections", dict(h=["top", "bottom"], v=["left", "right"])
+        )
         data = self.data.cardinality()
         self._intersection_bar = Numbers(data, color=self.color)
         self.add_plot(side, self._intersection_bar, size=size, pad=pad)
 
-    def add_sets_size(self, side, pad=.1, size=1., **props):
-        self._check_side(side, 'Sets size',
-                         dict(h=["left", "right"], v=["top", "bottom"]))
+    def add_sets_size(self, side, pad=0.1, size=1.0, **props):
+        self._check_side(
+            side, "Sets size", dict(h=["left", "right"], v=["top", "bottom"])
+        )
         data = self.sets_size
         options = dict(color=self.color)
         options.update(props)
         self._sets_size_bar = Numbers(data, **options)
         self.add_plot(side, self._sets_size_bar, size=size, pad=pad)
 
-    def add_sets_label(self, side, pad=.1, size=None, **props):
-        self._check_side(side, 'Sets label',
-                         dict(h=["left", "right"], v=["top", "bottom"]))
+    def add_sets_label(self, side, pad=0.1, size=None, **props):
+        self._check_side(
+            side, "Sets label", dict(h=["left", "right"], v=["top", "bottom"])
+        )
         data = self.data.sets_names
         self.add_plot(side, Labels(data, **props), pad=pad, size=size)
 
     def get_intersection_ax(self):
-        return self.get_ax('Intersections')
+        return self.get_ax("Intersections")
 
     def get_sets_size_ax(self):
-        return self.get_ax('Sets size')
+        return self.get_ax("Sets size")
 
     def get_sets_label_ax(self):
-        return self.get_ax('Sets label')
+        return self.get_ax("Sets label")
 
     def get_data(self):
         return self.data
 
     _attr_plotter = {
-        'bar': Bar,
-        'box': Box,
-        'boxen': Boxen,
-        'violin': Violin,
-        'point': Point,
-        'strip': Strip,
-        'swarm': Swarm,
-        'stack_bar': StackBar,
-        'number': Numbers,
+        "bar": Bar,
+        "box": Box,
+        "boxen": Boxen,
+        "violin": Violin,
+        "point": Point,
+        "strip": Strip,
+        "swarm": Swarm,
+        "stack_bar": StackBar,
+        "number": Numbers,
     }
 
     @classmethod
@@ -707,8 +770,9 @@ class Upset(WhiteBoard):
         """Update the global upset plot for attr plotter"""
         cls._attr_plotter.update(attr_plotter)
 
-    def add_sets_attr(self, side, attr_name, plot,
-                      name=None, pad=.1, size=None, plot_kws=None):
+    def add_sets_attr(
+        self, side, attr_name, plot, name=None, pad=0.1, size=None, plot_kws=None
+    ):
         """Add a plot for the sets attribute
 
         Parameters
@@ -733,14 +797,14 @@ class Upset(WhiteBoard):
         data = self.data.sets_attrs
         attr = data[attr_name]
         plot = self._attr_plotter[plot]
-        kws = {'label': attr_name}
+        kws = {"label": attr_name}
         if plot_kws is not None:
             kws.update(plot_kws)
-        self.add_plot(side, plot(attr, **plot_kws),
-                      name=name, pad=pad, size=size)
+        self.add_plot(side, plot(attr, **plot_kws), name=name, pad=pad, size=size)
 
-    def add_items_attr(self, side, attr_name, plot,
-                       name=None, pad=.1, size=None, plot_kws=None):
+    def add_items_attr(
+        self, side, attr_name, plot, name=None, pad=0.1, size=None, plot_kws=None
+    ):
         """Add a plot for the items attribute
 
         Parameters
@@ -770,16 +834,15 @@ class Upset(WhiteBoard):
         if plot == StackBar:
             collect = [Counter(col) for col in data_collector]
             construct = pd.DataFrame(collect).T
-            construct = ((construct.loc[~pd.isnull(construct.index)])
-                         .fillna(0)
-                         .astype(int))
+            construct = (
+                (construct.loc[~pd.isnull(construct.index)]).fillna(0).astype(int)
+            )
 
         plot = self._attr_plotter[plot]
-        kws = {'label': attr_name}
+        kws = {"label": attr_name}
         if plot_kws is not None:
             kws.update(plot_kws)
-        self.add_plot(side, plot(construct, **kws),
-                      name=name, pad=pad, size=size)
+        self.add_plot(side, plot(construct, **kws), name=name, pad=pad, size=size)
 
     def _render_matrix(self, ax):
         ax.set_axis_off()
@@ -796,8 +859,14 @@ class Upset(WhiteBoard):
         if self.shading > 0:
             if self.orient == "v":
                 xv, yv = yv, xv
-            ax.scatter(xv, yv, s=self.radius, facecolor=self.color,
-                       alpha=self.shading, edgecolor="none")
+            ax.scatter(
+                xv,
+                yv,
+                s=self.radius,
+                facecolor=self.color,
+                alpha=self.shading,
+                edgecolor="none",
+            )
 
         for ix1, chunk in enumerate(matrix):
             custom_style = self._subset_styles.get(ix1)
@@ -811,16 +880,23 @@ class Upset(WhiteBoard):
             if len(cy) > 0:
                 line_low, line_up = np.min(cy), np.max(cy)
                 if (self.linewidth > 0) & (line_up - line_low > 0):
-                    line_style = {'color': self.color, 'lw': self.linewidth,
-                                  **custom_line_style}
+                    line_style = {
+                        "color": self.color,
+                        "lw": self.linewidth,
+                        **custom_line_style,
+                    }
                     xs, ys = ix1, (line_low, line_up)
                     liner = ax.vlines if self.orient == "h" else ax.hlines
                     liner(xs, *ys, **line_style)
                 scatter_colors = self.sets_color[cy]
                 if self.orient == "v":
                     cx, cy = cy, cx
-                current_style = {'facecolor': scatter_colors, 'zorder': 100,
-                                 'alpha': 1, **custom_style}
+                current_style = {
+                    "facecolor": scatter_colors,
+                    "zorder": 100,
+                    "alpha": 1,
+                    **custom_style,
+                }
                 ax.scatter(cx, cy, s=self.radius, **current_style)
 
         xlow, xup = 0 - 0.5, np.max(xv) + 0.5
@@ -838,9 +914,13 @@ class Upset(WhiteBoard):
             height = ylow - yup
         for i, coord in enumerate(bg_coords):
             if i % 2 == 0:
-                rect = Rectangle(xy=coord, height=height, width=width,
-                                 facecolor=self.color,
-                                 alpha=self.grid_background)
+                rect = Rectangle(
+                    xy=coord,
+                    height=height,
+                    width=width,
+                    facecolor=self.color,
+                    alpha=self.grid_background,
+                )
                 bg_circles.append(rect)
         # add bg_circles
         bg_circles = PatchCollection(bg_circles, match_original=True)
@@ -858,7 +938,7 @@ class Upset(WhiteBoard):
         handles = [Patch(**entry) for entry in self._legend_entries]
         highlight_legend = ListLegend(handles=handles, handlelength=2)
         highlight_legend.figure = None
-        return {'highlight_subsets': [highlight_legend]}
+        return {"highlight_subsets": [highlight_legend]}
 
     def render(self, figure=None, scale=1):
         super().render(figure=figure, scale=scale)

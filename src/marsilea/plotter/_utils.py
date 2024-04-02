@@ -26,6 +26,7 @@ def _auto_format_str(fmt, value):
     matplotlib/cbook.py
     """
     try:
-        return fmt % (value,)
-    except (TypeError, ValueError):
+        fmt = "{:" + fmt + "}"
         return fmt.format(value)
+    except (TypeError, ValueError):
+        return str(value)

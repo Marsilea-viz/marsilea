@@ -15,8 +15,7 @@ class LinkAttrs:
 
 
 class Links:
-    def __init__(self, links, weights=None, width=None,
-                 colors=None, labels=None):
+    def __init__(self, links, weights=None, width=None, colors=None, labels=None):
         self._links = {}
         self._links_attr = {}
 
@@ -34,16 +33,20 @@ class Links:
             self.colors = [colors for _ in links]
         else:
             if len(colors) != len(links):
-                msg = f"Length of colors ({len(colors)}) does not " \
-                      f"match length of links ({len(links)})"
+                msg = (
+                    f"Length of colors ({len(colors)}) does not "
+                    f"match length of links ({len(links)})"
+                )
                 raise ValueError(msg)
             self.colors = colors
 
         self.legend_entries = None
         if labels is not None:
             if len(labels) != len(links):
-                msg = f"Length of labels ({len(labels)}) does not " \
-                      f"match length of links ({len(links)})"
+                msg = (
+                    f"Length of labels ({len(labels)}) does not "
+                    f"match length of links ({len(links)})"
+                )
                 raise ValueError(msg)
             self.legend_entries = dict(zip(labels, colors))
 
@@ -120,7 +123,7 @@ class Arc(StatsBase):
     label_loc : str, optional
         Location of the label. Must be one of the following:
         "left", "right", "top", "bottom", "center".
-    props : dict, optional
+    label_props : dict, optional
         Keyword arguments passed to `matplotlib.text.Text`.
     **kwargs
         Keyword arguments passed to `matplotlib.patches.Arc`.
@@ -148,22 +151,31 @@ class Arc(StatsBase):
 
     render_main = False
 
-    def __init__(self, anchors, links, weights=None, width=None,
-                 colors=None, labels=None, legend_kws=None,
-                 label=None, label_loc=None, props=None,
-                 **kwargs):
+    def __init__(
+        self,
+        anchors,
+        links,
+        weights=None,
+        width=None,
+        colors=None,
+        labels=None,
+        legend_kws=None,
+        label=None,
+        label_loc=None,
+        label_props=None,
+        **kwargs,
+    ):
         if len(np.unique(anchors)) != len(anchors):
             raise ValueError("`anchors` must be unique")
         anchors = self.data_validator(anchors, target="1d")
         self.set_data(anchors)
-        self.links = Links(links, weights=weights, width=width,
-                           colors=colors, labels=labels)
+        self.links = Links(
+            links, weights=weights, width=width, colors=colors, labels=labels
+        )
         self.options = kwargs
         self.legend_kws = {} if legend_kws is None else legend_kws
 
-        self.label = label
-        self.label_loc = label_loc
-        self.props = props
+        self.set_label(label, label_loc, label_props)
 
     def render_ax(self, spec):
         ax = spec.ax
@@ -183,7 +195,6 @@ class Arc(StatsBase):
                 for link in links:
                     link_in_data = anchors_coords.get(link)
                     if link_in_data is not None:
-
                         arc_start = anchors_coords[anchor]
                         arc_end = link_in_data
                         if arc_end < arc_start:
@@ -210,8 +221,7 @@ class Arc(StatsBase):
                             xy = (arc_mid, 0)
                             angle = 0
                         sizes.append(arc_width)
-                        arc = mArc(xy, arc_width, arc_width * 2,
-                                   angle=angle, **options)
+                        arc = mArc(xy, arc_width, arc_width * 2, angle=angle, **options)
                         ax.add_patch(arc)
 
         lim = np.max(sizes)

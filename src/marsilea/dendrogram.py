@@ -8,17 +8,17 @@ from typing import List, Sequence
 
 
 class _DendrogramBase:
-
     is_singleton = False
 
-    def __init__(self,
-                 data,
-                 method=None,
-                 metric=None,
-                 linkage=None,
-                 get_meta_center=None,
-                 key=None,
-                 ):
+    def __init__(
+        self,
+        data,
+        method=None,
+        metric=None,
+        linkage=None,
+        get_meta_center=None,
+        key=None,
+    ):
         self.key = key
         self.data = data
         if method is None:
@@ -29,8 +29,8 @@ class _DendrogramBase:
         if len(data) == 1:
             # TODO: the y coords are heuristic value,
             #       need a better way to handle
-            self.x_coords = np.array([[1., 1., 1., 1.]])
-            self.y_coords = np.array([[0., .75, .75, 0.]])
+            self.x_coords = np.array([[1.0, 1.0, 1.0, 1.0]])
+            self.y_coords = np.array([[0.0, 0.75, 0.75, 0.0]])
             self._reorder_index = np.array([0])
             self.is_singleton = True
         else:
@@ -40,21 +40,21 @@ class _DendrogramBase:
                 self.Z = scipy_linkage(data, method=method, metric=metric)
             self._plot_data = dendrogram(self.Z, no_plot=True)
 
-            self.x_coords = np.asarray(self._plot_data['icoord']) / 5
-            self.y_coords = np.asarray(self._plot_data['dcoord'])
-            self._reorder_index = self._plot_data['leaves']
+            self.x_coords = np.asarray(self._plot_data["icoord"]) / 5
+            self.y_coords = np.asarray(self._plot_data["dcoord"])
+            self._reorder_index = self._plot_data["leaves"]
 
             if len(self.y_coords) == 1:
-                self.y_coords = np.array([[0., .75, .75, 0.]])
+                self.y_coords = np.array([[0.0, 0.75, 0.75, 0.0]])
             else:
                 ycoords = np.unique(self.y_coords)
                 ycoords = ycoords[np.nonzero(ycoords)]
                 y_min, y_max = np.min(ycoords), np.max(ycoords)
                 interval = y_max - y_min
                 for i, j in zip(*np.nonzero(self.y_coords)):
-                    if self.y_coords[i, j] != 0.:
+                    if self.y_coords[i, j] != 0.0:
                         v = self.y_coords[i, j]
-                        self.y_coords[i, j] = (v - y_min) / interval + .2
+                        self.y_coords[i, j] = (v - y_min) / interval + 0.2
                     # self.y_coords[i, j] -= offset
             # self.y_coords[np.nonzero(self.y_coords)] - offset
 
@@ -80,7 +80,8 @@ class _DendrogramBase:
             else:
                 raise ValueError(
                     "The get_meta_center must return a numpy array with shape "
-                    "matching the number of features in the data.")
+                    "matching the number of features in the data."
+                )
         else:
             raise TypeError("The get_meta_center must be a callable function or None.")
 
@@ -107,8 +108,9 @@ class _DendrogramBase:
 
         if y_end is not None:
             if y_end < self.ylim[1]:
-                raise ValueError(f"{y_end} is lower than "
-                                 f"current ylim at {self.ylim[1]}")
+                raise ValueError(
+                    f"{y_end} is lower than " f"current ylim at {self.ylim[1]}"
+                )
             self._render_ylim = (0, y_end)
 
     @property
@@ -123,7 +125,7 @@ class _DendrogramBase:
     def root(self):
         xc = self.x_coords[-1]
         yc = self.y_coords[-1]
-        x1 = (xc[2] - xc[1]) / 2. + xc[1]
+        x1 = (xc[2] - xc[1]) / 2.0 + xc[1]
         y1 = yc[1]
         return x1, y1
 
@@ -131,11 +133,11 @@ class _DendrogramBase:
     def render_root(self):
         xc = self._render_x_coords[-1]
         yc = self._render_y_coords[-1]
-        x1 = (xc[2] - xc[1]) / 2. + xc[1]
+        x1 = (xc[2] - xc[1]) / 2.0 + xc[1]
         y1 = yc[1]
         return x1, y1
 
-    def _draw_dendrogram(self, ax, orient="top", color=".1", linewidth=.7):
+    def _draw_dendrogram(self, ax, orient="top", color=".1", linewidth=0.7):
         x_coords = self._render_x_coords
         y_coords = self._render_y_coords
         if orient in ["right", "left"]:
@@ -143,14 +145,15 @@ class _DendrogramBase:
 
         lines = LineCollection(
             [list(zip(x, y)) for x, y in zip(x_coords, y_coords)],
-            color=color, linewidth=linewidth
+            color=color,
+            linewidth=linewidth,
         )
         ax.add_collection(lines)
 
 
 class Dendrogram(_DendrogramBase):
     """A dendrogram class
-    
+
     Parameters
     ----------
 
@@ -159,26 +162,39 @@ class Dendrogram(_DendrogramBase):
         Refer to :func:`scipy.cluster.hierarchy.linkage`
     metric : str
         Refer to :func:`scipy.cluster.hierarchy.linkage`
-    
+
     """
 
-    def __init__(self,
-                 data: np.ndarray,
-                 method=None,
-                 metric=None,
-                 linkage=None,
-                 get_meta_center=None,
-                 key=None,
-                 ):
-        super().__init__(data, method=method, metric=metric, key=key,
-                         linkage=linkage, get_meta_center=get_meta_center)
+    def __init__(
+        self,
+        data: np.ndarray,
+        method=None,
+        metric=None,
+        linkage=None,
+        get_meta_center=None,
+        key=None,
+    ):
+        super().__init__(
+            data,
+            method=method,
+            metric=metric,
+            key=key,
+            linkage=linkage,
+            get_meta_center=get_meta_center,
+        )
 
     # here we left an empty **kwargs to align api with GroupDendrogram
-    def draw(self, ax, orient="top",
-             color=None, linewidth=None,
-             add_root=False, root_color=None,
-             control_ax=True,
-             **kwargs):
+    def draw(
+        self,
+        ax,
+        orient="top",
+        color=None,
+        linewidth=None,
+        add_root=False,
+        root_color=None,
+        control_ax=True,
+        **kwargs,
+    ):
         """
 
         Parameters
@@ -201,10 +217,9 @@ class Dendrogram(_DendrogramBase):
         """
         color = ".1" if color is None else color
         root_color = color if root_color is None else root_color
-        linewidth = .7 if linewidth is None else linewidth
+        linewidth = 0.7 if linewidth is None else linewidth
 
-        self._draw_dendrogram(ax, orient=orient, color=color,
-                              linewidth=linewidth)
+        self._draw_dendrogram(ax, orient=orient, color=color, linewidth=linewidth)
 
         xlim = self._render_xlim
         ylim = self._render_ylim
@@ -228,8 +243,9 @@ class Dendrogram(_DendrogramBase):
             else:
                 x2 = x1
                 y2 = ylim[1]
-            root_line = Line2D([x1, x2], [y1, y2],
-                               color=root_color, linewidth=linewidth)
+            root_line = Line2D(
+                [x1, x2], [y1, y2], color=root_color, linewidth=linewidth
+            )
             ax.add_artist(root_line)
 
 
@@ -243,20 +259,22 @@ class GroupDendrogram(_DendrogramBase):
         A list of :class:`Dendrogram`
     method : str
     metric : str
-    
+
     """
 
-    def __init__(self,
-                 dens: List[Dendrogram],
-                 method=None,
-                 metric=None,
-                 get_meta_center=None,
-                 key=None,
-                 **kwargs,
-                 ):
+    def __init__(
+        self,
+        dens: List[Dendrogram],
+        method=None,
+        metric=None,
+        get_meta_center=None,
+        key=None,
+        **kwargs,
+    ):
         data = np.vstack([d.center for d in dens])
-        super().__init__(data, method=method, metric=metric,
-                         get_meta_center=get_meta_center, key=key)
+        super().__init__(
+            data, method=method, metric=metric, get_meta_center=get_meta_center, key=key
+        )
         self.orig_dens = np.asarray(dens)
         self.dens = np.asarray(dens)[self.reorder_index]
         self.n = len(self.dens)
@@ -274,19 +292,20 @@ class GroupDendrogram(_DendrogramBase):
         self.den_ylim = ylim
         self.divider = ylim * 1.05
 
-    def draw(self,
-             ax,
-             orient="top",
-             spacing=None,
-             add_meta=True,
-             add_base=True,
-             base_colors=None,
-             meta_color=None,
-             linewidth=None,
-             divide=True,
-             divide_style="--",
-             meta_ratio=.2,
-             ):
+    def draw(
+        self,
+        ax,
+        orient="top",
+        spacing=None,
+        add_meta=True,
+        add_base=True,
+        base_colors=None,
+        meta_color=None,
+        linewidth=None,
+        divide=True,
+        divide_style="--",
+        meta_ratio=0.2,
+    ):
         """
 
         Parameters
@@ -315,7 +334,7 @@ class GroupDendrogram(_DendrogramBase):
         """
 
         meta_color = ".1" if meta_color is None else meta_color
-        linewidth = .7 if linewidth is None else linewidth
+        linewidth = 0.7 if linewidth is None else linewidth
         if base_colors is None:
             base_colors = cycle([None])
         elif is_color_like(base_colors):
@@ -332,8 +351,7 @@ class GroupDendrogram(_DendrogramBase):
 
         render_xlim = self.den_xlim / (1 - np.sum(spacing))
         skeleton = np.sort(np.unique(self.x_coords[self.y_coords == 0]))
-        ranger = [(skeleton[i], skeleton[i + 1]) \
-                  for i in range(len(skeleton) - 1)]
+        ranger = [(skeleton[i], skeleton[i + 1]) for i in range(len(skeleton) - 1)]
 
         draw_dens = self.dens if add_meta else self.orig_dens
 
@@ -399,28 +417,45 @@ class GroupDendrogram(_DendrogramBase):
 
         if add_meta:
             # Add meta dendrogram
-            self._draw_dendrogram(ax, orient=orient,
-                                  color=meta_color, linewidth=linewidth)
+            self._draw_dendrogram(
+                ax, orient=orient, color=meta_color, linewidth=linewidth
+            )
 
         if divide & add_base & add_meta:
             xmin = np.min(draw_dens[0].x_coords)
             xmax = np.max(draw_dens[-1]._render_x_coords)
             if orient in ["top", "bottom"]:
-                ax.hlines(self.divider, xmin, xmax,  # 0, xlim,
-                          linestyles=divide_style, color=meta_color,
-                          linewidth=linewidth)
+                ax.hlines(
+                    self.divider,
+                    xmin,
+                    xmax,  # 0, xlim,
+                    linestyles=divide_style,
+                    color=meta_color,
+                    linewidth=linewidth,
+                )
             else:
-                ax.vlines(self.divider, xmin, xmax,  # 0, ylim,
-                          linestyles=divide_style, color=meta_color,
-                          linewidth=linewidth)
+                ax.vlines(
+                    self.divider,
+                    xmin,
+                    xmax,  # 0, ylim,
+                    linestyles=divide_style,
+                    color=meta_color,
+                    linewidth=linewidth,
+                )
 
         if add_base:
             for den, color in zip(draw_dens, base_colors):
                 # The singleton dendrogram will only be drawn if meta is drawn
                 if not den.is_singleton or add_meta:
-                    den.draw(ax, orient=orient, add_root=add_meta, color=color,
-                             linewidth=linewidth,
-                             root_color=meta_color, control_ax=False)
+                    den.draw(
+                        ax,
+                        orient=orient,
+                        add_root=add_meta,
+                        color=color,
+                        linewidth=linewidth,
+                        root_color=meta_color,
+                        control_ax=False,
+                    )
 
         xlim = render_xlim
         # reserve room to avoid clipping of the top

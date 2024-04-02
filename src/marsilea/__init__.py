@@ -1,7 +1,8 @@
 """Create x-layout visualization"""
 
-__version__ = "0.3.3"
+__version__ = "0.4.0"
 
+import marsilea.plotter as plotter
 from ._deform import Deformation
 from .base import WhiteBoard, ClusterBoard
 from .dataset import load_data

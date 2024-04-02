@@ -1,5 +1,4 @@
-__all__ = ["ColorMesh", "Colors", "SizedMesh", "MarkerMesh",
-           "TextMesh", "PatchMesh"]
+__all__ = ["ColorMesh", "Colors", "SizedMesh", "MarkerMesh", "TextMesh", "PatchMesh"]
 
 import numpy as np
 import pandas as pd
@@ -7,15 +6,13 @@ import warnings
 from itertools import cycle
 from legendkit import ColorArt, CatLegend, SizeLegend
 from matplotlib.cm import ScalarMappable
-from matplotlib.colors import ListedColormap, TwoSlopeNorm, Normalize, \
-    is_color_like
+from matplotlib.colors import ListedColormap, TwoSlopeNorm, Normalize, is_color_like
 from typing import Mapping
 
 from ._utils import _format_label
 from .base import RenderPlan
 from ..layout import close_ticks
-from ..utils import relative_luminance, get_colormap, ECHARTS16, \
-    get_canvas_size_by_data
+from ..utils import relative_luminance, get_colormap, ECHARTS16, get_canvas_size_by_data
 
 
 def _mask_data(data, mask=None):
@@ -36,8 +33,7 @@ class MeshBase(RenderPlan):
     render_main = True
     _legend_kws = {}
 
-    def _process_cmap(self, data, vmin, vmax,
-                      cmap, norm, center):
+    def _process_cmap(self, data, vmin, vmax, cmap, norm, center):
         self.cmap = "coolwarm" if cmap is None else cmap
         self.norm = norm
 
@@ -76,7 +72,7 @@ class ColorMesh(MeshBase):
     alpha : float
         The transparency value
     linewidth : float
-        The width of grid line 
+        The width of grid line
     linecolor : color
         The color of grid line
     annot : bool, array-like
@@ -89,9 +85,9 @@ class ColorMesh(MeshBase):
         See :class:`matplotlib.colorbar.Colorbar`,
     label : str
         The label of the plot, only show if added to the side plot
-    label_loc : str
+    label_loc : {'top', 'bottom', 'left', 'right'}
         Where to add the label
-    props : dict
+    label_props : dict
         See :class:`matplotlib.text.Text`
     kwargs :
 
@@ -127,12 +123,27 @@ class ColorMesh(MeshBase):
 
     """
 
-    def __init__(self, data, cmap=None, norm=None, vmin=None, vmax=None,
-                 mask=None, center=None, alpha=None, linewidth=None,
-                 linecolor=None, annot=None, fmt=None, annot_kws=None,
-                 cbar_kws=None, label=None, label_loc=None, props=None,
-                 **kwargs,
-                 ):
+    def __init__(
+        self,
+        data,
+        cmap=None,
+        norm=None,
+        vmin=None,
+        vmax=None,
+        mask=None,
+        center=None,
+        alpha=None,
+        linewidth=None,
+        linecolor=None,
+        annot=None,
+        fmt=None,
+        annot_kws=None,
+        cbar_kws=None,
+        label=None,
+        label_loc=None,
+        label_props=None,
+        **kwargs,
+    ):
         self.data = _mask_data(data, mask)
         self.alpha = alpha
         self.linewidth = linewidth
@@ -149,7 +160,7 @@ class ColorMesh(MeshBase):
         self.annot_kws = {} if annot_kws is None else annot_kws
         self._process_cmap(data, vmin, vmax, cmap, norm, center)
 
-        self.set_label(label, label_loc, props)
+        self.set_label(label, label_loc, label_props)
         self.set_data(self.data, self.annotated_texts)
         self._legend_kws = dict(title=self.label)
         if cbar_kws is not None:
@@ -161,14 +172,17 @@ class ColorMesh(MeshBase):
         """Add textual labels with the value in each cell."""
         mesh.update_scalarmappable()
         height, width = texts.shape
-        xpos, ypos = np.meshgrid(np.arange(width) + .5, np.arange(height) + .5)
-        for x, y, m, color, val in zip(xpos.flat, ypos.flat,
-                                       mesh.get_array().flatten(),
-                                       mesh.get_facecolors(),
-                                       texts.flat):
+        xpos, ypos = np.meshgrid(np.arange(width) + 0.5, np.arange(height) + 0.5)
+        for x, y, m, color, val in zip(
+            xpos.flat,
+            ypos.flat,
+            mesh.get_array().flatten(),
+            mesh.get_facecolors(),
+            texts.flat,
+        ):
             if m is not np.ma.masked:
                 lum = relative_luminance(color)
-                text_color = ".15" if lum > .408 else "w"
+                text_color = ".15" if lum > 0.408 else "w"
                 annotation = _format_label(val, self.fmt)
                 text_kwargs = dict(color=text_color, ha="center", va="center")
                 text_kwargs.update(self.annot_kws)
@@ -184,10 +198,14 @@ class ColorMesh(MeshBase):
         if self.is_flank:
             values = values.T
             texts = texts.T
-        mesh = ax.pcolormesh(values, cmap=self.cmap, norm=self.norm,
-                             linewidth=self.linewidth,
-                             edgecolor=self.linecolor,
-                             **self.kwargs, )
+        mesh = ax.pcolormesh(
+            values,
+            cmap=self.cmap,
+            norm=self.norm,
+            linewidth=self.linewidth,
+            edgecolor=self.linecolor,
+            **self.kwargs,
+        )
         if self.annot:
             self._annotate_text(ax, mesh, texts)
         # set the mesh for legend
@@ -217,9 +235,11 @@ def _enough_colors(n_colors, n_cats):
     # Inform the user if the same color
     # will be used more than once
     if n_colors < n_cats:
-        warnings.warn(f"Current colormap has only {n_colors} colors "
-                      f"which is less that your input "
-                      f"with {n_cats} elements")
+        warnings.warn(
+            f"Current colormap has only {n_colors} colors "
+            f"which is less that your input "
+            f"with {n_cats} elements"
+        )
 
 
 class Colors(MeshBase):
@@ -241,11 +261,11 @@ class Colors(MeshBase):
         The label of the plot, only show if added to the side plot
     label_loc : str
         Where to add the label
-    props : dict
+    label_props : dict
         See :class:`matplotlib.text.Text`
-    legend_kws : 
+    legend_kws :
         See :class:`legendkit.legend`
-    kwargs : 
+    kwargs :
         Pass to :meth:`pcolormesh <matplotlib.axes.Axes.pcolormesh>`
 
     See Also
@@ -277,12 +297,22 @@ class Colors(MeshBase):
 
     """
 
-    def __init__(self, data, palette=None, cmap=None, mask=None,
-                 linewidth=None, linecolor=None,
-                 label=None, label_loc=None, props=None, legend_kws=None,
-                 **kwargs):
+    def __init__(
+        self,
+        data,
+        palette=None,
+        cmap=None,
+        mask=None,
+        linewidth=None,
+        linecolor=None,
+        label=None,
+        label_loc=None,
+        label_props=None,
+        legend_kws=None,
+        **kwargs,
+    ):
         data = np.asarray(data)
-        self.set_label(label, label_loc, props)
+        self.set_label(label, label_loc, label_props)
         self.linewidth = linewidth
         self.linecolor = linecolor
         self.kwargs = kwargs
@@ -351,10 +381,15 @@ class Colors(MeshBase):
 
         if self.is_flank:
             data = data.T
-        ax.pcolormesh(data, cmap=self.render_cmap,
-                      linewidth=self.linewidth,
-                      edgecolor=self.linecolor,
-                      vmin=0, vmax=self.vmax, **self.kwargs)
+        ax.pcolormesh(
+            data,
+            cmap=self.render_cmap,
+            linewidth=self.linewidth,
+            edgecolor=self.linecolor,
+            vmin=0,
+            vmax=self.vmax,
+            **self.kwargs,
+        )
         ax.set_axis_off()
         ax.invert_yaxis()
 
@@ -401,9 +436,9 @@ class SizedMesh(MeshBase):
         See :mod:`matplotlib.markers`
     label : str
         The label of the plot, only show if added to the side plot
-    label_loc : str
+    label_loc : {'top', 'bottom', 'left', 'right'}
         Where to add the label
-    props : dict
+    label_props : dict
         See :class:`matplotlib.text.Text`
     legend : bool, default: True
         Whether to add a legend
@@ -444,14 +479,31 @@ class SizedMesh(MeshBase):
 
     """
 
-    def __init__(self, size, color=None, cmap=None, norm=None,
-                 vmin=None, vmax=None, alpha=None,
-                 center=None, sizes=(1, 200), size_norm=None,
-                 edgecolor=None, linewidth=1,
-                 frameon=True, palette=None, marker="o",
-                 label=None, label_loc=None, props=None,
-                 legend=True, size_legend_kws=None, color_legend_kws=None,
-                 **kwargs):
+    def __init__(
+        self,
+        size,
+        color=None,
+        cmap=None,
+        norm=None,
+        vmin=None,
+        vmax=None,
+        alpha=None,
+        center=None,
+        sizes=(1, 200),
+        size_norm=None,
+        edgecolor=None,
+        linewidth=1,
+        frameon=True,
+        palette=None,
+        marker="o",
+        label=None,
+        label_loc=None,
+        label_props=None,
+        legend=True,
+        size_legend_kws=None,
+        color_legend_kws=None,
+        **kwargs,
+    ):
         # normalize size
         size = np.asarray(size)
         if size_norm is None:
@@ -488,15 +540,14 @@ class SizedMesh(MeshBase):
                     self.cmap = ListedColormap(render_colors)
                     self.color2d = encode_numeric(color, encoder)
                 else:
-                    self._process_cmap(color, vmin, vmax, cmap,
-                                       norm, center)
+                    self._process_cmap(color, vmin, vmax, cmap, norm, center)
                     self.color2d = color
                 self._has_colormesh = True
         self.alpha = alpha
         self.frameon = frameon
         self.edgecolor = edgecolor
         self.linewidth = linewidth
-        self.set_label(label, label_loc, props)
+        self.set_label(label, label_loc, label_props)
         self.kwargs = kwargs
 
         self._collections = None
@@ -512,19 +563,16 @@ class SizedMesh(MeshBase):
             size_color = self.color
         else:
             size_color = "black"
-        handler_kw = dict(edgecolor=self.edgecolor,
-                          linewidth=self.linewidth)
+        handler_kw = dict(edgecolor=self.edgecolor, linewidth=self.linewidth)
         options = dict(
             colors=size_color,
             handle=self.marker,
-            show_at=(.1, .25, .5, .75, 1.),
+            show_at=(0.1, 0.25, 0.5, 0.75, 1.0),
             spacing="uniform",
-            handler_kw=handler_kw)
+            handler_kw=handler_kw,
+        )
         options.update(self.size_legend_kws)
-        size_legend = SizeLegend(self.size_matrix,
-                                 array=self.orig_size,
-                                 **options
-                                 )
+        size_legend = SizeLegend(self.size_matrix, array=self.orig_size, **options)
 
         if self._has_colormesh & (self.color != "none"):
             if self.palette is not None:
@@ -539,13 +587,10 @@ class SizedMesh(MeshBase):
                     frameon=False,
                 )
                 options.update(self.color_legend_kws)
-                color_legend = CatLegend(labels=labels, colors=colors,
-                                         **options
-                                         )
+                color_legend = CatLegend(labels=labels, colors=colors, **options)
             else:
                 ScalarMappable(norm=self.norm, cmap=self.cmap)
-                color_legend = ColorArt(self._collections,
-                                        **self.color_legend_kws)
+                color_legend = ColorArt(self._collections, **self.color_legend_kws)
             return [size_legend, color_legend]
         else:
             return size_legend
@@ -561,11 +606,15 @@ class SizedMesh(MeshBase):
         yticks = np.arange(Y) + 0.5
         xv, yv = np.meshgrid(xticks, yticks)
 
-        options = dict(s=size, edgecolor=self.edgecolor,
-                       linewidths=self.linewidth, marker=self.marker)
+        options = dict(
+            s=size,
+            edgecolor=self.edgecolor,
+            linewidths=self.linewidth,
+            marker=self.marker,
+        )
 
         if self.color is not None:
-            options['c'] = self.color
+            options["c"] = self.color
         else:
             options.update(dict(c=color, norm=self.norm, cmap=self.cmap))
         self._collections = ax.scatter(xv, yv, **options, **self.kwargs)
@@ -599,9 +648,9 @@ class MarkerMesh(MeshBase):
         The of marker in fontsize unit
     label : str
         The label of the plot, only show when added to the side plot
-    label_loc : str
+    label_loc : {'top', 'bottom', 'left', 'right'}
         The position of the label
-    props : dict
+    label_props : dict
         See :class:`matplotlib.text.Text`
     kwargs :
 
@@ -618,20 +667,31 @@ class MarkerMesh(MeshBase):
         >>> MarkerMesh(data, color="darkgreen", marker="x", size=50).render(ax)
 
     """
+
     render_main = True
 
-    def __init__(self, data, color="black", marker="*", size=35,
-                 label=None, label_loc=None, props=None, **kwargs):
+    def __init__(
+        self,
+        data,
+        color="black",
+        marker="*",
+        size=35,
+        label=None,
+        label_loc=None,
+        label_props=None,
+        **kwargs,
+    ):
         self.set_data(np.asarray(data))
         self.color = color
         self.marker = marker
-        self.set_label(label, label_loc, props)
+        self.set_label(label, label_loc, label_props)
         self.kwargs = kwargs
         self.marker_size = size
 
     def get_legends(self):
-        return CatLegend(colors=[self.color], labels=[self.label],
-                         handle=self.marker, draw=False)
+        return CatLegend(
+            colors=[self.color], labels=[self.label], handle=self.marker, draw=False
+        )
 
     def render_ax(self, spec):
         ax = spec.ax
@@ -642,8 +702,14 @@ class MarkerMesh(MeshBase):
         yticks = np.arange(Y) + 0.5
         yv, xv = np.where(data)
 
-        ax.scatter(xv + .5, yv + .5, s=self.marker_size,
-                   c=self.color, marker=self.marker, **self.kwargs)
+        ax.scatter(
+            xv + 0.5,
+            yv + 0.5,
+            s=self.marker_size,
+            c=self.color,
+            marker=self.marker,
+            **self.kwargs,
+        )
 
         close_ticks(ax)
         ax.set_xlim(0, xticks[-1] + 0.5)
@@ -662,21 +728,29 @@ class TextMesh(MeshBase):
         The color of the text
     label : str
         The label of the plot, only show when added to the side plot
-    label_loc : str
+    label_loc : {'top', 'bottom', 'left', 'right'}
         The position of the label
-    props : dict
+    label_props : dict
         Props for label :class:`matplotlib.text.Text`
     kwargs : dict
         Pass to :meth:`matplotlib.axes.Axes.text`
 
     """
+
     render_main = True
 
-    def __init__(self, texts, color="black",
-                 label=None, label_loc=None, props=None, **kwargs):
+    def __init__(
+        self,
+        texts,
+        color="black",
+        label=None,
+        label_loc=None,
+        label_props=None,
+        **kwargs,
+    ):
         self.set_data(self.data_validator(texts))
         self.color = color
-        self.set_label(label, label_loc, props)
+        self.set_label(label, label_loc, label_props)
         self.kwargs = kwargs
 
     def render_ax(self, spec):
@@ -687,11 +761,15 @@ class TextMesh(MeshBase):
         xticks = np.arange(X) + 0.5
         yticks = np.arange(Y) + 0.5
 
-        text_options = {"ha": "center", "va": "center",
-                        "color": self.color, **self.kwargs}
+        text_options = {
+            "ha": "center",
+            "va": "center",
+            "color": self.color,
+            **self.kwargs,
+        }
         for x in range(X):
             for y in range(Y):
-                ax.text(x + .5, y + .5, data[y, x], **text_options)
+                ax.text(x + 0.5, y + 0.5, data[y, x], **text_options)
 
         close_ticks(ax)
         ax.set_xlim(0, xticks[-1] + 0.5)

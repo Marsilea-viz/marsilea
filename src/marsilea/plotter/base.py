@@ -34,8 +34,7 @@ class DataLoader:
         elif isinstance(data, Iterable):
             return self.from_iterable(data, target=target)
         else:
-            raise TypeError(
-                f"Your input data with type {type(data)} is not supported.")
+            raise TypeError(f"Your input data with type {type(data)} is not supported.")
 
     def from_dataframe(self, data: pd.DataFrame, target="2d"):
         ndata = data.to_numpy()
@@ -103,10 +102,12 @@ class RenderPlanLabel:
     label_props = {
         "left": dict(loc="center right", bbox_to_anchor=(0, 0.5)),
         "right": dict(loc="center left", bbox_to_anchor=(1, 0.5)),
-        "top": dict(loc="lower center", bbox_to_anchor=(0.5, 1),
-                    prop=dict(rotation=90)),
-        "bottom": dict(loc="upper center", bbox_to_anchor=(0.5, 0),
-                       prop=dict(rotation=90)),
+        "top": dict(
+            loc="lower center", bbox_to_anchor=(0.5, 1), prop=dict(rotation=90)
+        ),
+        "bottom": dict(
+            loc="upper center", bbox_to_anchor=(0.5, 0), prop=dict(rotation=90)
+        ),
     }
 
     label_loc = {
@@ -123,7 +124,6 @@ class RenderPlanLabel:
 
     def add(self, axes, side):
         if side != "main":
-
             if isinstance(axes, Sequence):
                 if self.loc in ["top", "left"]:
                     label_ax = axes[0]
@@ -138,16 +138,21 @@ class RenderPlanLabel:
                 loc = self.loc
             label_props = self.label_props[loc]
             bbox_loc = label_props["loc"]
-            bbox_to_anchor = label_props['bbox_to_anchor']
-            prop = label_props.get('prop', {})
+            bbox_to_anchor = label_props["bbox_to_anchor"]
+            prop = label_props.get("prop", {})
             if self.props is not None:
                 prop.update(self.props)
 
-            title = AnchoredText(self.label, loc=bbox_loc,
-                                 bbox_to_anchor=bbox_to_anchor,
-                                 prop=prop, pad=0.3, borderpad=0,
-                                 bbox_transform=label_ax.transAxes,
-                                 frameon=False)
+            title = AnchoredText(
+                self.label,
+                loc=bbox_loc,
+                bbox_to_anchor=bbox_to_anchor,
+                prop=prop,
+                pad=0.3,
+                borderpad=0,
+                bbox_transform=label_ax.transAxes,
+                frameon=False,
+            )
             label_ax.add_artist(title)
 
 
@@ -155,13 +160,14 @@ class MetaRenderPlan(type):
     """Metaclass for RenderPlan"""
 
     def __init__(cls, name, bases, attrs):
-        allow_labeling = attrs.get('allow_labeling', False)
+        allow_labeling = attrs.get("allow_labeling", False)
         if allow_labeling:
+
             def new_render(self, axes):
-                attrs['render'](self, axes)
+                attrs["render"](self, axes)
                 self._plan_label.add(axes, self.side)
 
-            setattr(cls, 'render', new_render)
+            setattr(cls, "render", new_render)
 
 
 class RenderPlan:
@@ -183,6 +189,7 @@ class RenderPlan:
         This only works if the RenderPlan is rendered on main canvas
 
     """
+
     name: str = None
     size: float = None
     side: str = "top"
@@ -212,8 +219,7 @@ class RenderPlan:
             chunks = [side_str, zorder_str]
         else:
             chunks = [f"name='{self.name}'", side_str, zorder_str]
-        return f"{self.__class__.__name__}" \
-               f"({', '.join(chunks)})"
+        return f"{self.__class__.__name__}" f"({', '.join(chunks)})"
 
     def set(self, **kwargs):
         for k, v in kwargs.items():
@@ -245,11 +251,13 @@ class RenderPlan:
         if group_data is not None:
             if self.has_deform:
                 group_data = np.asarray(group_data)
-                if self.deform.is_col_split & self.is_body & \
-                        self.deform.is_col_cluster:
+                if self.deform.is_col_split & self.is_body & self.deform.is_col_cluster:
                     return group_data[self.deform.col_chunk_index]
-                elif self.deform.is_row_split & self.is_flank & \
-                        self.deform.is_row_cluster:
+                elif (
+                    self.deform.is_row_split
+                    & self.is_flank
+                    & self.deform.is_row_cluster
+                ):
                     return group_data[self.deform.row_chunk_index]
             return group_data
 
@@ -332,8 +340,9 @@ class RenderPlan:
         total = len(axes)
         dispatch = zip(axes, spec_data, params, group_params)
         for i, (ax, d, p, gp) in enumerate(dispatch):
-            spec = RenderSpec(ax=ax, data=d, params=p, group_params=gp,
-                              current_ix=i, total=total)
+            spec = RenderSpec(
+                ax=ax, data=d, params=p, group_params=gp, current_ix=i, total=total
+            )
             spec_list.append(spec)
         return spec_list
 
@@ -350,8 +359,7 @@ class RenderPlan:
             else:
                 spec_data = [deform_func(d) for d in datasets]
             if params is not None:
-                params = deform_func(
-                    np.asarray(params, dtype=object))
+                params = deform_func(np.asarray(params, dtype=object))
         else:
             spec_data = datasets[0] if len(datasets) == 1 else datasets
         return RenderSpec(ax=ax, data=spec_data, params=params)
@@ -363,7 +371,9 @@ class RenderPlan:
             else:
                 return self._get_intact_render_spec(axes)
         except Exception as _:
-            raise DataError(f"Please check your data input with {self.__class__.__name__}")
+            raise DataError(
+                f"Please check your data input with {self.__class__.__name__}"
+            )
 
     # def get_render_data(self):
     #     """Define how render data is organized
@@ -514,9 +524,8 @@ class AxisOption:
 
 
 class StatsBase(RenderPlan):
-    """A base class for rendering statistics plot
+    """A base class for rendering statistics plot"""
 
-    """
     render_main = True
     orient = None
     axis_options = None
@@ -530,17 +539,16 @@ class StatsBase(RenderPlan):
         if self.has_deform:
             orient = self.get_orient()
             if self.side == "main":
+                orient_mapper = {"h": "horizontally", "v": "vertically"}
 
-                orient_mapper = {
-                    "h": "horizontally",
-                    "v": "vertically"
-                }
-
-                if (((orient == "v") & self.deform.is_row_split) or
-                        ((orient == "h") & self.deform.is_col_split)):
+                if ((orient == "v") & self.deform.is_row_split) or (
+                    (orient == "h") & self.deform.is_col_split
+                ):
                     plot_dir = orient_mapper[self.get_orient()]
-                    msg = f"{self.__class__.__name__} is oriented " \
-                          f"{plot_dir} should only be split {plot_dir}"
+                    msg = (
+                        f"{self.__class__.__name__} is oriented "
+                        f"{plot_dir} should only be split {plot_dir}"
+                    )
                     raise SplitConflict(msg)
 
             if self.get_orient() == "v":
@@ -551,12 +559,10 @@ class StatsBase(RenderPlan):
     def _setup_axis(self, ax):
         if self.get_orient() == "h":
             despine(ax=ax, left=True)
-            ax.tick_params(left=False, labelleft=False,
-                           bottom=True, labelbottom=True)
+            ax.tick_params(left=False, labelleft=False, bottom=True, labelbottom=True)
         else:
             despine(ax=ax, bottom=True)
-            ax.tick_params(left=True, labelleft=True,
-                           bottom=False, labelbottom=False)
+            ax.tick_params(left=True, labelleft=True, bottom=False, labelbottom=False)
 
     def align_lim(self, axes):
         is_inverted = False
@@ -584,9 +590,7 @@ class StatsBase(RenderPlan):
             ax.set_xlim(*lims) if is_h else ax.set_ylim(*lims)
 
     def render(self, axes):
-
         if self.is_split:
-
             for spec in self.get_render_spec(axes):
                 self.render_ax(spec)
             self.align_lim(axes)
