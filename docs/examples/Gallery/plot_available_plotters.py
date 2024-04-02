@@ -19,18 +19,18 @@ from marsilea.layers import Rect, RightTri, FrameRect, FracRect
 import mpl_fontkit as fk
 
 fk.install("Lato", verbose=False)
-
+plt.rcParams['font.size'] = 12
 # sphinx_gallery_end_ignore
 
 def label_ax(ax, text):
-    ax.text(1.05, .5, text, transform=ax.transAxes,
-            ha="left", va="center")
+    ax.text(1.05, .5, text, fontsize=16,
+            transform=ax.transAxes, ha="left", va="center")
 
 
 # sphinx_gallery_start_ignore
 from pathlib import Path
 
-save_path = Path(__file__).parent / "imgs"
+save_path = Path().parent / "imgs"
 plt.rcParams['svg.fonttype'] = 'none'
 # sphinx_gallery_end_ignore
 

@@ -14,6 +14,12 @@ import mpl_fontkit as fk
 fk.install_fontawesome(verbose=False)
 fk.install("Lato", verbose=False)
 
+# sphinx_gallery_start_ignore
+import matplotlib as mpl
+mpl.rcParams['font.size'] = 12
+# sphinx_gallery_end_ignore
+
+
 # %%
 # Load data
 # ---------
