@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import numpy as np
+import pandas as pd
 
 from .base import ClusterBoard
 from .plotter import ColorMesh, SizedMesh, Colors
@@ -27,23 +28,54 @@ class Heatmap(ClusterBoard):
 
     """
 
-    def __init__(self, data: np.ndarray, vmin=None, vmax=None,
-                 cmap=None, norm=None, center=None,
-                 mask=None, alpha=None, linewidth=0, linecolor="white",
-                 annot=None, fmt=None, annot_kws=None, label=None,
-                 cbar_kws=None, name=None,
-                 width=None, height=None, cluster_data=None,
-                 init_main=True,
-                 ):
+    def __init__(
+        self,
+        data: np.ndarray,
+        vmin=None,
+        vmax=None,
+        cmap=None,
+        norm=None,
+        center=None,
+        mask=None,
+        alpha=None,
+        linewidth=0,
+        linecolor="white",
+        annot=None,
+        fmt=None,
+        annot_kws=None,
+        label=None,
+        cbar_kws=None,
+        name=None,
+        width=None,
+        height=None,
+        cluster_data=None,
+        init_main=True,
+    ):
         if cluster_data is None:
-            cluster_data = data
-        super().__init__(cluster_data, width=width, height=height,
-                         name=name, init_main=init_main)
-        mesh = ColorMesh(data, vmin=vmin, vmax=vmax, cmap=cmap,
-                         norm=norm, center=center,
-                         mask=mask, alpha=alpha, linewidth=linewidth,
-                         linecolor=linecolor, annot=annot, fmt=fmt,
-                         annot_kws=annot_kws, label=label, cbar_kws=cbar_kws)
+            if isinstance(data, pd.DataFrame):
+                cluster_data = data.values
+            else:
+                cluster_data = data
+        super().__init__(
+            cluster_data, width=width, height=height, name=name, init_main=init_main
+        )
+        mesh = ColorMesh(
+            data,
+            vmin=vmin,
+            vmax=vmax,
+            cmap=cmap,
+            norm=norm,
+            center=center,
+            mask=mask,
+            alpha=alpha,
+            linewidth=linewidth,
+            linecolor=linecolor,
+            annot=annot,
+            fmt=fmt,
+            annot_kws=annot_kws,
+            label=label,
+            cbar_kws=cbar_kws,
+        )
         name = get_plot_name(name, "main", mesh.__class__.__name__)
         mesh.set(name=name)
         self.add_layer(mesh)
@@ -66,12 +98,29 @@ class CatHeatmap(ClusterBoard):
 
     """
 
-    def __init__(self, data, palette=None, cmap=None, mask=None,
-                 name=None, width=None, height=None, cluster_data=None,
-                 linewidth=0, linecolor="white",
-                 **kwargs):
-        mesh = Colors(data, palette=palette, cmap=cmap, mask=mask,
-                      linewidth=linewidth, linecolor=linecolor, **kwargs)
+    def __init__(
+        self,
+        data,
+        palette=None,
+        cmap=None,
+        mask=None,
+        name=None,
+        width=None,
+        height=None,
+        cluster_data=None,
+        linewidth=0,
+        linecolor="white",
+        **kwargs,
+    ):
+        mesh = Colors(
+            data,
+            palette=palette,
+            cmap=cmap,
+            mask=mask,
+            linewidth=linewidth,
+            linecolor=linecolor,
+            **kwargs,
+        )
         if cluster_data is None:
             cluster_data = mesh.cluster_data
         super().__init__(cluster_data, width=width, height=height, name=name)
@@ -97,11 +146,21 @@ class SizedHeatmap(ClusterBoard):
 
     """
 
-    def __init__(self, size, color=None, cluster_data=None,
-                 name=None, width=None, height=None,
-                 **kwargs):
+    def __init__(
+        self,
+        size,
+        color=None,
+        cluster_data=None,
+        name=None,
+        width=None,
+        height=None,
+        **kwargs,
+    ):
         if cluster_data is None:
-            cluster_data = size
+            if isinstance(size, pd.DataFrame):
+                cluster_data = size.values
+            else:
+                cluster_data = size
         super().__init__(cluster_data, width=width, height=height, name=name)
 
         mesh = SizedMesh(size=size, color=color, **kwargs)
