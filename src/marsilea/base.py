@@ -45,6 +45,7 @@ def get_breakpoints(arr):
 
 
 class LegendMaker:
+    """The factory class to handle legends"""
     layout: CrossLayout | CompositeCrossLayout
     _legend_box: List[Artist] = None
     _legend_name: str = None

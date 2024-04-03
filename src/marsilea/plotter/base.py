@@ -75,6 +75,26 @@ class DataLoader:
 
 @dataclass(repr=False)
 class RenderSpec:
+    """The container class that holds the \
+    rendering data and parameters for each axes
+
+    Attributes
+    ----------
+    data : Any
+        The data to be rendered
+    params : List[Dict]
+        The parameters for each data
+    group_data : Any
+        The group data
+    group_params : Any
+        The group parameters
+    current_ix : int
+        The current index of the axes
+    total : int
+        The total number of axes
+
+
+    """
     ax: Axes
 
     data: Any
@@ -171,7 +191,7 @@ class MetaRenderPlan(type):
 
 
 class RenderPlan:
-    """The base class for every plot in Heatgraphy
+    """The base class for every plotter in Marsilea
 
     Attributes
     ----------

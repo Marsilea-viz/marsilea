@@ -50,6 +50,14 @@ class Emoji(RenderPlan):
         self.scale = scale
         self.mode = mode
 
+    def _get_images_bbox(self, figure, imgs):
+
+        for img in imgs:
+            width, height = img.shape[:2]
+
+        return Bbox.from_bounds(0, 0, width, height)
+
+
     def render_ax(self, spec):
         ax = spec.ax
         data = spec.data
