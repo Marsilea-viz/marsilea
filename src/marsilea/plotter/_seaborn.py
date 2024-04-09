@@ -133,13 +133,13 @@ def _seaborn_doc(obj: _SeabornBase):
 
     if cls_name == "Swarm":
         sdata = "np.random.rand(50, 10)"
-        kws = "color='#DB4D6D', size=2"
-        h_kws = "group_kws={'color': colors}, size=2, dodge=True"
+        kws = "color='#DB4D6D', size=2, dodge=True"
+        h_kws = "group_kws={'color': colors}, size=2"
 
     elif cls_name == "Strip":
         sdata = "np.random.rand(50, 10)"
-        kws = "color='#DB4D6D', size=2"
-        h_kws = "group_kws={'color': colors}, size=2, dodge=True"
+        kws = "color='#DB4D6D', size=2, dodge=True"
+        h_kws = "group_kws={'color': colors}, size=2"
 
     elif cls_name == "Point":
         hue_data = "{'a': sdata, 'b': sdata * 2}"
