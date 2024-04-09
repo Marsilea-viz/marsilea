@@ -83,17 +83,17 @@ class LegendMaker:
         self._user_legends[name] = legend
 
     def add_legends(
-        self,
-        side="right",
-        pad=0,
-        order=None,
-        stack_by=None,
-        stack_size=3,
-        align_legends=None,
-        align_stacks=None,
-        legend_spacing=10,
-        stack_spacing=10,
-        box_padding=2,
+            self,
+            side="right",
+            pad=0,
+            order=None,
+            stack_by=None,
+            stack_size=3,
+            align_legends=None,
+            align_stacks=None,
+            legend_spacing=10,
+            stack_spacing=10,
+            box_padding=2,
     ):
         """Draw legend based on the order of annotation
 
@@ -305,7 +305,7 @@ class WhiteBoard(LegendMaker):
         super().__init__()
 
     def add_plot(
-        self, side, plot: RenderPlan, name=None, size=None, pad=0.0, legend=True
+            self, side, plot: RenderPlan, name=None, size=None, pad=0.0, legend=True
     ):
         """Add a plotter to the board
 
@@ -648,8 +648,49 @@ class WhiteBoard(LegendMaker):
         save_options.update(kwargs)
         self.figure.savefig(fname, **save_options)
 
-    def set_margin(self, margin):
+    def set_margin(self, margin: float | tuple[float, float, float, float]):
+        """Set margin of the main canvas
+
+        Parameters
+        ----------
+        margin : float, 4-tuple
+            The margin of the main canvas in inches
+
+        """
         self.layout.set_margin(margin)
+
+
+class ZeroWidth(WhiteBoard):
+    """A utility class to initialize a canvas \
+    with zero width
+
+    This is useful when you try to stack many plots
+
+    Parameters
+    ----------
+    height : float
+        The
+    name : str
+    margin : float
+
+    """
+
+    def __init__(self, height, name=None, margin=0.2):
+        super().__init__(width=0, height=height, name=name,
+                         margin=margin, init_main=False)
+
+
+class ZeroHeight(WhiteBoard):
+    """A utility class to initialize a canvas \
+    with zero height
+
+    This is useful when you try to stack many plots
+
+    """
+
+    def __init__(self, width, name=None, margin=0.2):
+        super().__init__(width=width, height=0, name=name,
+                         margin=margin, init_main=False)
 
 
 class CompositeBoard(LegendMaker):
@@ -758,13 +799,13 @@ class ClusterBoard(WhiteBoard):
     _mesh = None
 
     def __init__(
-        self,
-        cluster_data,
-        width=None,
-        height=None,
-        name=None,
-        margin=0.2,
-        init_main=True,
+            self,
+            cluster_data,
+            width=None,
+            height=None,
+            name=None,
+            margin=0.2,
+            init_main=True,
     ):
         super().__init__(
             width=width, height=height, name=name, margin=margin, init_main=init_main
@@ -775,24 +816,24 @@ class ClusterBoard(WhiteBoard):
         self._deform = Deformation(cluster_data)
 
     def add_dendrogram(
-        self,
-        side,
-        method=None,
-        metric=None,
-        linkage=None,
-        add_meta=True,
-        add_base=True,
-        add_divider=True,
-        meta_color=None,
-        linewidth=None,
-        colors=None,
-        divider_style="--",
-        meta_ratio=0.2,
-        show=True,
-        name=None,
-        size=0.5,
-        pad=0.0,
-        get_meta_center=None,
+            self,
+            side,
+            method=None,
+            metric=None,
+            linkage=None,
+            add_meta=True,
+            add_base=True,
+            add_divider=True,
+            meta_color=None,
+            linewidth=None,
+            colors=None,
+            divider_style="--",
+            meta_ratio=0.2,
+            show=True,
+            name=None,
+            size=0.5,
+            pad=0.0,
+            get_meta_center=None,
     ):
         """Run cluster and add dendrogram
 
@@ -948,6 +989,10 @@ class ClusterBoard(WhiteBoard):
     def hsplit(self, cut=None, labels=None, order=None, spacing=0.01):
         """Split the main canvas horizontally
 
+        .. deprecated:: 0.5.0
+            Use :meth:`~marsilea.base.ClusterBoard.cut_rows` \
+            or :meth:`~marsilea.base.ClusterBoard.group_rows` instead
+
         Parameters
         ----------
         cut : array-like, optional
@@ -986,6 +1031,7 @@ class ClusterBoard(WhiteBoard):
 
 
         """
+        warnings.warn(DeprecationWarning("`hsplit` will be deprecated in v0.5.0, use `cut_rows` or `group_rows` instead"))
         if self._split_row:
             raise SplitTwice(axis="horizontally")
         self._split_row = True
@@ -1005,6 +1051,10 @@ class ClusterBoard(WhiteBoard):
 
     def vsplit(self, cut=None, labels=None, order=None, spacing=0.01):
         """Split the main canvas vertically
+
+        .. deprecated:: 0.5.0
+            Use :meth:`~marsilea.base.ClusterBoard.cut_cols` \
+            or :meth:`~marsilea.base.ClusterBoard.group_cols` instead
 
         Parameters
         ----------
@@ -1044,6 +1094,7 @@ class ClusterBoard(WhiteBoard):
 
 
         """
+        warnings.warn(DeprecationWarning("`vsplit` will be deprecated in v0.5.0, use `cut_cols` or `group_cols` instead"))
         if self._split_col:
             raise SplitTwice(axis="vertically")
         self._split_col = True
@@ -1060,6 +1111,154 @@ class ClusterBoard(WhiteBoard):
 
             breakpoints = get_breakpoints(labels[reindex])
             deform.set_split_col(breakpoints=breakpoints, order=order)
+
+    def group_rows(self, group, order=None, spacing=0.01):
+        """Group rows into chunks
+
+        Parameters
+        ----------
+        group : array-like
+            The group of each row
+        order : array-like, optional
+            The order of the unique groups
+        spacing : float, optional
+            The spacing between each split chunks, default is 0.01
+
+        Examples
+        --------
+        Group rows by the unique labels
+
+        .. plot::
+            :context: close-figs
+
+            >>> data = np.random.rand(10, 11)
+            >>> import marsilea as ma
+            >>> h = ma.Heatmap(data)
+            >>> labels = ["A", "B", "C", "A", "B", "C", "A", "B", "C", "A"]
+            >>> h.group_rows(labels, order=["A", "B", "C"])
+            >>> h.add_left(ma.plotter.Labels(labels), pad=.1)
+            >>> h.render()
+
+        """
+        if self._split_row:
+            raise SplitTwice(axis="rows")
+        self._split_row = True
+
+        deform = self.get_deform()
+        deform.hspace = spacing
+
+        labels = np.asarray(group)
+        reindex, order = reorder_index(labels, order=order)
+        deform.set_data_row_reindex(reindex)
+
+        breakpoints = get_breakpoints(labels[reindex])
+        deform.set_split_row(breakpoints=breakpoints, order=order)
+
+    def group_cols(self, group, order=None, spacing=0.01):
+        """Group columns into chunks
+
+        Parameters
+        ----------
+        group : array-like
+            The group of each column
+        order : array-like, optional
+            The order of the unique groups
+        spacing : float, optional
+            The spacing between each split chunks, default is 0.01
+
+        Examples
+        --------
+        Group columns by the unique labels
+
+        .. plot::
+            :context: close-figs
+
+            >>> data = np.random.rand(11, 10)
+            >>> import marsilea as ma
+            >>> h = ma.Heatmap(data)
+            >>> labels = ["A", "B", "C", "A", "B", "C", "A", "B", "C", "A"]
+            >>> h.group_cols(labels, order=["A", "B", "C"])
+            >>> h.add_top(ma.plotter.Labels(labels), pad=.1)
+            >>> h.render()
+
+        """
+        if self._split_col:
+            raise SplitTwice(axis="columns")
+        self._split_col = True
+
+        deform = self.get_deform()
+        deform.wspace = spacing
+
+        labels = np.asarray(group)
+        reindex, order = reorder_index(labels, order=order)
+        deform.set_data_col_reindex(reindex)
+
+        breakpoints = get_breakpoints(labels[reindex])
+        deform.set_split_col(breakpoints=breakpoints, order=order)
+
+    def cut_rows(self, cut, spacing=0.01):
+        """Cut the main canvas by rows
+
+        Parameters
+        ----------
+        cut : array-like
+            The index of your data to specify where to cut the canvas
+        spacing : float, optional
+            The spacing between each cut, default is 0.01
+
+        Examples
+        --------
+        Cut the canvas by the index
+
+        .. plot::
+            :context: close-figs
+
+            >>> data = np.random.rand(10, 11)
+            >>> import marsilea as ma
+            >>> h = ma.Heatmap(data)
+            >>> h.cut_rows([4, 8])
+            >>> h.render()
+
+        """
+        if self._split_row:
+            raise SplitTwice(axis="horizontally")
+        self._split_row = True
+
+        deform = self.get_deform()
+        deform.hspace = spacing
+        deform.set_split_row(breakpoints=cut)
+
+    def cut_cols(self, cut, spacing=0.01):
+        """Cut the main canvas by columns
+
+        Parameters
+        ----------
+        cut : array-like
+            The index of your data to specify where to cut the canvas
+        spacing : float, optional
+            The spacing between each cut, default is 0.01
+
+        Examples
+        --------
+        Cut the canvas by the index
+
+        .. plot::
+            :context: close-figs
+
+            >>> data = np.random.rand(10, 11)
+            >>> import marsilea as ma
+            >>> h = ma.Heatmap(data)
+            >>> h.cut_cols([4, 8])
+            >>> h.render()
+
+        """
+        if self._split_col:
+            raise SplitTwice(axis="vertically")
+        self._split_col = True
+
+        deform = self.get_deform()
+        deform.wspace = spacing
+        deform.set_split_col(breakpoints=cut)
 
     def _setup_axes(self):
         deform = self.get_deform()
