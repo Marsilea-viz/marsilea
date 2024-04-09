@@ -91,7 +91,7 @@ def matplotlib_tight_scraper(*args, **kwargs):
 
 
 intersphinx_mapping = {
-    'scipy': ('https://docs.scipy.org/doc/scipy/', None),
+    'scipy': ('https://docs.scipy.org/doc', None),
     'seaborn': ('https://seaborn.pydata.org/', None),
     'matplotlib': ('https://matplotlib.org/stable', None),
     'legendkit': ('https://legendkit.readthedocs.io/en/stable', None),
@@ -107,14 +107,20 @@ sphinx_gallery_conf = {
     'within_subsection_order': FileNameSortKey,  # Order by file name
     'image_srcset': ["2x"],
     'image_scrapers': (matplotlib_tight_scraper,),
-    'subsection_order': ExplicitOrder(['../examples/Plotters',
-                                       '../examples/Gallery',
-                                       '../how_to/layout',
-                                       '../how_to/dendrogram',
-                                       '../how_to/legends',
-                                       '../how_to/customization',
-                                       '../how_to/save',
-                                       ]),
+    'subsection_order': ExplicitOrder([
+        '../examples/Basics',
+        '../examples/Plotters',
+        '../examples/Gallery',
+        '../how_to/layout',
+        '../how_to/dendrogram',
+        '../how_to/legends',
+        '../how_to/customization',
+        '../how_to/save',
+    ]),
+    'reference_url': {
+        'marsilea': None,
+        'matplotlib': 'https://matplotlib.org',
+    }
 
 }
 

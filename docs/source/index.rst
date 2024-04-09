@@ -14,7 +14,7 @@ Marsilea: Declarative creation of composable visualization
 ==========================================================
 
 
-.. grid:: 2
+.. grid:: 1 1 2 2
 
 
 

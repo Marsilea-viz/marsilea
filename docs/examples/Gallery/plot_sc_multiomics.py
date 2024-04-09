@@ -70,7 +70,7 @@ with mpl.rc_context({'font.size': 14}):
     protein_profile.add_title("Proteomics Profile", fontsize=16)
 
     comb = (gene_profile + protein_profile)
-    comb.add_legends("bottom", stack_size=1, stack_by="column", align_stacks="top")
+    comb.add_legends("left", stack_size=1, stack_by="column", align_stacks="top")
     comb.render()
 
 # sphinx_gallery_start_ignore

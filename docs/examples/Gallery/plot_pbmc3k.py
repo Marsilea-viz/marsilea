@@ -59,7 +59,7 @@ h.add_left(mp.Chunk(['Lymphoid', 'Myeloid'], ["#33A6B8", "#B481BB"]),
            pad=.05)
 h.add_dendrogram("left", colors=["#33A6B8", "#B481BB"])
 h.add_dendrogram("bottom")
-h.add_legends("bottom", align_stacks="center", align_legends="top", pad=.2)
+h.add_legends("right", align_stacks="center", align_legends="top", pad=.2)
 h.set_margin(.2)
 h.render()
 

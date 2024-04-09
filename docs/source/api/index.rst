@@ -25,8 +25,7 @@ Declarative API Cheat Sheet
       - .. code-block:: python
 
             wb.add_left(Numbers(data),
-                        size=1,
-                        pad=.1,
+                        size=1, pad=.1,
                         name='left-plot')
 
     * - :meth:`~marsilea.base.WhiteBoard.add_right`
@@ -51,10 +50,8 @@ Declarative API Cheat Sheet
       - Add titles to the plot.
       - .. code-block:: python
 
-            wb.add_title(top='Top Title',
-                         bottom='Bottom Title'
-                         left='Left Title',
-                         right='Right Title')
+            wb.add_title(top='Top Title', bottom='Bottom Title'
+                         left='Left Title', right='Right Title')
 
     * - :meth:`~marsilea.base.ClusterBoard.add_dendrogram`
       - Add a dendrogram to the plot, only available to ClusterBoard.
@@ -62,17 +59,29 @@ Declarative API Cheat Sheet
 
             cb.add_dendrogram("left", data)
 
-    * - :meth:`~marsilea.base.ClusterBoard.hsplit`
+    * - :meth:`~marsilea.base.ClusterBoard.group_cols`
       - Split the main canvas horizontally, only available to ClusterBoard.
       - .. code-block:: python
 
-            cb.hsplit(cut=[5])
+            cb.group_cols(labels=[1, 1, 2, 2], order=[2, 1])
 
-    * - :meth:`~marsilea.base.ClusterBoard.vsplit`
+    * - :meth:`~marsilea.base.ClusterBoard.group_rows`
       - Split the main canvas vertically, only available to ClusterBoard.
       - .. code-block:: python
 
-            cb.vsplit(cut=[5])
+            cb.group_rows(labels=[1, 1, 2, 2], order=[2, 1])
+
+    * - :meth:`~marsilea.base.ClusterBoard.cut_cols`
+      - Split the main canvas horizontally, only available to ClusterBoard.
+      - .. code-block:: python
+
+            cb.cut_cols([5])
+
+    * - :meth:`~marsilea.base.ClusterBoard.cut_rows`
+      - Split the main canvas vertically, only available to ClusterBoard.
+      - .. code-block:: python
+
+            cb.cut_rows([5])
 
     * - :meth:`~marsilea.base.LegendMaker.add_legends`
       - Add legends to the plots.
@@ -243,6 +252,8 @@ Base Class
     WhiteBoard
     ClusterBoard
     LegendMaker
+    ZeroWidth
+    ZeroHeight
 
 Layout Engine
 -------------
