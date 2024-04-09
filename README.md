@@ -22,13 +22,21 @@
 pip install marsilea
 ```
 
-### Examples
+[//]: # (### Examples)
 
-|                                                                                                                 |                                                                                                               |
-|-----------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------|
-|                                                     Heatmap                                                     |                                                   Oncoprint                                                   |
-| <img src="https://marsilea.readthedocs.io/en/latest/_images/sphx_glr_plot_pbmc3k_001_2_00x.png" width=400>      | <img src="https://marsilea.readthedocs.io/en/latest/_images/sphx_glr_plot_oncoprint_005_2_00x.png" width=400> |
-|                                                    Upsetplot                                                    |                                            Composition Stacked Bar                                            |
-| <img src="https://marsilea.readthedocs.io/en/latest/_images/sphx_glr_plot_upset_001_2_00x.png" width=400>       | <img src="https://marsilea.readthedocs.io/en/latest/_images/sphx_glr_plot_oil_well_001_2_00x.png" width=400>  |
-|                                                   Arc Diagram                                                   |                                           Protein sequence alignment                                          |
-| <img src="https://marsilea.readthedocs.io/en/latest/_images/sphx_glr_plot_arc_diagram_001_2_00x.png" width=400> | <img src="https://marsilea.readthedocs.io/en/latest/_images/sphx_glr_plot_seqalign_001_2_00x.png" width=400>  |
+[//]: # ()
+[//]: # (|                                                                                                                 |                                                                                                               |)
+
+[//]: # (|-----------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------|)
+
+[//]: # (|                                                     Heatmap                                                     |                                                   Oncoprint                                                   |)
+
+[//]: # (| <img src="https://marsilea.readthedocs.io/en/latest/_images/sphx_glr_plot_pbmc3k_001_2_00x.png" width=400>      | <img src="https://marsilea.readthedocs.io/en/latest/_images/sphx_glr_plot_oncoprint_005_2_00x.png" width=400> |)
+
+[//]: # (|                                                    Upsetplot                                                    |                                            Composition Stacked Bar                                            |)
+
+[//]: # (| <img src="https://marsilea.readthedocs.io/en/latest/_images/sphx_glr_plot_upset_001_2_00x.png" width=400>       | <img src="https://marsilea.readthedocs.io/en/latest/_images/sphx_glr_plot_oil_well_001_2_00x.png" width=400>  |)
+
+[//]: # (|                                                   Arc Diagram                                                   |                                           Protein sequence alignment                                          |)
+
+[//]: # (| <img src="https://marsilea.readthedocs.io/en/latest/_images/sphx_glr_plot_arc_diagram_001_2_00x.png" width=400> | <img src="https://marsilea.readthedocs.io/en/latest/_images/sphx_glr_plot_seqalign_001_2_00x.png" width=400>  |)
