@@ -360,6 +360,7 @@ class Marker(Piece):
         self.size = size
         m = MarkerStyle(marker)
         self.path = m.get_path().transformed(m.get_transform())
+        self.marker = marker
 
     def draw(self, x, y, w, h, ax):
         c = self.draw_center(x, y, w, h)
