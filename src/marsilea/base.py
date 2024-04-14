@@ -1403,3 +1403,50 @@ class ClusterBoard(WhiteBoard):
         # add row and col dendrogram
         self._render_dendrogram()
         self._render_legend()
+
+
+class ZeroWidthCluster(ClusterBoard):
+    """
+    A utility class to initialize a canvas \
+    with zero width and cluster data
+
+    Parameters
+    ----------
+    cluster_data : ndarray
+        The cluster data
+    height : float
+        The height of the main canvas in inches
+    name : str
+        The name of the main canvas
+    margin : float, 4-tuple
+        The margin of the main canvas in inches
+
+    """
+
+    def __init__(self, cluster_data, height, name=None, margin=0.2):
+        super().__init__(cluster_data=cluster_data, width=0, height=height,
+                         name=name, margin=margin, init_main=False)
+
+
+class ZeroHeightCluster(ClusterBoard):
+    """
+    A utility class to initialize a canvas \
+    with zero height and cluster data
+
+    Parameters
+    ----------
+    cluster_data : ndarray
+        The cluster data
+    width : float
+        The width of the main canvas in inches
+    name : str
+        The name of the main canvas
+    margin : float, 4-tuple
+        The margin of the main canvas in inches
+
+
+    """
+
+    def __init__(self, cluster_data, width, name=None, margin=0.2):
+        super().__init__(cluster_data=cluster_data, width=width, height=0,
+                         name=name, margin=margin, init_main=False)
