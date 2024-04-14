@@ -91,7 +91,7 @@ def matplotlib_tight_scraper(*args, **kwargs):
 
 
 intersphinx_mapping = {
-    'scipy': ('https://docs.scipy.org/doc', None),
+    'scipy': ('http://docs.scipy.org/doc/scipy/', None),
     'seaborn': ('https://seaborn.pydata.org/', None),
     'matplotlib': ('https://matplotlib.org/stable', None),
     'legendkit': ('https://legendkit.readthedocs.io/en/stable', None),

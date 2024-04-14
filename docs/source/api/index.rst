@@ -119,6 +119,18 @@ Declarative API Cheat Sheet
 
             wb.save("output.png", dpi=300)
 
+    * - :code:`+`
+      - Two canvas side by side, number will be added as white space
+      - .. code-block:: python
+
+            (wb1 + 1 + wb2).render()
+
+    * - :code:`/`
+      - Two canvas top and bottom, number will be added as white space
+      - .. code-block:: python
+
+            (wb1 / 1 / wb2).render()
+
 
 High-Level Visualizations
 =========================
@@ -216,10 +228,11 @@ Other plots
     :template: autosummary.rst
     :nosignatures:
 
+    Area
+    Arc
     Numbers
     StackBar
     CenterBar
-    Arc
     SeqLogo
 
 
@@ -239,8 +252,8 @@ Text Label
 
 
 
-Base Class
-==========
+Main Canvas
+===========
 
 
 .. currentmodule:: marsilea.base
@@ -254,9 +267,11 @@ Base Class
     LegendMaker
     ZeroWidth
     ZeroHeight
+    ZeroWidthCluster
+    ZeroHeightCluster
 
 Layout Engine
--------------
+=============
 
 .. currentmodule:: marsilea.layout
 .. autosummary::
@@ -269,7 +284,7 @@ Layout Engine
 
 
 Data Manipulation
------------------
+=================
 
 .. currentmodule:: marsilea
 .. autosummary::
@@ -280,7 +295,7 @@ Data Manipulation
     Deformation
 
 Render plan
------------
+===========
 
 .. currentmodule:: marsilea.plotter.base
 .. autosummary::
