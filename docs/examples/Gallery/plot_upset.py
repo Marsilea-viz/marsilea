@@ -8,7 +8,7 @@ IMDB Top 1000 Movies
 from matplotlib import pyplot as plt
 
 import marsilea as ma
-from marsilea.upset import UpsetData, Upset
+from marsilea.upset import UpsetData
 
 # sphinx_gallery_start_ignore
 import mpl_fontkit as fk

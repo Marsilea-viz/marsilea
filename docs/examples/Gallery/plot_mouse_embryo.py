@@ -109,6 +109,7 @@ for n in cell_types:
     y_ax.text(0.5, 0, n, va="top", ha="center", rotation=90, transform=y_ax.transAxes)
 
 
+# sphinx_gallery_ignore_start
 #%%
 if '__file__' in globals():
     from pathlib import Path
@@ -118,3 +119,4 @@ if '__file__' in globals():
     save_path = Path(__file__).parent / "imgs"
     plt.savefig(save_path / "mouse_embryo.svg", bbox_inches="tight")
     plt.savefig(save_path / "mouse_embryo.png", dpi=300, bbox_inches="tight")
+# sphinx_gallery_ignore_end

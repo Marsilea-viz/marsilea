@@ -56,7 +56,7 @@ plotters = {
     "Layers Mesh": ma.layers.LayersMesh(data2d, pieces=pieces),
 }
 
-canvas = ma.Heatmap(data2d, width=5, height=0, cmap="Oranges", label="Color Mesh")
+canvas = ma.ZeroHeightCluster(data2d, width=5)
 for title, plotter in plotters.items():
     canvas.add_bottom(plotter, name=title)
 
@@ -158,7 +158,7 @@ seqlogo = mp.SeqLogo(matrix, color_encode=colors)
 arc = mp.Arc([1, 2, 3, 4, 5], [(1, 5), (2, 3), (1, 2), (4, 5)],
              weights=weights, width=(2, 5), colors="#534D56")
 
-canvas4 = ma.Heatmap(rng.standard_normal((10, 5)), width=4, height=0)
+canvas4 = ma.ZeroHeightCluster(rng.standard_normal((10, 5)), width=4)
 canvas4.add_top(seqlogo, size=2, name="Sequence Logo")
 canvas4.add_top(arc, size=1, pad=.2, name="Arc Diagram")
 canvas4.render()

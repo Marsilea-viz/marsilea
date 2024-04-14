@@ -7,7 +7,6 @@ import numpy as np
 import pandas as pd
 
 import marsilea as ma
-import marsilea.plotter as mp
 import matplotlib as mpl
 
 # sphinx_gallery_start_ignore

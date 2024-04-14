@@ -6,7 +6,6 @@ This example shows how to create an arc diagram from a network.
 
 """
 
-import numpy as np
 import marsilea as ma
 import marsilea.plotter as mp
 
