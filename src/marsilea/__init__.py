@@ -4,7 +4,9 @@ __version__ = "0.3.3"
 
 import marsilea.plotter as plotter
 from ._deform import Deformation
-from .base import WhiteBoard, ClusterBoard, ZeroWidth, ZeroHeight
+from .base import (WhiteBoard, ClusterBoard,
+                   ZeroWidth, ZeroHeight,
+                   ZeroWidthCluster, ZeroHeightCluster)
 from .dataset import load_data
 from .dendrogram import Dendrogram, GroupDendrogram
 from .heatmap import Heatmap, SizedHeatmap, CatHeatmap

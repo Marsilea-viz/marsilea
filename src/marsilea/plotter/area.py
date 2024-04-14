@@ -26,6 +26,20 @@ class Area(StatsBase):
         Additional configurations for the area plot, \
         see :func:`matplotlib.pyplot.fill_between`
 
+    Examples
+    --------
+    .. plot::
+        :context: close-figs
+
+        import numpy as np
+        import matplotlib.pyplot as plt
+
+        from marsilea.plotter import Area
+
+        _, ax = plt.subplots()
+        data = np.random.randint(0, 10, 10) + 1
+        Area(data).render(ax)
+
     """
 
     def __init__(self, data, color=None, add_outline=True, alpha=.4,
@@ -46,6 +60,7 @@ class Area(StatsBase):
         self.kws = kwargs
 
         self.set_data(data)
+        self.set_label(label, label_loc, label_props)
         if group_kws is not None:
             self.set_group_params(group_kws)
 
@@ -56,7 +71,7 @@ class Area(StatsBase):
         if gp is None:
             gp = {}
 
-        fill_options = {'colo': self.color, 'alpha': self.alpha, **self.kws, **gp}
+        fill_options = {'color': self.color, 'alpha': self.alpha, **self.kws, **gp}
         line_options = {'color': self.linecolor, 'linewidth': self.linewidth, **gp}
 
         x = np.arange(len(data))
