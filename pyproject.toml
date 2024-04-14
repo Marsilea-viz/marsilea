@@ -10,7 +10,11 @@ authors = [
 ]
 license = {file = "LICENSE"}
 readme = "README.md"
-classifiers = ["License :: OSI Approved :: MIT License"]
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Framework :: Matplotlib",
+]
 dynamic = ["version", "description"]
 requires-python = ">=3.8"
 urls = {Home="https://github.com/Marsilea-viz/marsilea"}
