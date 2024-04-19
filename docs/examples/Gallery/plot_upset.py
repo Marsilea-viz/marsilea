@@ -32,7 +32,7 @@ us.highlight_subsets(min_cardinality=48, facecolor="#D0104C",
 us.highlight_subsets(min_cardinality=32, edgecolor="green", edgewidth=1.5,
                      label="Larger than 32")
 us.add_items_attr("left", "Revenue (Millions)", "strip", pad=.2, size=.5,
-                  plot_kws=dict(palette="dark:#24936E", size=1.2, label="Revenue\n(Millions)"))
+                  plot_kws=dict(color="#24936E", size=1.2, label="Revenue\n(Millions)"))
 us.add_items_attr("right", "Rating", "box",
                   pad=.2,
                   plot_kws=dict(color="orange", linewidth=1, fliersize=1))
