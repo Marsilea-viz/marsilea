@@ -1,6 +1,6 @@
 """Create x-layout visualization"""
 
-__version__ = "0.3.4"
+__version__ = "0.3.5"
 
 import marsilea.plotter as plotter
 from ._deform import Deformation
