@@ -80,7 +80,7 @@ class LegendMaker:
         """
         if name is None:
             name = str(uuid4())
-        self._user_legends[name] = legend
+        self._user_legends[name] = [legend]
 
     def add_legends(
             self,
