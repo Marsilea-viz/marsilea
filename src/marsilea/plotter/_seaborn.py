@@ -2,7 +2,7 @@ import pandas as pd
 import seaborn
 from legendkit import CatLegend
 from seaborn import color_palette
-from typing import Mapping
+from typing import Mapping, Sequence
 
 from .base import StatsBase
 from ..utils import ECHARTS16
@@ -51,6 +51,8 @@ class _SeabornBase(StatsBase):
             #     kwargs['palette'] = "dark:C0"
             if palette is not None:
                 kwargs["palette"] = palette
+                if isinstance(palette, Sequence):
+                    self.set_params({"palette": palette})
 
         kwargs.pop("x", None)
         kwargs.pop("y", None)
@@ -80,6 +82,7 @@ class _SeabornBase(StatsBase):
         ax = spec.ax
         data = spec.data
         gp = spec.group_params
+
         if gp is None:
             gp = {}
         x, y = "var", "value"
@@ -106,6 +109,9 @@ class _SeabornBase(StatsBase):
                 x, y = y, x
             self.kws["x"] = x
             self.kws["y"] = y
+            if spec.params is not None:
+                palette = [p.get("palette", "C0") for p in spec.params]
+                self.kws["palette"] = palette
             options = {**self.kws, **gp}
             if options.get("palette") is not None:
                 options["hue"] = "var"
