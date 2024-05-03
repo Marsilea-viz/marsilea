@@ -103,6 +103,8 @@ class Numbers(_BarBase):
         show_value=True,
         fmt=None,
         label=None,
+        label_loc=None,
+        label_props=None,
         value_pad=2.0,
         props=None,
         **kwargs,
@@ -114,6 +116,7 @@ class Numbers(_BarBase):
         self._process_params(
             width, orient, show_value, fmt, label, value_pad, props, **kwargs
         )
+        self.set_label(label, label_loc, label_props)
 
     def render_ax(self, spec):
         ax = spec.ax

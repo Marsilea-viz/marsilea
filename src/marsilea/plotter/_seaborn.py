@@ -20,9 +20,11 @@ class _SeabornBase(StatsBase):
         hue_order=None,
         palette=None,
         orient=None,
-        label=None,
         legend_kws=None,
         group_kws=None,
+        label=None,
+        label_loc=None,
+        label_props=None,
         **kwargs,
     ):
         if isinstance(data, Mapping):
@@ -62,7 +64,7 @@ class _SeabornBase(StatsBase):
         self.kws = kwargs
 
         self.orient = orient
-        self.label = label
+        self.set_label(label, label_loc, label_props)
         self.legend_kws = {} if legend_kws is None else legend_kws
         if group_kws is not None:
             self.set_group_params(group_kws)

@@ -271,11 +271,14 @@ class RenderPlan:
         if group_data is not None:
             if self.has_deform:
                 group_data = np.asarray(group_data)
-                if self.deform.is_col_split & self.is_body & self.deform.is_col_cluster:
+                if (self.deform.is_col_split
+                        & (self.is_body | (self.side == "main"))
+                        & self.deform.is_col_cluster
+                ):
                     return group_data[self.deform.col_chunk_index]
                 elif (
                     self.deform.is_row_split
-                    & self.is_flank
+                    & (self.is_flank | (self.side == "main"))
                     & self.deform.is_row_cluster
                 ):
                     return group_data[self.deform.row_chunk_index]
@@ -610,6 +613,13 @@ class StatsBase(RenderPlan):
             ax.set_xlim(*lims) if is_h else ax.set_ylim(*lims)
 
     def render(self, axes):
+        # check if self._plan_label.loc is None
+        is_loc = False
+        props = None
+        if self._plan_label is not None:
+            if self._plan_label.loc is not None:
+                is_loc = True
+            props = self._plan_label.props
         if self.is_split:
             for spec in self.get_render_spec(axes):
                 self.render_ax(spec)
@@ -619,11 +629,13 @@ class StatsBase(RenderPlan):
                 # leave axis for the first ax
                 if (i == 0) & (self.get_orient() == "v"):
                     self._setup_axis(ax)
-                    ax.set_ylabel(self.label)
+                    if not is_loc:
+                        ax.set_ylabel(self.label, fontdict=props)
                 # leave axis for the last ax
                 elif (i == len(axes) - 1) & (self.get_orient() == "h"):
                     self._setup_axis(ax)
-                    ax.set_xlabel(self.label)
+                    if not is_loc:
+                        ax.set_xlabel(self.label, fontdict=props)
                 else:
                     ax.set_axis_off()
         else:
@@ -632,6 +644,11 @@ class StatsBase(RenderPlan):
             self._setup_axis(axes)
             if self.label is not None:
                 if self.get_orient() == "v":
-                    axes.set_ylabel(self.label)
+                    if not is_loc:
+                        axes.set_ylabel(self.label, fontdict=props)
                 else:
-                    axes.set_xlabel(self.label)
+                    if not is_loc:
+                        axes.set_xlabel(self.label, fontdict=props)
+
+        if self.allow_labeling & is_loc:
+           self._plan_label.add(axes, self.side)
