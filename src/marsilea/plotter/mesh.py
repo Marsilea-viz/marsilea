@@ -430,6 +430,12 @@ class SizedMesh(MeshBase):
         The width of the border of each elements
     frameon : bool
         Whether to draw a frame
+    grid : bool
+        Whether to draw grid
+    grid_color : color
+        The color of grid
+    grid_linewidth : float
+        The width of grid line
     palette : dict
         Use to map color if input categorical data
     marker : str
@@ -494,6 +500,9 @@ class SizedMesh(MeshBase):
         edgecolor=None,
         linewidth=1,
         frameon=True,
+        grid=False,
+        grid_color=".8",
+        grid_linewidth=1,
         palette=None,
         marker="o",
         label=None,
@@ -534,8 +543,8 @@ class SizedMesh(MeshBase):
                 if palette is not None:
                     encoder = {}
                     render_colors = []
-                    for i, (label, c) in enumerate(palette.items()):
-                        encoder[label] = i
+                    for i, (plabel, c) in enumerate(palette.items()):
+                        encoder[plabel] = i
                         render_colors.append(c)
                     self.cmap = ListedColormap(render_colors)
                     self.color2d = encode_numeric(color, encoder)
@@ -548,6 +557,9 @@ class SizedMesh(MeshBase):
         self.edgecolor = edgecolor
         self.linewidth = linewidth
         self.set_label(label, label_loc, label_props)
+        self.grid = grid
+        self.grid_color = grid_color
+        self.grid_linewidth = grid_linewidth
         self.kwargs = kwargs
 
         self._collections = None
@@ -606,6 +618,12 @@ class SizedMesh(MeshBase):
         yticks = np.arange(Y) + 0.5
         xv, yv = np.meshgrid(xticks, yticks)
 
+        if self.grid:
+            for x in xticks:
+                ax.axvline(x, color=self.grid_color, linewidth=self.grid_linewidth, zorder=0)
+            for y in yticks:
+                ax.axhline(y, color=self.grid_color, linewidth=self.grid_linewidth, zorder=0)
+
         options = dict(
             s=size,
             edgecolor=self.edgecolor,
@@ -625,7 +643,6 @@ class SizedMesh(MeshBase):
         ax.set_xlim(0, xticks[-1] + 0.5)
         ax.set_ylim(0, yticks[-1] + 0.5)
         ax.invert_yaxis()
-
 
 # TODO: A patch mesh
 class PatchMesh(MeshBase):
