@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 from collections import Counter
-from numbers import Number
 
 import numpy as np
 import pandas as pd
@@ -12,7 +11,7 @@ from itertools import cycle
 from legendkit import ListLegend
 from matplotlib.collections import PatchCollection
 from matplotlib.patches import Rectangle, Patch
-from typing import List, Set, Mapping, Dict
+from typing import List, Set, Mapping
 
 from .base import WhiteBoard
 from .plotter import (
