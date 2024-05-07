@@ -7,13 +7,12 @@ from marsilea.plotter import MarkerMesh
 
 
 if __name__ == "__main__":
-
     np.random.seed(0)
     heat_data = np.random.randint(0, 10, (5, 5))
     size_data = np.random.randint(0, 10, (5, 5))
     mark_data = np.random.randint(0, 2, (5, 5))
 
-    save_folder = Path(__file__).parent.parent / 'img'
+    save_folder = Path(__file__).parent.parent / "img"
 
     h = hg.Heatmap(heat_data, width=2, height=2)
     h.render()

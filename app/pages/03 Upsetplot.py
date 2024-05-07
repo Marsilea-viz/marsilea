@@ -5,8 +5,7 @@ import streamlit as st
 from components.data_input import FileUpload
 from components.initialize import init_page
 from components.initialize import inject_css
-from components.resource import get_font_list, upset_showcase_data, \
-    upset_example_data
+from components.resource import get_font_list, upset_showcase_data, upset_example_data
 from components.saver import ChartSaver
 from components.state import State
 
@@ -32,39 +31,44 @@ st.markdown("[What is upset plot?](https://upset.app/)")
 c1, c2 = st.columns([1, 2])
 with c1:
     format_options = ["Sets", "Memberships", "Binary Table"]
-    format = st.radio("Your Set Format",
-                      index=format_options.index(s['format']),
-                      options=format_options)
+    format = st.radio(
+        "Your Set Format",
+        index=format_options.index(s["format"]),
+        options=format_options,
+    )
 
 with c2:
     showcase_data = upset_showcase_data()
     if format == "Sets":
         st.markdown("Items in each set.")
         st.markdown("**Example**")
-        st.dataframe(showcase_data['sets'])
+        st.dataframe(showcase_data["sets"])
 
     elif format == "Memberships":
         st.markdown("Item belongs to which sets.")
         st.markdown("**Example**")
-        st.dataframe(showcase_data['memberships'])
+        st.dataframe(showcase_data["memberships"])
 
     else:
         st.markdown("If an item is in a set (1 or 0)")
         st.markdown("**Example**")
-        st.dataframe(showcase_data['binary'])
+        st.dataframe(showcase_data["binary"])
 
-user_input = FileUpload(key="upset",
-                        use_header=True,
-                        use_index=format == "Binary Table")
+user_input = FileUpload(
+    key="upset", use_header=True, use_index=format == "Binary Table"
+)
 data = user_input.parse_dataframe()
 
 load = st.button("Load Example")
 if load:
     example = upset_example_data()
-    s['upset_data'] = UpsetData(example.to_numpy(), items=example.index,
-                                sets_names=example.columns, )
+    s["upset_data"] = UpsetData(
+        example.to_numpy(),
+        items=example.index,
+        sets_names=example.columns,
+    )
     s["parse_success"] = True
-    s['format'] = "Binary Table"
+    s["format"] = "Binary Table"
     st.experimental_rerun()
 
 
@@ -89,32 +93,35 @@ if data is not None:
     try:
         upset_data = process_upset_data(format, data)
         s["parse_success"] = True
-        s['upset_data'] = upset_data
-    except Exception as e:
+        s["upset_data"] = upset_data
+    except Exception:
         s["parse_success"] = False
-        st.error("Failed to read set data, please select the correct"
-                 "set format and check your input.", icon="🚨")
+        st.error(
+            "Failed to read set data, please select the correct"
+            "set format and check your input.",
+            icon="🚨",
+        )
 
 if s["parse_success"]:
-    upset_data = s['upset_data']
+    upset_data = s["upset_data"]
     filter, styles, highlight = st.tabs(["Filter", "Styles", "Highlight"])
 
     with filter:
         sets_table = pd.DataFrame(upset_data.cardinality())
         sets_table["degree"] = sets_table.index.to_frame().sum(axis=1)
 
-        size_upper = int(sets_table['cardinality'].max())
-        degree_upper = int(sets_table['degree'].max())
+        size_upper = int(sets_table["cardinality"].max())
+        degree_upper = int(sets_table["degree"].max())
 
         c1, c2 = st.columns(2, gap="large")
         with c1:
-            size_range = st.slider("Subset Size", min_value=0,
-                                   value=(0, size_upper),
-                                   max_value=size_upper)
+            size_range = st.slider(
+                "Subset Size", min_value=0, value=(0, size_upper), max_value=size_upper
+            )
         with c2:
-            degree_range = st.slider("Degree", min_value=0,
-                                     value=(0, degree_upper),
-                                     max_value=degree_upper)
+            degree_range = st.slider(
+                "Degree", min_value=0, value=(0, degree_upper), max_value=degree_upper
+            )
 
         sort_sets = st.selectbox("Sort sets", options=["ascending", "descending"])
         sort_subsets = st.selectbox("Sort degree", options=["cardinality", "degree"])
@@ -122,10 +129,9 @@ if s["parse_success"]:
     with styles:
         st.markdown("**General**")
         orient_dict = {"h": "Horizontal", "v": "Vertical"}
-        orient = st.selectbox("Orientation",
-                              options=["h", "v"],
-                              format_func=lambda x: orient_dict[x]
-                              )
+        orient = st.selectbox(
+            "Orientation", options=["h", "v"], format_func=lambda x: orient_dict[x]
+        )
 
         c1, c2, c3 = st.columns(3)
         with c1:
@@ -133,7 +139,9 @@ if s["parse_success"]:
                 options = ["left", "right"]
             else:
                 options = ["top", "bottom"]
-            intersection_plot_pos = st.selectbox("Intersection Plot Position", options=options)
+            intersection_plot_pos = st.selectbox(
+                "Intersection Plot Position", options=options
+            )
         with c2:
             if orient == "v":
                 options = ["top", "bottom"]
@@ -145,19 +153,20 @@ if s["parse_success"]:
 
         g1, g2 = st.columns(2)
         with g1:
-            linewidth = st.number_input("Line Width", min_value=.5,
-                                        value=1.5)
+            linewidth = st.number_input("Line Width", min_value=0.5, value=1.5)
         with g2:
             dot_size = st.number_input("Dot Size", min_value=0, value=50)
 
         g1, g2, g3 = st.columns(3)
 
         with g1:
-            shading = st.number_input("Shading", min_value=0.,
-                                      value=.3, max_value=1.)
+            shading = st.number_input(
+                "Shading", min_value=0.0, value=0.3, max_value=1.0
+            )
         with g2:
-            grid_background = st.number_input("Background", min_value=0.,
-                                              value=.1, max_value=1.)
+            grid_background = st.number_input(
+                "Background", min_value=0.0, value=0.1, max_value=1.0
+            )
         with g3:
             color = st.color_picker("Main Color", value="#111111")
 
@@ -165,13 +174,13 @@ if s["parse_success"]:
         f1, f2, f3 = st.columns(3)
 
         with f1:
-            fontsize = st.number_input(
-                "Font size", min_value=1, step=1, value=10)
+            fontsize = st.number_input("Font size", min_value=1, step=1, value=10)
         with f2:
             font_list = get_font_list()
             DEFAULT_FONT = font_list.index("Lato")
-            fontfamily = st.selectbox("Font Family", options=font_list,
-                                      index=DEFAULT_FONT)
+            fontfamily = st.selectbox(
+                "Font Family", options=font_list, index=DEFAULT_FONT
+            )
         with f3:
             fontcolor = st.color_picker("Font Color", value="#111111")
 
@@ -181,36 +190,36 @@ if s["parse_success"]:
     _, render_button, _ = st.columns(3)
 
     with render_button:
-        render = st.button("Render", type="primary",
-                           use_container_width=True)
+        render = st.button("Render", type="primary", use_container_width=True)
 
     if render:
-        with mpl.rc_context({'text.color': fontcolor,
-                             'font.size': fontsize,
-                             'font.family': fontfamily}):
+        with mpl.rc_context(
+            {"text.color": fontcolor, "font.size": fontsize, "font.family": fontfamily}
+        ):
             fig = plt.figure()
             upset_data.reset()
-            up = Upset(upset_data,
-                       min_cardinality=size_range[0],
-                       max_cardinality=size_range[1],
-                       min_degree=degree_range[0],
-                       max_degree=degree_range[1],
-                       color=color,
-                       linewidth=linewidth,
-                       shading=shading,
-                       grid_background=grid_background,
-                       radius=dot_size,
-                       sort_sets=sort_sets,
-                       sort_subsets=sort_subsets,
-                       orient=orient,
-                       add_intersections=intersection_plot_pos,
-                       add_sets_size=sets_size_pos,
-                       )
+            up = Upset(
+                upset_data,
+                min_cardinality=size_range[0],
+                max_cardinality=size_range[1],
+                min_degree=degree_range[0],
+                max_degree=degree_range[1],
+                color=color,
+                linewidth=linewidth,
+                shading=shading,
+                grid_background=grid_background,
+                radius=dot_size,
+                sort_sets=sort_sets,
+                sort_subsets=sort_subsets,
+                orient=orient,
+                add_intersections=intersection_plot_pos,
+                add_sets_size=sets_size_pos,
+            )
             up.render(fig)
-            s['figure'] = fig
+            s["figure"] = fig
 
-    if s['figure'] is not None:
-        st.pyplot(s['figure'])
+    if s["figure"] is not None:
+        st.pyplot(s["figure"])
 
 with st.sidebar:
-    ChartSaver(s['figure'])
+    ChartSaver(s["figure"])

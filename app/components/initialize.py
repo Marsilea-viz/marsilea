@@ -10,8 +10,8 @@ from streamlit.runtime import caching
 
 
 def _nestable_block(
-        self,
-        block_proto: Block_pb2.Block = Block_pb2.Block(),
+    self,
+    block_proto: Block_pb2.Block = Block_pb2.Block(),
 ) -> "DeltaGenerator":
     # Operate on the active DeltaGenerator, in case we're in a `with` block.
     dg = self._active_dg
@@ -74,7 +74,8 @@ def enable_nested_columns():
 
 def inject_css():
     # Hack the style of elements in streamlit
-    st.markdown("""
+    st.markdown(
+        """
     <style>
 
         # .main .block-container {
@@ -105,12 +106,13 @@ def inject_css():
         }
 
     </style>
-    """, unsafe_allow_html=True)
+    """,
+        unsafe_allow_html=True,
+    )
 
 
 def init_page(title):
-    IMG_ROOT = "https://raw.githubusercontent.com/" \
-               "Marsilea-viz/marsilea/main/app/img"
+    IMG_ROOT = "https://raw.githubusercontent.com/" "Marsilea-viz/marsilea/main/app/img"
 
     st.set_page_config(
         page_title=title,
@@ -118,7 +120,7 @@ def init_page(title):
         page_icon=f"{IMG_ROOT}/favicon.png",
         # initial_sidebar_state="collapsed",
         menu_items={
-            'Report a bug': 'https://github.com/Marsilea-viz/marsilea/issues/new/choose',
-            'About': 'A web interface for Marsilea'
-        }
+            "Report a bug": "https://github.com/Marsilea-viz/marsilea/issues/new/choose",
+            "About": "A web interface for Marsilea",
+        },
     )

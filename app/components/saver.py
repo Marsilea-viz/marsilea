@@ -24,21 +24,22 @@ class ChartSaver:
                 st.error("Please render first.", icon="😿")
             else:
                 st.download_button(
-                    label=f"Download Image",
+                    label="Download Image",
                     data=self.serialize(),
-                    file_name=f"result.{self.format}"
+                    file_name=f"result.{self.format}",
                 )
 
     def serialize(self):
         img = io.BytesIO()
-        self.fig.savefig(img, dpi=self.dpi, format=self.format,
-                         bbox_inches="tight")
+        self.fig.savefig(img, dpi=self.dpi, format=self.format, bbox_inches="tight")
         return img
 
     def save_options(self):
-        self.dpi = st.number_input("DPI", min_value=90, value=90,
-                                   max_value=600,
-                                   step=10)
-        self.format = st.selectbox("Format",
-                                   options=["png", "svg", "pdf", "jpeg"],
-                                   format_func=lambda x: x.upper())
+        self.dpi = st.number_input(
+            "DPI", min_value=90, value=90, max_value=600, step=10
+        )
+        self.format = st.selectbox(
+            "Format",
+            options=["png", "svg", "pdf", "jpeg"],
+            format_func=lambda x: x.upper(),
+        )

@@ -2,8 +2,7 @@ from dataclasses import dataclass, field
 from typing import Callable
 
 import streamlit as st
-from sklearn.preprocessing import (robust_scale, normalize,
-                                   StandardScaler)
+from sklearn.preprocessing import robust_scale, normalize, StandardScaler
 
 
 @dataclass
@@ -24,10 +23,11 @@ class TransformAction:
 
 
 def select_axis(key=None):
-    direction = st.selectbox("Apply along",
-                             options=["Row", "Column", "Both"],
-                             key=f"{key} apply along",
-                             )
+    direction = st.selectbox(
+        "Apply along",
+        options=["Row", "Column", "Both"],
+        key=f"{key} apply along",
+    )
     row = direction != "Column"
     col = direction != "Row"
     return row, col
@@ -42,8 +42,12 @@ def robust(key=None):
         apply = st.form_submit_button("Apply")
     if apply:
         return TransformAction(
-            name="robust", func=robust_scale,
-            kwargs=dict(quantile_range=(low, high)), row=row, col=col)
+            name="robust",
+            func=robust_scale,
+            kwargs=dict(quantile_range=(low, high)),
+            row=row,
+            col=col,
+        )
 
 
 def standard_scaler(data):
@@ -58,7 +62,8 @@ def standard_scale(key=None):
     apply = st.button("Apply", key=key)
     if apply:
         return TransformAction(
-            name="standard_scale", func=standard_scaler, row=row, col=col)
+            name="standard_scale", func=standard_scaler, row=row, col=col
+        )
 
 
 def norm(key=None):
@@ -66,8 +71,7 @@ def norm(key=None):
     row, col = select_axis(key=key)
     apply = st.button("Apply", key=key)
     if apply:
-        return TransformAction(
-            name="norm", func=normalize, row=row, col=col)
+        return TransformAction(name="norm", func=normalize, row=row, col=col)
 
 
 class Transformation:
@@ -78,9 +82,11 @@ class Transformation:
     }
 
     def __init__(self, session_key, key=None):
-        method = st.selectbox("Select transformation", key=key,
-                              options=["Robust", "Standard Scale",
-                                       "Normalize"])
+        method = st.selectbox(
+            "Select transformation",
+            key=key,
+            options=["Robust", "Standard Scale", "Normalize"],
+        )
 
         action = self.dispatcher[method].__call__(key=key)
         if action is not None:

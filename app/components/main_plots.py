@@ -7,8 +7,7 @@ from marsilea import ClusterBoard
 from marsilea.plotter import ColorMesh, SizedMesh, MarkerMesh
 from .cmap_selector import ColormapSelector
 
-IMG_ROOT = "https://raw.githubusercontent.com/" \
-           "Marsilea-viz/marsilea/main/app/img/"
+IMG_ROOT = "https://raw.githubusercontent.com/" "Marsilea-viz/marsilea/main/app/img/"
 
 
 class MainPlotter:
@@ -50,7 +49,8 @@ class MainPlotter:
                 "Select Dataset",
                 key=f"{self.key}-data-select",
                 index=1,
-                options=[""] + self.datastorage.get_names(subset="2d"))
+                options=[""] + self.datastorage.get_names(subset="2d"),
+            )
             if used_dataset != "":
                 data = self.datastorage.get_datasets(used_dataset)
                 self.launch = self.datastorage.align_main("main", data)
@@ -82,9 +82,8 @@ class MainHeatmap(MainPlotter):
                 disabled = self.data.size > 1000
             self.annot = st.checkbox("Display", value=False, disabled=disabled)
         with c2:
-            self.fontsize = st.number_input("Font size", min_value=1,
-                                            step=1, value=6)
-        self.linewidth = st.number_input("Grid line", min_value=0.)
+            self.fontsize = st.number_input("Font size", min_value=1, step=1, value=6)
+        self.linewidth = st.number_input("Grid line", min_value=0.0)
 
         cmap_selector = ColormapSelector(key=self.key, default="coolwarm")
         self.cmap = cmap_selector.get_cmap()
@@ -92,14 +91,15 @@ class MainHeatmap(MainPlotter):
 
     def apply(self, h: ClusterBoard):
         if self.launch:
-            mesh = ColorMesh(data=self.data,
-                             cmap=self.cmap,
-                             norm=self.norm,
-                             linewidth=self.linewidth,
-                             annot=self.annot,
-                             annot_kws=dict(fontsize=self.fontsize),
-                             label=self.label,
-                             )
+            mesh = ColorMesh(
+                data=self.data,
+                cmap=self.cmap,
+                norm=self.norm,
+                linewidth=self.linewidth,
+                annot=self.annot,
+                annot_kws=dict(fontsize=self.fontsize),
+                label=self.label,
+            )
             h.add_layer(mesh, zorder=self.zorder)
 
 
@@ -120,7 +120,6 @@ MARKER_OPTIONS = {
     "Plus (stroke)": "+",
     "Cross": "X",
     "Cross (stroke)": "x",
-
     "Point": ".",
     "Pixel": ",",
     "Tri Down": "1",
@@ -141,25 +140,19 @@ class MainSizedHeatmap(MainPlotter):
     color = "#BF6766"
     edgecolor = "#91989F"
     marker = "o"
-    linewidth = 0.
+    linewidth = 0.0
     size_data = None
     color_data = None
     norm = None
 
     def showcase(self):
-
         c1, c2, c3, _ = st.columns([1, 1, 2, 2])
         with c1:
-            st.image(f"{IMG_ROOT}/sized_onlymap.png",
-                     caption="Size Only",
-                     width=100)
+            st.image(f"{IMG_ROOT}/sized_onlymap.png", caption="Size Only", width=100)
         with c2:
-            st.image(f"{IMG_ROOT}/sized_heatmap.png",
-                     caption="Color + Size",
-                     width=100)
+            st.image(f"{IMG_ROOT}/sized_heatmap.png", caption="Color + Size", width=100)
         with c3:
-            st.markdown(
-                "Sized Heatmap encodes size as extra information in heatmap")
+            st.markdown("Sized Heatmap encodes size as extra information in heatmap")
 
     def select_panel(self):
         self.label = st.text_input("Label", key=f"{self.key}-data-label")
@@ -170,22 +163,23 @@ class MainSizedHeatmap(MainPlotter):
                 "Select Sized Dataset",
                 key=f"{self.key}-data-select-size",
                 index=1,
-                options=[""] + self.datastorage.get_names(subset="2d"))
+                options=[""] + self.datastorage.get_names(subset="2d"),
+            )
 
         with c2:
             color_dataset = st.selectbox(
                 "Select Color Dataset (Optional)",
                 key=f"{self.key}-data-select-color",
                 index=1,
-                options=[""] + self.datastorage.get_names(subset="2d"))
+                options=[""] + self.datastorage.get_names(subset="2d"),
+            )
 
         if sized_dataset != "":
             self.size_data = self.datastorage.get_datasets(sized_dataset)
             check_size = self.datastorage.align_main("main", self.size_data)
             if color_dataset != "":
                 self.color_data = self.datastorage.get_datasets(color_dataset)
-                check_color = self.datastorage.align_main(
-                    "main", self.color_data)
+                check_color = self.datastorage.align_main("main", self.color_data)
                 if check_color:
                     self.launch = True
             if check_size:
@@ -194,26 +188,26 @@ class MainSizedHeatmap(MainPlotter):
     def extra_options(self):
         c1, c2, c3, c4 = st.columns(4)
         with c1:
-            marker = st.selectbox(label="Shape", options=MARKERS,
-                                  index=CIRCLE_INDEX)
+            marker = st.selectbox(label="Shape", options=MARKERS, index=CIRCLE_INDEX)
 
         with c2:
-            self.linewidth = st.number_input(label="Stroke size",
-                                             min_value=0., value=.5)
+            self.linewidth = st.number_input(
+                label="Stroke size", min_value=0.0, value=0.5
+            )
 
         with c3:
-            self.edgecolor = st.color_picker(label="Stroke Color",
-                                             value="#C1C1C1")
+            self.edgecolor = st.color_picker(label="Stroke Color", value="#C1C1C1")
 
         with c4:
             self.color = st.color_picker(
                 label="Fill Color",
                 value="#BF6766",
-                help="Only works when no color data is selected"
+                help="Only works when no color data is selected",
             )
 
-        cmap_selector = ColormapSelector(key=f"{self.key}-cmap-select",
-                                         default="Greens")
+        cmap_selector = ColormapSelector(
+            key=f"{self.key}-cmap-select", default="Greens"
+        )
         self.cmap = cmap_selector.get_cmap()
         self.norm = cmap_selector.get_norm()
 
@@ -225,15 +219,16 @@ class MainSizedHeatmap(MainPlotter):
                 color = self.color
             else:
                 color = self.color_data
-            mesh = SizedMesh(self.size_data,
-                             color=color,
-                             norm=self.norm,
-                             linewidth=self.linewidth,
-                             marker=self.marker,
-                             cmap=self.cmap,
-                             edgecolor=self.edgecolor,
-                             label=self.label,
-                             )
+            mesh = SizedMesh(
+                self.size_data,
+                color=color,
+                norm=self.norm,
+                linewidth=self.linewidth,
+                marker=self.marker,
+                cmap=self.cmap,
+                edgecolor=self.edgecolor,
+                label=self.label,
+            )
             h.add_layer(mesh, zorder=self.zorder)
 
 
@@ -254,7 +249,8 @@ class MainMark(MainPlotter):
             used_dataset = st.selectbox(
                 "Select Dataset",
                 key=f"{self.key}-data-select",
-                options=[""] + self.datastorage.get_names(subset="2d"))
+                options=[""] + self.datastorage.get_names(subset="2d"),
+            )
             if used_dataset != "":
                 data = self.datastorage.get_datasets(used_dataset)
                 check_shape = self.datastorage.align_main("main", data)
@@ -272,22 +268,22 @@ class MainMark(MainPlotter):
             self.color = st.color_picker("Color", value="#CB4042")
 
         with c2:
-            marker = st.selectbox(label="Mark Shape",
-                                  options=MARKERS,
-                                  index=CROSS_INDEX)
+            marker = st.selectbox(
+                label="Mark Shape", options=MARKERS, index=CROSS_INDEX
+            )
             self.marker = MARKER_OPTIONS[marker]
 
         with c3:
-            self.marker_size = st.number_input(label="size",
-                                               min_value=0, value=30)
+            self.marker_size = st.number_input(label="size", min_value=0, value=30)
 
     def apply(self, h):
         if self.launch:
-            mesh = MarkerMesh(self.data,
-                              color=self.color,
-                              marker=self.marker,
-                              size=self.marker_size,
-                              label=self.label,
-                              )
+            mesh = MarkerMesh(
+                self.data,
+                color=self.color,
+                marker=self.marker,
+                size=self.marker_size,
+                label=self.label,
+            )
             legend = self.label != ""
             h.add_layer(mesh, zorder=self.zorder, legend=legend)

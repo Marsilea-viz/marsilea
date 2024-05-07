@@ -9,7 +9,6 @@ def init_state(**mapping):
 
 
 class State:
-
     def __init__(self, key=None):
         self._state_keys = set()
         if key is None:
@@ -51,23 +50,23 @@ class State:
 
 
 class DataStorage:
-
     def __init__(self, key=None):
         self.state = State(key=key)
-        self.state.init_state(datasets_names=[],
-                              datasets={},
-                              datasets_dims={},
-                              h_chunk=1,
-                              v_chunk=1,
-                              )
+        self.state.init_state(
+            datasets_names=[],
+            datasets={},
+            datasets_dims={},
+            h_chunk=1,
+            v_chunk=1,
+        )
         self.visible_datasets = None
         self.main_data_name = None
 
     def add_dataset(self, name, data):
-        if (name != "") & (name not in self.state['datasets_names']):
-            self.state['datasets_names'].append(name)
-            self.state['datasets'][name] = data
-            self.state['datasets_dims'][name] = data.ndim
+        if (name != "") & (name not in self.state["datasets_names"]):
+            self.state["datasets_names"].append(name)
+            self.state["datasets"][name] = data
+            self.state["datasets_dims"][name] = data.ndim
             return True
         else:
             return False
@@ -86,23 +85,23 @@ class DataStorage:
         elif subset == "1d":
             sub_names = []
             for n in names:
-                if self.state['datasets_dims'][n] == 1:
+                if self.state["datasets_dims"][n] == 1:
                     sub_names.append(n)
             return sub_names
         elif subset == "2d":
             sub_names = []
             for n in names:
-                if self.state['datasets_dims'][n] == 2:
+                if self.state["datasets_dims"][n] == 2:
                     sub_names.append(n)
             return sub_names
         else:
             raise ValueError("subset can only be 1d or 2d")
 
     def get_all_names(self):
-        return self.state['datasets_names']
+        return self.state["datasets_names"]
 
     def get_datasets(self, name):
-        return self.state['datasets'][name]
+        return self.state["datasets"][name]
 
     def set_main_data(self, name):
         self.main_data_name = name
@@ -114,8 +113,10 @@ class DataStorage:
         main_data = self.get_main_data()
         if side == "main":
             if other_data.shape != main_data.shape:
-                st.error(f"Selected dataset {other_data.shape} "
-                         f"does not match cluster data {main_data.shape}")
+                st.error(
+                    f"Selected dataset {other_data.shape} "
+                    f"does not match cluster data {main_data.shape}"
+                )
                 return False
         ms = main_data.shape
 
@@ -128,16 +129,20 @@ class DataStorage:
 
         if other_data.ndim == 1:
             if other_data.size != match_to:
-                st.error(f"The size of input data ({other_data.size}) "
-                         f"does not match ({match_to}) {axis} in main plot",
-                         icon="🚫")
+                st.error(
+                    f"The size of input data ({other_data.size}) "
+                    f"does not match ({match_to}) {axis} in main plot",
+                    icon="🚫",
+                )
                 return False
         if other_data.ndim == 2:
             check_size = other_data.shape[1]
             if check_size != match_to:
-                st.error(f"({check_size}) columns of input data "
-                         f"does not match ({match_to}) {axis} in main plot",
-                         icon="🚫")
+                st.error(
+                    f"({check_size}) columns of input data "
+                    f"does not match ({match_to}) {axis} in main plot",
+                    icon="🚫",
+                )
                 return False
         return True
 

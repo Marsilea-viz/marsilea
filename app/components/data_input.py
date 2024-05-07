@@ -19,20 +19,13 @@ class InputBase:
         pass
 
     def seperator(self):
-        sep_options = {
-            "Tab (\\t)": "\t",
-            "Comma (,)": ",",
-            "Space (' ')": " "
-        }
-        user_sep = st.selectbox("Seperator", key=self.key,
-                                options=sep_options.keys())
+        sep_options = {"Tab (\\t)": "\t", "Comma (,)": ",", "Space (' ')": " "}
+        user_sep = st.selectbox("Seperator", key=self.key, options=sep_options.keys())
         self.sep = sep_options[user_sep]
 
 
 @st.cache_data
-def parse_file(file, header=False, index=False,
-               sheet_name=0):
-
+def parse_file(file, header=False, index=False, sheet_name=0):
     index_col = None if not index else 0
     suffix = file.name.split(".")[-1]
     if suffix in ["csv", "txt", "tsv"]:
@@ -49,17 +42,19 @@ def parse_file(file, header=False, index=False,
 
 
 class FileUpload(InputBase):
-
-    def __init__(self, key=None, header=False, index=False,
-                 use_header=False, use_index=False):
+    def __init__(
+        self, key=None, header=False, index=False, use_header=False, use_index=False
+    ):
         super().__init__(key=key)
         self.header = use_header
         self.index = use_index
-        self.user_input = st.file_uploader("Choose a table file",
-                                           key=f"table_reader-{self.key}",
-                                           accept_multiple_files=False,
-                                           label_visibility="collapsed",
-                                           type=["txt", "csv", "xlsx"])
+        self.user_input = st.file_uploader(
+            "Choose a table file",
+            key=f"table_reader-{self.key}",
+            accept_multiple_files=False,
+            label_visibility="collapsed",
+            type=["txt", "csv", "xlsx"],
+        )
 
         if index & header:
             h1, h2 = st.columns(2)
@@ -78,28 +73,35 @@ class FileUpload(InputBase):
         if self.user_input is not None:
             suffix = self.user_input.name.split(".")[-1]
             if suffix == "xlsx":
-                wb = load_workbook(
-                    self.user_input, read_only=True, keep_links=False)
+                wb = load_workbook(self.user_input, read_only=True, keep_links=False)
                 sheetnames = wb.sheetnames
                 if len(sheetnames) > 1:
-                    self.sheet_name = \
-                        st.selectbox("Please select a sheet",
-                                     options=sheetnames)
+                    self.sheet_name = st.selectbox(
+                        "Please select a sheet", options=sheetnames
+                    )
 
     def _header_checkbox(self):
-        return st.checkbox("Use first row as header?",
-                           value=self.header,
-                           key=f"select-header-{self.key}")
+        return st.checkbox(
+            "Use first row as header?",
+            value=self.header,
+            key=f"select-header-{self.key}",
+        )
 
     def _index_checkbox(self):
-        return st.checkbox("Use first column as row labels?",
-                           value=self.index,
-                           key=f"select-index-{self.key}")
+        return st.checkbox(
+            "Use first column as row labels?",
+            value=self.index,
+            key=f"select-index-{self.key}",
+        )
 
     def _parse_to_df(self):
         if self.user_input is not None:
-            return parse_file(self.user_input, header=self.header,
-                              index=self.index, sheet_name=self.sheet_name)
+            return parse_file(
+                self.user_input,
+                header=self.header,
+                index=self.index,
+                sheet_name=self.sheet_name,
+            )
 
     def parse(self) -> np.ndarray:
         if self.user_input is not None:
@@ -110,8 +112,12 @@ class FileUpload(InputBase):
 
     def parse_parts(self, row_label=True, col_label=True):
         if self.user_input is not None:
-            data = parse_file(self.user_input, header=col_label,
-                              index=row_label, sheet_name=self.sheet_name)
+            data = parse_file(
+                self.user_input,
+                header=col_label,
+                index=row_label,
+                sheet_name=self.sheet_name,
+            )
             row = data.index.to_numpy(dtype=str)
             col = data.columns.to_numpy(dtype=str)
             data = data.to_numpy()
@@ -129,7 +135,6 @@ class FileUpload(InputBase):
 
 
 class PasteText(InputBase):
-
     def __init__(self, cast_number=True, key=None):
         super().__init__(key=key)
         self.cast_number = cast_number

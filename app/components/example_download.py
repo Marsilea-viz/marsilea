@@ -9,7 +9,6 @@ from random_word.random_word import RandomWords
 
 
 class ExampleDataGenerator:
-
     def __init__(self, col, row):
         np.random.seed(0)
         self.col = col
@@ -59,11 +58,12 @@ def get_base64():
 
 
 class ExampleDownloader:
-
     def __init__(self):
         self.b64 = get_base64()
-        href = f'<a href="data:file/zip;base64,{self.b64}" ' \
-               f'download="example.zip">Example Data</a>'
+        href = (
+            f'<a href="data:file/zip;base64,{self.b64}" '
+            f'download="example.zip">Example Data</a>'
+        )
         st.markdown(href, unsafe_allow_html=True)
 
 
