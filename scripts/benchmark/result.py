@@ -99,8 +99,15 @@ def plot_ax(ax, data, xlabel):
     palette = ["#5847AD", "#F7B449"]
     kws = dict(orient="v", errorbar="sd", palette=palette, width=0.6)
     sns.barplot(data=data, ax=ax, **kws)
-    data.melt().pipe((sns.scatterplot, "data"), y="value", x="variable", ax=ax,
-                     zorder=100, color="grey", alpha=0.5)
+    data.melt().pipe(
+        (sns.scatterplot, "data"),
+        y="value",
+        x="variable",
+        ax=ax,
+        zorder=100,
+        color="grey",
+        alpha=0.5,
+    )
     ax.get_xticklabels()[0].set_fontweight("bold")
     ax.tick_params(axis="x", rotation=45)
     ax.tick_params(bottom=False)
@@ -140,7 +147,9 @@ if __name__ == "__main__":
 
     fk.install("Lato", verbose=False)
     data = pd.DataFrame({"Marsilea": marsilea_tokens, "Matplotlib": matplotlib_tokens})
-    _, (ax1, ax2, ax3) = plt.subplots(ncols=3, figsize=(6, 5), gridspec_kw={"wspace": 0.5})
+    _, (ax1, ax2, ax3) = plt.subplots(
+        ncols=3, figsize=(6, 5), gridspec_kw={"wspace": 0.5}
+    )
     # sns.set(style="whitegrid")
     plot_ax(ax1, data, "Tokens")
     # Plot the number of lines of code using seaborn
