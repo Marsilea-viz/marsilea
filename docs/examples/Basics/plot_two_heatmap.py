@@ -18,7 +18,7 @@ h1 = ma.Heatmap(data1, linewidth=1, cmap="Reds", label="Heatmap 1")
 h1.add_dendrogram("left")
 h2 = ma.Heatmap(data2, linewidth=1, cmap="Blues", label="Heatmap 2")
 h2.add_dendrogram("right")
-(h1 + .2 + h2).render()
+(h1 + 0.2 + h2).render()
 
 # %%
-(h1 / .2 / h2).render()
+(h1 / 0.2 / h2).render()

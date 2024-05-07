@@ -21,4 +21,3 @@ h.add_left(ColorMesh(data[0]), name="Plot 1")
 h.add_left(Colors(np.random.choice(["red", "blue", "green"], 10)), name="Plot 2")
 h.add_legends(order=["Plot 2", "Plot 1"])
 h.render()
-

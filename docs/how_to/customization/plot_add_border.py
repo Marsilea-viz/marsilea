@@ -29,4 +29,3 @@ h.render()
 main_ax = h.get_main_ax()
 for spine in main_ax.spines.values():
     spine.set_visible(False)
-

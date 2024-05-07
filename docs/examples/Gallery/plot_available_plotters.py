@@ -19,19 +19,21 @@ from marsilea.layers import Rect, RightTri, FrameRect, FracRect
 import mpl_fontkit as fk
 
 fk.install("Lato", verbose=False)
-plt.rcParams['font.size'] = 12
+plt.rcParams["font.size"] = 12
 # sphinx_gallery_end_ignore
 
+
 def label_ax(ax, text):
-    ax.text(1.05, .5, text, fontsize=16,
-            transform=ax.transAxes, ha="left", va="center")
+    ax.text(
+        1.05, 0.5, text, fontsize=16, transform=ax.transAxes, ha="left", va="center"
+    )
 
 
 # sphinx_gallery_start_ignore
 from pathlib import Path
 
 save_path = Path().parent / "imgs"
-plt.rcParams['svg.fonttype'] = 'none'
+plt.rcParams["svg.fonttype"] = "none"
 # sphinx_gallery_end_ignore
 
 
@@ -45,7 +47,7 @@ pieces = {
     0: FrameRect(color="#7E2E84", width=2),
     1: Rect(color="#D14081"),
     2: RightTri(color="#EF798A"),
-    3: FracRect(color="#F9F5E3", frac=(.5, .5)),
+    3: FracRect(color="#F9F5E3", frac=(0.5, 0.5)),
     4: RightTri(color="#CCF5AC", right_angle="upper right"),
 }
 
@@ -69,7 +71,7 @@ for title in list(plotters.keys()) + ["Dendrogram"]:
     label_ax(ax, title)
 
 # sphinx_gallery_start_ignore
-if '__file__' in globals():
+if "__file__" in globals():
     plt.savefig(save_path / "all_plotters_mesh.svg", bbox_inches="tight")
 # sphinx_gallery_end_ignore
 
@@ -89,9 +91,13 @@ for t in labels:
         text.append("")
         text_color.append(".1")
 matrix = rng.standard_normal((1, 100))
-canvas2 = ma.Heatmap(matrix, width=5, height=.1)
-canvas2.add_top(mp.Labels(text, text_props={'color': text_color}, rotation=0), name="Labels")
-canvas2.add_bottom(mp.AnnoLabels(labels, mark=[3, 4, 5, 96, 97, 98], rotation=0), name="AnnoLabels")
+canvas2 = ma.Heatmap(matrix, width=5, height=0.1)
+canvas2.add_top(
+    mp.Labels(text, text_props={"color": text_color}, rotation=0), name="Labels"
+)
+canvas2.add_bottom(
+    mp.AnnoLabels(labels, mark=[3, 4, 5, 96, 97, 98], rotation=0), name="AnnoLabels"
+)
 canvas2.render()
 
 for title in ["Labels", "AnnoLabels"]:
@@ -99,7 +105,7 @@ for title in ["Labels", "AnnoLabels"]:
     label_ax(ax, title)
 
 # sphinx_gallery_start_ignore
-if '__file__' in globals():
+if "__file__" in globals():
     plt.savefig(save_path / "all_plotters_label.svg", bbox_inches="tight")
 # sphinx_gallery_end_ignore
 
@@ -108,7 +114,7 @@ if '__file__' in globals():
 
 data1d = np.arange(1, 6)
 data2d = rng.integers(1, 10, size=(10, 5))
-bar_width = .5
+bar_width = 0.5
 
 plotters = {
     "Simple Bar": mp.Numbers(data1d, color="#756AB6", width=bar_width),
@@ -118,8 +124,12 @@ plotters = {
     "Point": mp.Point(data2d, color="#656176"),
     "Strip": mp.Strip(rng.standard_normal((50, 5)), color="#FF004D"),
     "Swarm": mp.Swarm(rng.standard_normal((50, 5)), color="#647D87"),
-    "Stacked Bar": mp.StackBar(rng.integers(1, 10, (5, 5)), items="abcde", width=bar_width),
-    "Center Bar": mp.CenterBar(rng.integers(1, 10, (5, 2)), colors=["#EE7214", "#527853"], width=bar_width),
+    "Stacked Bar": mp.StackBar(
+        rng.integers(1, 10, (5, 5)), items="abcde", width=bar_width
+    ),
+    "Center Bar": mp.CenterBar(
+        rng.integers(1, 10, (5, 2)), colors=["#EE7214", "#527853"], width=bar_width
+    ),
 }
 
 canvas3 = ma.Heatmap(rng.standard_normal((10, 5)), width=4, height=0)
@@ -127,7 +137,7 @@ for title, plotter in plotters.items():
     size = 1
     if title in ["Violin", "Strip", "Swarm"]:
         size = 1.5
-    canvas3.add_bottom(plotter, pad=.1, size=size, name=title)
+    canvas3.add_bottom(plotter, pad=0.1, size=size, name=title)
 
 canvas3.vsplit(cut=[2])
 canvas3.add_bottom(mp.Chunk(["Lower", "Upper"], ["#FFDD95", "#FFB000"], padding=10))
@@ -144,7 +154,7 @@ for title in plotters.keys():
     label_ax(ax, title)
 
 # sphinx_gallery_start_ignore
-if '__file__' in globals():
+if "__file__" in globals():
     plt.savefig(save_path / "all_plotters_stat.svg", bbox_inches="tight")
 # sphinx_gallery_end_ignore
 
@@ -155,12 +165,17 @@ matrix = pd.DataFrame(data=rng.integers(1, 10, (4, 5)), index=list("ACGT"))
 colors = {"A": "#D81159", "C": "#218380", "G": "#FBB13C", "T": "#73D2DE"}
 weights = rng.integers(1, 10, 4)
 seqlogo = mp.SeqLogo(matrix, color_encode=colors)
-arc = mp.Arc([1, 2, 3, 4, 5], [(1, 5), (2, 3), (1, 2), (4, 5)],
-             weights=weights, width=(2, 5), colors="#534D56")
+arc = mp.Arc(
+    [1, 2, 3, 4, 5],
+    [(1, 5), (2, 3), (1, 2), (4, 5)],
+    weights=weights,
+    width=(2, 5),
+    colors="#534D56",
+)
 
 canvas4 = ma.ZeroHeightCluster(rng.standard_normal((10, 5)), width=4)
 canvas4.add_top(seqlogo, size=2, name="Sequence Logo")
-canvas4.add_top(arc, size=1, pad=.2, name="Arc Diagram")
+canvas4.add_top(arc, size=1, pad=0.2, name="Arc Diagram")
 canvas4.render()
 
 for title in ["Sequence Logo", "Arc Diagram"]:
@@ -168,6 +183,6 @@ for title in ["Sequence Logo", "Arc Diagram"]:
     label_ax(ax, title)
 
 # sphinx_gallery_start_ignore
-if '__file__' in globals():
+if "__file__" in globals():
     plt.savefig(save_path / "all_plotters_other.svg", bbox_inches="tight")
 # sphinx_gallery_end_ignore

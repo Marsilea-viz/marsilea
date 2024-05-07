@@ -11,6 +11,7 @@ import matplotlib as mpl
 
 # sphinx_gallery_start_ignore
 import mpl_fontkit as fk
+
 fk.install("Roboto Mono", verbose=False)
 
 mpl.rcParams["font.size"] = 30
@@ -53,28 +54,28 @@ logo = pd.DataFrame(heights).T
 # ------------------------------
 
 color_encode = {
-    'A': '#f76ab4',
-    'C': '#ff7f00',
-    'D': '#e41a1c',
-    'E': '#e41a1c',
-    'F': '#84380b',
-    'G': '#f76ab4',
-    'H': '#3c58e5',
-    'I': '#12ab0d',
-    'K': '#3c58e5',
-    'L': '#12ab0d',
-    'M': '#12ab0d',
-    'N': '#972aa8',
-    'P': '#12ab0d',
-    'Q': '#972aa8',
-    'R': '#3c58e5',
-    'S': '#ff7f00',
-    'T': '#ff7f00',
-    'V': '#12ab0d',
-    'W': '#84380b',
-    'Y': '#84380b',
-    '-': 'white'
-    }
+    "A": "#f76ab4",
+    "C": "#ff7f00",
+    "D": "#e41a1c",
+    "E": "#e41a1c",
+    "F": "#84380b",
+    "G": "#f76ab4",
+    "H": "#3c58e5",
+    "I": "#12ab0d",
+    "K": "#3c58e5",
+    "L": "#12ab0d",
+    "M": "#12ab0d",
+    "N": "#972aa8",
+    "P": "#12ab0d",
+    "Q": "#972aa8",
+    "R": "#3c58e5",
+    "S": "#ff7f00",
+    "T": "#ff7f00",
+    "V": "#12ab0d",
+    "W": "#84380b",
+    "Y": "#84380b",
+    "-": "white",
+}
 
 max_aa = []
 freq = []
@@ -103,22 +104,26 @@ width = height * seq.shape[1] / seq.shape[0]
 
 ch = ma.CatHeatmap(seq.to_numpy(), palette=color_encode, height=height, width=width)
 ch.add_layer(ma.plotter.TextMesh(seq.to_numpy()))
-ch.add_top(ma.plotter.SeqLogo(logo, color_encode=color_encode), pad=.1, size=2)
-ch.add_left(ma.plotter.Labels(seq.index), pad=.1)
-ch.add_bottom(ma.plotter.Labels(mock_ticks, rotation=0), pad=.1)
+ch.add_top(ma.plotter.SeqLogo(logo, color_encode=color_encode), pad=0.1, size=2)
+ch.add_left(ma.plotter.Labels(seq.index), pad=0.1)
+ch.add_bottom(ma.plotter.Labels(mock_ticks, rotation=0), pad=0.1)
 ch.add_bottom(ma.plotter.Labels(position, rotation=0))
-ch.add_bottom(ma.plotter.Numbers(freq, width=.9, color="#FFB11B", show_value=False),
-              name="freq_bar", size=2)
-ch.add_bottom(ma.plotter.Labels(max_aa, rotation=0), pad=.1)
+ch.add_bottom(
+    ma.plotter.Numbers(freq, width=0.9, color="#FFB11B", show_value=False),
+    name="freq_bar",
+    size=2,
+)
+ch.add_bottom(ma.plotter.Labels(max_aa, rotation=0), pad=0.1)
 ch.render()
 
 ch.get_ax("freq_bar").set_axis_off()
 
 # sphinx_gallery_start_ignore
-if '__file__' in globals():
+if "__file__" in globals():
     from pathlib import Path
     import matplotlib.pyplot as plt
+
     save_path = Path(__file__).parent / "imgs"
-    mpl.rcParams['svg.fonttype'] = 'none'
+    mpl.rcParams["svg.fonttype"] = "none"
     plt.savefig(save_path / "MSA.svg", bbox_inches="tight")
 # sphinx_gallery_end_ignore

@@ -45,8 +45,8 @@ blue = ma.plotter.ColorMesh(data[0], cmap="Blues", label="size=0.1")
 green = ma.plotter.ColorMesh(data[1], cmap="Greens", label="size=0.2")
 
 h = ma.Heatmap(data, width=1, height=1)
-h.add_top(blue, size=.1, pad=.05)
-h.add_top(green, size=.2, pad=.05)
+h.add_top(blue, size=0.1, pad=0.05)
+h.add_top(green, size=0.2, pad=0.05)
 h.render()
 
 # %%

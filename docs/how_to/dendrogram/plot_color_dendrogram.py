@@ -29,4 +29,3 @@ h = ma.Heatmap(data, width=3, height=3)
 h.cut_rows([2])
 h.add_dendrogram("left", colors=["#007F73", "#FF204E"], meta_color="#7EA1FF")
 h.render()
-

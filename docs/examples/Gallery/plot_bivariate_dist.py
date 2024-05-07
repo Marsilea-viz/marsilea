@@ -13,6 +13,7 @@ import marsilea as ma
 
 # sphinx_gallery_start_ignore
 import mpl_fontkit as fk
+
 fk.install("Lato", verbose=False)
 # sphinx_gallery_end_ignore
 
@@ -43,15 +44,15 @@ zy = y_kernel(np.mgrid[ymin:ymax:100j])
 
 wb = ma.WhiteBoard(width=3, height=3)
 # Reserve empty canvas for drawing latter
-wb.add_canvas("top", size=.4, pad=.1, name="x1")
-wb.add_canvas("bottom", size=.4, pad=.1, name="x2")
-wb.add_canvas("left", size=.4, pad=.1, name="y1")
-wb.add_canvas("right", size=.4, pad=.1, name="y2")
+wb.add_canvas("top", size=0.4, pad=0.1, name="x1")
+wb.add_canvas("bottom", size=0.4, pad=0.1, name="x2")
+wb.add_canvas("left", size=0.4, pad=0.1, name="y1")
+wb.add_canvas("right", size=0.4, pad=0.1, name="y2")
 # Add title
 wb.add_title(left="Y-axis distribution", top="X-axis distribution")
 # Add padding
-wb.add_pad("left", size=.3)
-wb.add_pad("right", size=.3)
+wb.add_pad("left", size=0.3)
+wb.add_pad("right", size=0.3)
 # Initiate the axes
 wb.render()
 
@@ -60,8 +61,7 @@ main_ax.set_axis_off()
 main_ax.pcolormesh(Z, cmap="Greens")
 
 x1_ax = wb.get_ax("x1")
-sns.lineplot(x=np.arange(len(zy)), y=zy,
-             ax=x1_ax, color="b", alpha=.7)
+sns.lineplot(x=np.arange(len(zy)), y=zy, ax=x1_ax, color="b", alpha=0.7)
 x1_ax.set_xlim(0, len(zy))
 x1_ax.tick_params(bottom=False, labelbottom=False)
 sns.despine(ax=x1_ax)
@@ -71,8 +71,7 @@ x2_ax.set_axis_off()
 x2_ax.pcolormesh(zy.reshape(1, -1), cmap="Blues")
 
 y1_ax = wb.get_ax("y1")
-sns.lineplot(y=np.arange(len(zx)), x=zx, ax=y1_ax,
-             orient="y", color="r", alpha=.7)
+sns.lineplot(y=np.arange(len(zx)), x=zx, ax=y1_ax, orient="y", color="r", alpha=0.7)
 y1_ax.set_ylim(0, len(zx))
 sns.despine(ax=y1_ax, left=True, right=False)
 y1_ax.tick_params(right=False, labelright=False)
@@ -87,8 +86,9 @@ y2_ax.invert_yaxis()
 
 
 # sphinx_gallery_start_ignore
-if '__file__' in globals():
+if "__file__" in globals():
     from pathlib import Path
+
     save_path = Path(__file__).parent / "imgs"
     plt.savefig(save_path / "bivariate_dist.svg", bbox_inches="tight")
 # sphinx_gallery_end_ignore
