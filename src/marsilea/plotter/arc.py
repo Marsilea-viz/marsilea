@@ -212,8 +212,8 @@ class Arc(StatsBase):
                         )
 
                         if self.side == "left":
-                            xy = (1, arc_mid)
-                            angle = 90
+                            xy = (0, arc_mid)
+                            angle = -90
                         elif self.side == "right":
                             xy = (0, arc_mid)
                             angle = -90
@@ -233,6 +233,8 @@ class Arc(StatsBase):
             ax.set_xlim(0, 1)
         if self.side == "top":
             ax.invert_yaxis()
+        if self.side == "left":
+            ax.invert_xaxis()
         ax.set_axis_off()
 
     def get_legends(self):

@@ -201,7 +201,45 @@ class OncoPrint(ClusterBoard):
         The order of samples, by default None
     tracks_order : list, optional
         The order of tracks, by default None
-
+    pieces : dict, optional
+        Custom pieces for each alteration, by default None
+        See :class:`Piece <marsilea.layers.Piece>` for details
+    background_color : str, optional, default: "#BEBEBE"
+        The background color
+    shrink : tuple, optional, default: (0.8, 0.8)
+        The shrink ratio for each layer
+    width, height : float, optional
+        The size in inches to define the size of main canvas
+    aspect : float, optional, default: 2.5
+        The aspect ratio of the main canvas
+    legend_kws : dict, optional
+        The options for legend, by default None
+        See :class:`cat_legend <legendkit.cat_legend>` for details
+    name : str, optional
+        The name of this OncoPrint
+    add_tracks_names : str, optional, default: "left"
+        The position to add tracks names
+        If None, will not add tracks names
+    add_samples_names : str, optional, default: "bottom"
+        The position to add samples names
+        If None, will not add samples names
+    add_mut_perc : str, optional, default: "right"
+        The position to add mutation percentage
+        If None, will not add mutation percentage
+    add_tracks_counts : str, optional, default: "right"
+        The position to add tracks mutation counts
+        If None, will not add tracks mutation counts
+    add_mut_counts : str, optional, default: "top"
+        The position to add mutation counts
+        If None, will not add mutation counts
+    add_tracks_counts_size : float, optional, default: 0.2
+        The size of tracks mutation counts
+    add_tracks_counts_pad : float, optional, default: 0
+        The padding of tracks mutation counts
+    add_mut_counts_size : float, optional, default: 0.2
+        The size of mutation counts
+    add_mut_counts_pad : float, optional, default: 0.1
+        The padding of mutation counts
 
     """
 
@@ -218,6 +256,15 @@ class OncoPrint(ClusterBoard):
         aspect=2.5,
         legend_kws=None,
         name=None,
+        add_tracks_names="left",
+        add_samples_names="bottom",
+        add_mut_perc="right",
+        add_tracks_counts="right",
+        add_mut_counts="top",
+        add_tracks_counts_size=0.2,
+        add_tracks_counts_pad=0,
+        add_mut_counts_size=0.2,
+        add_mut_counts_pad=0.1,
     ):
         data = GenomicData(
             genomic_data,
@@ -248,24 +295,41 @@ class OncoPrint(ClusterBoard):
         )
         self.add_layer(mesh)
 
-        self.add_left(Labels(data.tracks))
+        if add_tracks_names:
+            self.add_plot(add_tracks_names, Labels(data.tracks))
 
         # Add other statistics
         track_mut_rate = data.get_track_mutation_rate()
         # Convert to percentage string
-        rates = [_format_percentage(t) for t in track_mut_rate]
-        self.add_right(Labels(rates))
-        self.add_bottom(Labels(data.samples))
+        if add_mut_perc:
+            rates = [_format_percentage(t) for t in track_mut_rate]
+            self.add_plot(add_mut_perc, Labels(rates))
+        if add_samples_names:
+            self.add_plot(add_samples_names, Labels(data.samples))
 
-        track_counter = data.get_track_mutation_types().loc[:, ::-1]
-        colors = [colors_mapper[e] for e in track_counter.index]
-        track_bar = StackBar(track_counter, colors=colors, show_value=False)
-        self.add_right(track_bar, legend=False)
+        if add_tracks_counts:
+            track_counter = data.get_track_mutation_types()
+            colors = [colors_mapper[e] for e in track_counter.index]
+            track_bar = StackBar(track_counter, colors=colors, show_value=False)
+            self.add_plot(
+                add_tracks_counts,
+                track_bar,
+                legend=False,
+                size=add_tracks_counts_size,
+                pad=add_tracks_counts_pad,
+            )
 
-        patients_counter = data.get_sample_mutation_types()
-        colors = [colors_mapper[e] for e in patients_counter.index]
-        patients_bar = StackBar(patients_counter, colors=colors, show_value=False)
-        self.add_top(patients_bar, legend=False, pad=0.1)
+        if add_mut_counts:
+            patients_counter = data.get_sample_mutation_types()
+            colors = [colors_mapper[e] for e in patients_counter.index]
+            patients_bar = StackBar(patients_counter, colors=colors, show_value=False)
+            self.add_plot(
+                add_mut_counts,
+                patients_bar,
+                legend=False,
+                size=add_mut_counts_size,
+                pad=add_mut_counts_pad,
+            )
         self.add_legends()
 
     clinical_plots = {

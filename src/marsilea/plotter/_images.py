@@ -51,12 +51,10 @@ class Emoji(RenderPlan):
         self.mode = mode
 
     def _get_images_bbox(self, figure, imgs):
-
         for img in imgs:
             width, height = img.shape[:2]
 
         return Bbox.from_bounds(0, 0, width, height)
-
 
     def render_ax(self, spec):
         ax = spec.ax
@@ -89,9 +87,13 @@ class Emoji(RenderPlan):
                 x0, y0 = ax.transData.transform((loc, loc_y))
                 return Bbox.from_bounds(x0, y0, width, height)
 
-            partial_get_emoji_bbox = partial(get_emoji_bbox, loc=loc, loc_y=loc_y,
-                                             width=fit_scale_width,
-                                             height=fit_scale_height)
+            partial_get_emoji_bbox = partial(
+                get_emoji_bbox,
+                loc=loc,
+                loc_y=loc_y,
+                width=fit_scale_width,
+                height=fit_scale_height,
+            )
 
             i1 = BboxImage(partial_get_emoji_bbox, data=img)
             ax.add_artist(i1)

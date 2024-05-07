@@ -620,9 +620,13 @@ class SizedMesh(MeshBase):
 
         if self.grid:
             for x in xticks:
-                ax.axvline(x, color=self.grid_color, linewidth=self.grid_linewidth, zorder=0)
+                ax.axvline(
+                    x, color=self.grid_color, linewidth=self.grid_linewidth, zorder=0
+                )
             for y in yticks:
-                ax.axhline(y, color=self.grid_color, linewidth=self.grid_linewidth, zorder=0)
+                ax.axhline(
+                    y, color=self.grid_color, linewidth=self.grid_linewidth, zorder=0
+                )
 
         options = dict(
             s=size,
@@ -643,6 +647,7 @@ class SizedMesh(MeshBase):
         ax.set_xlim(0, xticks[-1] + 0.5)
         ax.set_ylim(0, yticks[-1] + 0.5)
         ax.invert_yaxis()
+
 
 # TODO: A patch mesh
 class PatchMesh(MeshBase):

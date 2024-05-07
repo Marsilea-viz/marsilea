@@ -95,6 +95,7 @@ class RenderSpec:
 
 
     """
+
     ax: Axes
 
     data: Any
@@ -271,9 +272,10 @@ class RenderPlan:
         if group_data is not None:
             if self.has_deform:
                 group_data = np.asarray(group_data)
-                if (self.deform.is_col_split
-                        & (self.is_body | (self.side == "main"))
-                        & self.deform.is_col_cluster
+                if (
+                    self.deform.is_col_split
+                    & (self.is_body | (self.side == "main"))
+                    & self.deform.is_col_cluster
                 ):
                     return group_data[self.deform.col_chunk_index]
                 elif (
@@ -651,4 +653,4 @@ class StatsBase(RenderPlan):
                         axes.set_xlabel(self.label, fontdict=props)
 
         if self.allow_labeling & is_loc:
-           self._plan_label.add(axes, self.side)
+            self._plan_label.add(axes, self.side)

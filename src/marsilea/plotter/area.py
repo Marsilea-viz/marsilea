@@ -42,11 +42,20 @@ class Area(StatsBase):
 
     """
 
-    def __init__(self, data, color=None, add_outline=True, alpha=.4,
-                 linecolor=None, linewidth=1,
-                 group_kws=None, label=None, label_loc=None, label_props=None,
-                 **kwargs):
-
+    def __init__(
+        self,
+        data,
+        color=None,
+        add_outline=True,
+        alpha=0.4,
+        linecolor=None,
+        linewidth=1,
+        group_kws=None,
+        label=None,
+        label_loc=None,
+        label_props=None,
+        **kwargs,
+    ):
         if color is None:
             color = "skyblue"
         if linecolor is None:
@@ -71,22 +80,22 @@ class Area(StatsBase):
         if gp is None:
             gp = {}
 
-        fill_options = {'color': self.color, 'alpha': self.alpha, **self.kws, **gp}
-        line_options = {'color': self.linecolor, 'linewidth': self.linewidth, **gp}
+        fill_options = {"color": self.color, "alpha": self.alpha, **self.kws, **gp}
+        line_options = {"color": self.linecolor, "linewidth": self.linewidth, **gp}
 
         x = np.arange(len(data))
         if self.get_orient() == "h":
             ax.fill_betweenx(x, data, **fill_options)
             if self.add_outline:
                 ax.plot(data, x, **line_options)
-            ax.set_ylim(-.5, len(data)-.5)
+            ax.set_ylim(-0.5, len(data) - 0.5)
             if self.side == "left":
                 ax.invert_xaxis()
         else:
             ax.fill_between(x, data, **fill_options)
             if self.add_outline:
                 ax.plot(x, data, **line_options)
-            ax.set_xlim(-.5, len(data)-.5)
+            ax.set_xlim(-0.5, len(data) - 0.5)
         return ax
 
 

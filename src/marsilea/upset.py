@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 from collections import Counter
+from numbers import Number
 
 import numpy as np
 import pandas as pd
@@ -11,7 +12,7 @@ from itertools import cycle
 from legendkit import ListLegend
 from matplotlib.collections import PatchCollection
 from matplotlib.patches import Rectangle, Patch
-from typing import List, Set, Mapping
+from typing import List, Set, Mapping, Dict
 
 from .base import WhiteBoard
 from .plotter import (
@@ -474,7 +475,10 @@ class Upset(WhiteBoard):
         Whether or which side to add the label.
     width : float
     height : float
-    ratio : float
+    size_scale : float
+        The scale of the plot
+    size_aspect : float
+        The aspect ratio of the plot
 
     Examples
     --------
@@ -514,6 +518,8 @@ class Upset(WhiteBoard):
         add_labels=True,
         width=None,
         height=None,
+        size_scale=0.3,
+        size_aspect=1.0,
     ):
         # The modification happens inplace
         upset_data = data
@@ -567,7 +573,11 @@ class Upset(WhiteBoard):
         self.orient = orient
 
         width, height = get_canvas_size_by_data(
-            main_shape, scale=0.3, width=width, height=height, aspect=1
+            main_shape,
+            scale=size_scale,
+            width=width,
+            height=height,
+            aspect=size_aspect,
         )
 
         super().__init__(width=width, height=height)
@@ -717,6 +727,7 @@ class Upset(WhiteBoard):
             raise ValueError(msg)
 
     def add_intersections(self, side, pad=0.1, size=1.0):
+        self._add_intersections = True
         self._check_side(
             side, "Intersections", dict(h=["top", "bottom"], v=["left", "right"])
         )

@@ -46,6 +46,7 @@ def get_breakpoints(arr):
 
 class LegendMaker:
     """The factory class to handle legends"""
+
     layout: CrossLayout | CompositeCrossLayout
     _legend_box: List[Artist] = None
     _legend_name: str = None
@@ -83,17 +84,17 @@ class LegendMaker:
         self._user_legends[name] = [legend]
 
     def add_legends(
-            self,
-            side="right",
-            pad=0,
-            order=None,
-            stack_by=None,
-            stack_size=3,
-            align_legends=None,
-            align_stacks=None,
-            legend_spacing=10,
-            stack_spacing=10,
-            box_padding=2,
+        self,
+        side="right",
+        pad=0.0,
+        order=None,
+        stack_by=None,
+        stack_size=3,
+        align_legends=None,
+        align_stacks=None,
+        legend_spacing=10,
+        stack_spacing=10,
+        box_padding=2,
     ):
         """Draw legend based on the order of annotation
 
@@ -128,6 +129,10 @@ class LegendMaker:
             Add pad around the whole legend box
 
         """
+        # TODO: Allow user to control where to add legends,
+        #       relative to the main canvas or the whole figure
+        # TODO: Allow user to add stack_size as a list
+        #       Each stack can contain different number of legends
         _check_side(side)
         self._draw_legend = True
         if stack_by is None:
@@ -236,9 +241,9 @@ class WhiteBoard(LegendMaker):
 
     Parameters
     ----------
-    width : int, optional
+    width : float, optional
         The width of the main canvas in inches
-    height : int, optional
+    height : float, optional
         The height of the main canvas in inches
     name : str, optional
         The name of the main canvas
@@ -305,7 +310,7 @@ class WhiteBoard(LegendMaker):
         super().__init__()
 
     def add_plot(
-            self, side, plot: RenderPlan, name=None, size=None, pad=0.0, legend=True
+        self, side, plot: RenderPlan, name=None, size=None, pad=0.0, legend=True
     ):
         """Add a plotter to the board
 
@@ -676,8 +681,9 @@ class ZeroWidth(WhiteBoard):
     """
 
     def __init__(self, height, name=None, margin=0.2):
-        super().__init__(width=0, height=height, name=name,
-                         margin=margin, init_main=False)
+        super().__init__(
+            width=0, height=height, name=name, margin=margin, init_main=False
+        )
 
 
 class ZeroHeight(WhiteBoard):
@@ -689,8 +695,9 @@ class ZeroHeight(WhiteBoard):
     """
 
     def __init__(self, width, name=None, margin=0.2):
-        super().__init__(width=width, height=0, name=name,
-                         margin=margin, init_main=False)
+        super().__init__(
+            width=width, height=0, name=name, margin=margin, init_main=False
+        )
 
 
 class CompositeBoard(LegendMaker):
@@ -771,9 +778,9 @@ class ClusterBoard(WhiteBoard):
     ----------
     cluster_data : ndarray
         The cluster data
-    width : int, optional
+    width : float, optional
         The width of the main canvas in inches
-    height : int, optional
+    height : float, optional
         The height of the main canvas in inches
     name : str, optional
         The name of the main canvas
@@ -799,13 +806,13 @@ class ClusterBoard(WhiteBoard):
     _mesh = None
 
     def __init__(
-            self,
-            cluster_data,
-            width=None,
-            height=None,
-            name=None,
-            margin=0.2,
-            init_main=True,
+        self,
+        cluster_data,
+        width=None,
+        height=None,
+        name=None,
+        margin=0.2,
+        init_main=True,
     ):
         super().__init__(
             width=width, height=height, name=name, margin=margin, init_main=init_main
@@ -816,24 +823,24 @@ class ClusterBoard(WhiteBoard):
         self._deform = Deformation(cluster_data)
 
     def add_dendrogram(
-            self,
-            side,
-            method=None,
-            metric=None,
-            linkage=None,
-            add_meta=True,
-            add_base=True,
-            add_divider=True,
-            meta_color=None,
-            linewidth=None,
-            colors=None,
-            divider_style="--",
-            meta_ratio=0.2,
-            show=True,
-            name=None,
-            size=0.5,
-            pad=0.0,
-            get_meta_center=None,
+        self,
+        side,
+        method=None,
+        metric=None,
+        linkage=None,
+        add_meta=True,
+        add_base=True,
+        add_divider=True,
+        meta_color=None,
+        linewidth=None,
+        colors=None,
+        divider_style="--",
+        meta_ratio=0.2,
+        show=True,
+        name=None,
+        size=0.5,
+        pad=0.0,
+        get_meta_center=None,
     ):
         """Run cluster and add dendrogram
 
@@ -1031,7 +1038,11 @@ class ClusterBoard(WhiteBoard):
 
 
         """
-        warnings.warn(DeprecationWarning("`hsplit` will be deprecated in v0.5.0, use `cut_rows` or `group_rows` instead"))
+        warnings.warn(
+            DeprecationWarning(
+                "`hsplit` will be deprecated in v0.5.0, use `cut_rows` or `group_rows` instead"
+            )
+        )
         if self._split_row:
             raise SplitTwice(axis="horizontally")
         self._split_row = True
@@ -1094,7 +1105,11 @@ class ClusterBoard(WhiteBoard):
 
 
         """
-        warnings.warn(DeprecationWarning("`vsplit` will be deprecated in v0.5.0, use `cut_cols` or `group_cols` instead"))
+        warnings.warn(
+            DeprecationWarning(
+                "`vsplit` will be deprecated in v0.5.0, use `cut_cols` or `group_cols` instead"
+            )
+        )
         if self._split_col:
             raise SplitTwice(axis="vertically")
         self._split_col = True
@@ -1424,8 +1439,14 @@ class ZeroWidthCluster(ClusterBoard):
     """
 
     def __init__(self, cluster_data, height, name=None, margin=0.2):
-        super().__init__(cluster_data=cluster_data, width=0, height=height,
-                         name=name, margin=margin, init_main=False)
+        super().__init__(
+            cluster_data=cluster_data,
+            width=0,
+            height=height,
+            name=name,
+            margin=margin,
+            init_main=False,
+        )
 
 
 class ZeroHeightCluster(ClusterBoard):
@@ -1448,5 +1469,11 @@ class ZeroHeightCluster(ClusterBoard):
     """
 
     def __init__(self, cluster_data, width, name=None, margin=0.2):
-        super().__init__(cluster_data=cluster_data, width=width, height=0,
-                         name=name, margin=margin, init_main=False)
+        super().__init__(
+            cluster_data=cluster_data,
+            width=width,
+            height=0,
+            name=name,
+            margin=margin,
+            init_main=False,
+        )
