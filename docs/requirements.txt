@@ -6,5 +6,4 @@ scikit-learn
 pydata-sphinx-theme
 numpydoc
 scikit-learn
-oncoprinter
 mpl_fontkit
