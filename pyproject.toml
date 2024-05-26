@@ -44,5 +44,16 @@ dev = [
     "mpl_fontkit"
 ]
 
+[tool.flit.sdist]
+exclude = [
+    "docs",
+    "app",
+    "data",
+    "img",
+    "tests",
+    "scripts",
+    "readthedocs.yaml",
+]
+
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]

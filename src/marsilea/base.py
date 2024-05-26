@@ -73,8 +73,9 @@ class LegendMaker:
         Parameters
         ----------
 
-        legend_func : Callable that return `Artist <matplotlib.artist.Artists>`
-            A function that return the legend object
+        legend_func : Callable
+            A function that return the legend object,
+            the legend must be an `Artist <matplotlib.artist.Artists>`
         name : str, optional
             The name of the legend
 
