@@ -67,21 +67,21 @@ class LegendMaker:
         """
         raise NotImplementedError("Should be implemented in derived class")
 
-    def custom_legend(self, legend, name=None):
+    def custom_legend(self, legend_func, name=None):
         """Add a custom legend
 
         Parameters
         ----------
 
-        legend : `Artist <matplotlib.artist.Artists>`
-            A legend object
+        legend_func : Callable that return `Artist <matplotlib.artist.Artists>`
+            A function that return the legend object
         name : str, optional
             The name of the legend
 
         """
         if name is None:
             name = str(uuid4())
-        self._user_legends[name] = [legend]
+        self._user_legends[name] = legend_func
 
     def add_legends(
         self,
@@ -159,7 +159,8 @@ class LegendMaker:
         self.layout.remove_legend_ax()
 
     def _legends_drawer(self, ax):
-        legends = {**self.get_legends(), **self._user_legends}
+        user_legends = {k: [v()] for k, v in self._user_legends.items()}
+        legends = {**self.get_legends(), **user_legends}
 
         # force to remove all legends before drawing
         # In case some legends are added implicitly
