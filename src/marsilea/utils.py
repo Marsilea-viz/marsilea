@@ -74,7 +74,10 @@ def get_colormap(cmap):
     try:
         return mpl.colormap.get(cmap)
     except AttributeError:
-        return mpl.cm.get_cmap(cmap)
+        try:
+            return mpl.cm.get_cmap(cmap)
+        except AttributeError:
+            return mpl.cm.ColormapRegistry.get_cmap(cmap)
 
 
 def get_canvas_size_by_data(
