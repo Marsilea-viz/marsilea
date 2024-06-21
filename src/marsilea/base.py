@@ -15,7 +15,7 @@ from matplotlib.figure import Figure
 
 from ._deform import Deformation
 from .dendrogram import Dendrogram
-from .exceptions import SplitTwice
+from .exceptions import SplitTwice, DuplicatePlotter
 from .layout import CrossLayout, CompositeCrossLayout
 from .plotter import RenderPlan, Title, SizedMesh
 from .utils import pairwise, batched, get_plot_name, _check_side
@@ -332,6 +332,8 @@ class WhiteBoard(LegendMaker):
             If True, the legend will be included when calling :meth:`~marsilea.base.LegendMaker.add_legends`
 
         """
+        if plot.name is not None:
+            raise DuplicatePlotter(plot)
         plot_name = get_plot_name(name, side, plot.__class__.__name__)
         self._legend_switch[plot_name] = legend
 
@@ -821,6 +823,9 @@ class ClusterBoard(WhiteBoard):
         )
         self._row_den = []
         self._col_den = []
+        cluster_data = np.asarray(cluster_data)
+        if cluster_data.ndim != 2:
+            raise ValueError("Cluster data must be 2D array")
         self._cluster_data = cluster_data
         self._deform = Deformation(cluster_data)
 
@@ -1043,7 +1048,8 @@ class ClusterBoard(WhiteBoard):
         warnings.warn(
             DeprecationWarning(
                 "`hsplit` will be deprecated in v0.5.0, use `cut_rows` or `group_rows` instead"
-            )
+            ),
+            stacklevel=2,
         )
         if self._split_row:
             raise SplitTwice(axis="horizontally")
@@ -1110,7 +1116,8 @@ class ClusterBoard(WhiteBoard):
         warnings.warn(
             DeprecationWarning(
                 "`vsplit` will be deprecated in v0.5.0, use `cut_cols` or `group_cols` instead"
-            )
+            ),
+            stacklevel=2,
         )
         if self._split_col:
             raise SplitTwice(axis="vertically")

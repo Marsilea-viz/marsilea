@@ -6,6 +6,18 @@ class DuplicateName(Exception):
         return f"Axes with name `{self.name}` already exists."
 
 
+class DuplicatePlotter(Exception):
+
+    def __init__(self, plotter):
+        self.plotter = plotter
+
+    def __str__(self):
+        name = self.plotter.__class__.__name__
+        return (f"You have added `{name}` "
+                f"to the `{self.plotter.side}`, "
+                f"please create a new `{name}` if you want to add it again.")
+
+
 class SplitTwice(Exception):
     def __init__(self, axis="col"):
         self.axis = axis
