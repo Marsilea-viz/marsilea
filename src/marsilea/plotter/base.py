@@ -538,6 +538,10 @@ class RenderPlan:
         self._split_regroup = ratio
 
     def get_split_regroup(self):
+        if self._split_regroup is None:
+            return None
+        if self.is_flank:
+            return self._split_regroup[::-1]
         return self._split_regroup
 
 

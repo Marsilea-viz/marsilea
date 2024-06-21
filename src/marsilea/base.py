@@ -1295,20 +1295,20 @@ class ClusterBoard(WhiteBoard):
         if deform.is_col_split:
             for plan in self._col_plan:
                 if plan.allow_split:
-                    if deform.is_col_cluster:
-                        group_ratios = None
-                    else:
-                        group_ratios = plan.get_split_regroup()
+                    # if deform.is_col_cluster:
+                    #     group_ratios = None
+                    # else:
+                    group_ratios = plan.get_split_regroup()
                     self.layout.vsplit(plan.name, w_ratios, wspace, group_ratios)
 
         # split row axes
         if deform.is_row_split:
             for plan in self._row_plan:
                 if plan.allow_split:
-                    if deform.is_row_cluster:
-                        group_ratios = None
-                    else:
-                        group_ratios = plan.get_split_regroup()
+                    # if deform.is_row_cluster:
+                    #     group_ratios = None
+                    # else:
+                    group_ratios = plan.get_split_regroup()
                     self.layout.hsplit(plan.name, h_ratios, hspace, group_ratios)
 
     def _render_dendrogram(self):
