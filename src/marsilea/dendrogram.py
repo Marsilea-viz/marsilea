@@ -267,13 +267,14 @@ class GroupDendrogram(_DendrogramBase):
         dens: List[Dendrogram],
         method=None,
         metric=None,
+        linkage=None,
         get_meta_center=None,
         key=None,
         **kwargs,
     ):
         data = np.vstack([d.center for d in dens])
         super().__init__(
-            data, method=method, metric=metric, get_meta_center=get_meta_center, key=key
+            data, method=method, metric=metric, linkage=linkage, get_meta_center=get_meta_center, key=key
         )
         self.orig_dens = np.asarray(dens)
         self.dens = np.asarray(dens)[self.reorder_index]
