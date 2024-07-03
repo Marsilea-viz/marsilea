@@ -69,15 +69,13 @@ def relative_luminance(color):
 
 
 def get_colormap(cmap):
-    if isinstance(cmap, Colormap):
-        return cmap
     try:
-        return mpl.colormap.get(cmap)
+        return mpl.cm.ColormapRegistry.get_cmap(cmap)
     except AttributeError:
         try:
-            return mpl.cm.get_cmap(cmap)
+            return mpl.colormaps.get(cmap)
         except AttributeError:
-            return mpl.cm.ColormapRegistry.get_cmap(cmap)
+            return mpl.cm.get_cmap(cmap)
 
 
 def get_canvas_size_by_data(
