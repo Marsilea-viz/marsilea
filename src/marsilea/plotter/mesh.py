@@ -357,7 +357,7 @@ class Colors(MeshBase):
             self.palette = palette
 
         self.render_cmap = ListedColormap(render_colors)
-        self.vmax = len(render_colors)
+        self.vmax = len(render_colors) - 1
         # Encode data into cmap range
         encode_data = encode_numeric(data, encoder)
         self.set_data(_mask_data(encode_data, mask=mask))
