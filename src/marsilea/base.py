@@ -835,6 +835,7 @@ class ClusterBoard(WhiteBoard):
         method=None,
         metric=None,
         linkage=None,
+        meta_linkage=None,
         add_meta=True,
         add_base=True,
         add_divider=True,
@@ -867,6 +868,10 @@ class ClusterBoard(WhiteBoard):
             See scipy's :meth:`linkage <scipy.cluster.hierarchy.linkage>`
         linkage : ndarray
             Precomputed linkage matrix.
+            See scipy's :meth:`linkage <scipy.cluster.hierarchy.linkage>` for
+            specific format.
+        meta_linkage : ndarray
+            Precomputed chunk-level linkage matrix.
             See scipy's :meth:`linkage <scipy.cluster.hierarchy.linkage>` for
             specific format.
         add_meta : None | bool
@@ -985,6 +990,7 @@ class ClusterBoard(WhiteBoard):
                 method=method,
                 metric=metric,
                 linkage=linkage,
+                meta_linkage=meta_linkage, 
                 use_meta=add_meta,
                 get_meta_center=get_meta_center,
             )
@@ -996,6 +1002,7 @@ class ClusterBoard(WhiteBoard):
                 method=method,
                 metric=metric,
                 linkage=linkage,
+                meta_linkage=meta_linkage, 
                 use_meta=add_meta,
                 get_meta_center=get_meta_center,
             )

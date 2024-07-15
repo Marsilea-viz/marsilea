@@ -84,19 +84,21 @@ class Deformation:
         self.data_col_reindex = reindex
         self._col_clustered = False
 
-    def set_cluster(self, col=None, row=None, use_meta=True, linkage=None, **kwargs):
+    def set_cluster(self, col=None, row=None, use_meta=True, linkage=None, meta_linkage=None, **kwargs):
         if col is not None:
             self.is_col_cluster = col
             self.col_cluster_kws = kwargs
             self._col_clustered = False
             self._use_col_meta = use_meta
             self.col_linkage = linkage
+            self.col_meta_linkage = meta_linkage
         if row is not None:
             self.is_row_cluster = row
             self.row_cluster_kws = kwargs
             self._row_clustered = False
             self._use_row_meta = use_meta
             self.row_linkage = linkage
+            self.row_meta_linkage = meta_linkage
 
     def get_data(self):
         data = self.data
@@ -204,7 +206,7 @@ class Deformation:
                     Dendrogram(chunk, linkage=linkage, key=k, **self.row_cluster_kws)
                 )
 
-            dg = GroupDendrogram(dens, **self.row_cluster_kws)
+            dg = GroupDendrogram(dens, linkage=self.row_meta_linkage, **self.row_cluster_kws)
             if self._use_row_meta:
                 self.row_chunk_index = dg.reorder_index
             else:
@@ -232,7 +234,7 @@ class Deformation:
                 dens.append(
                     Dendrogram(chunk.T, linkage=linkage, key=k, **self.col_cluster_kws)
                 )
-            dg = GroupDendrogram(dens, **self.col_cluster_kws)
+            dg = GroupDendrogram(dens, linkage=self.col_meta_linkage,  **self.col_cluster_kws)
             if self._use_col_meta:
                 self.col_chunk_index = dg.reorder_index
             else:
