@@ -50,6 +50,7 @@ class Heatmap(ClusterBoard):
         height=None,
         cluster_data=None,
         init_main=True,
+        **kwargs,
     ):
         if cluster_data is None:
             if isinstance(data, pd.DataFrame):
@@ -75,6 +76,7 @@ class Heatmap(ClusterBoard):
             annot_kws=annot_kws,
             label=label,
             cbar_kws=cbar_kws,
+            **kwargs,
         )
         name = get_plot_name(name, "main", mesh.__class__.__name__)
         mesh.set(name=name)
