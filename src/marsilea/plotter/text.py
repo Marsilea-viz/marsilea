@@ -389,7 +389,7 @@ class _LabelBase(RenderPlan):
         ax.remove()
         return np.max(sizes) / figure.get_dpi()
 
-    def get_canvas_size(self, figure):
+    def get_canvas_size(self, figure, **kwargs):
         self.texts_size = self.silent_render(figure, expand=self.get_expand())
         return self.texts_size + self.padding / 72
 
@@ -545,7 +545,7 @@ class AnnoLabels(_LabelBase):
         p.update_params(self._user_params)
         return p
 
-    def get_canvas_size(self, figure):
+    def get_canvas_size(self, figure, **kwargs):
         expand = self.get_expand()
         canvas_size = self.silent_render(figure, expand)
         size = canvas_size + self.pointer_size

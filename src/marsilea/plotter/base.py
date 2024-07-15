@@ -14,6 +14,13 @@ from .._deform import Deformation
 from ..exceptions import DataError, SplitConflict
 
 
+# class DataValidator:
+#
+#     @singledispatch(np.ndarray)
+#     def parse(self, data):
+#         pass
+
+
 class DataLoader:
     """Handle user data"""
 
@@ -397,7 +404,8 @@ class RenderPlan:
                 return self._get_intact_render_spec(axes)
         except Exception as _:
             raise DataError(
-                f"Please check your data input with {self.__class__.__name__}"
+                f"Please check your data input "
+                f"with {self.__class__.__name__} at '{self.side}'"
             )
 
     # def get_render_data(self):
@@ -508,7 +516,7 @@ class RenderPlan:
             if self._plan_label is not None:
                 self._plan_label.add(axes, self.side)
 
-    def get_canvas_size(self, figure) -> float:
+    def get_canvas_size(self, figure, main_height=None, main_width=None, **kwargs) -> float:
         """
         If the size is unknown before rendering, this function must be
         implemented to return the canvas size in inches.

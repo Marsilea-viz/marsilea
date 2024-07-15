@@ -33,5 +33,5 @@ from .bio import SeqLogo
 from .mesh import Colors, ColorMesh, SizedMesh, MarkerMesh, TextMesh
 from .text import Labels, AnnoLabels, Title, Chunk, FixedChunk
 
-# from ._images import Emoji
+from ._images import Emoji, Image
 from .area import Area
