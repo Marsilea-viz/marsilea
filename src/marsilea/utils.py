@@ -2,7 +2,6 @@ import matplotlib as mpl
 import numpy as np
 from itertools import tee, islice
 from matplotlib import colors as mcolors
-from matplotlib.colors import Colormap
 from uuid import uuid4
 
 ECHARTS16 = [
