@@ -85,17 +85,17 @@ class LegendMaker:
         self._user_legends[name] = legend_func
 
     def add_legends(
-        self,
-        side="right",
-        pad=0.0,
-        order=None,
-        stack_by=None,
-        stack_size=3,
-        align_legends=None,
-        align_stacks=None,
-        legend_spacing=10,
-        stack_spacing=10,
-        box_padding=2,
+            self,
+            side="right",
+            pad=0.0,
+            order=None,
+            stack_by=None,
+            stack_size=3,
+            align_legends=None,
+            align_stacks=None,
+            legend_spacing=10,
+            stack_spacing=10,
+            box_padding=2,
     ):
         """Draw legend based on the order of annotation
 
@@ -312,7 +312,7 @@ class WhiteBoard(LegendMaker):
         super().__init__()
 
     def add_plot(
-        self, side, plot: RenderPlan, name=None, size=None, pad=0.0, legend=True
+            self, side, plot: RenderPlan, name=None, size=None, pad=0.0, legend=True
     ):
         """Add a plotter to the board
 
@@ -606,9 +606,15 @@ class WhiteBoard(LegendMaker):
         return compose_board
 
     def _freeze_flex_plots(self, figure):
+        main_cell = self.layout.main_cell
+        main_width = main_cell.width
+        main_height = main_cell.height
+
         for plan in self._col_plan + self._row_plan:
             if plan.size is None:
-                render_size = plan.get_canvas_size(figure)
+                render_size = plan.get_canvas_size(figure,
+                                                   main_width=main_width,
+                                                   main_height=main_height)
                 if render_size is not None:
                     self.layout.set_render_size(plan.name, render_size)
 
@@ -810,13 +816,13 @@ class ClusterBoard(WhiteBoard):
     _mesh = None
 
     def __init__(
-        self,
-        cluster_data,
-        width=None,
-        height=None,
-        name=None,
-        margin=0.2,
-        init_main=True,
+            self,
+            cluster_data,
+            width=None,
+            height=None,
+            name=None,
+            margin=0.2,
+            init_main=True,
     ):
         super().__init__(
             width=width, height=height, name=name, margin=margin, init_main=init_main
@@ -830,25 +836,26 @@ class ClusterBoard(WhiteBoard):
         self._deform = Deformation(cluster_data)
 
     def add_dendrogram(
-        self,
-        side,
-        method=None,
-        metric=None,
-        linkage=None,
-        meta_linkage=None,
-        add_meta=True,
-        add_base=True,
-        add_divider=True,
-        meta_color=None,
-        linewidth=None,
-        colors=None,
-        divider_style="--",
-        meta_ratio=0.2,
-        show=True,
-        name=None,
-        size=0.5,
-        pad=0.0,
-        get_meta_center=None,
+            self,
+            side,
+            method=None,
+            metric=None,
+            linkage=None,
+            meta_linkage=None,
+            add_meta=True,
+            add_base=True,
+            add_divider=True,
+            meta_color=None,
+            linewidth=None,
+            colors=None,
+            divider_style="--",
+            meta_ratio=0.2,
+            show=True,
+            name=None,
+            size=0.5,
+            pad=0.0,
+            get_meta_center=None,
+            rasterized=False,
     ):
         """Run cluster and add dendrogram
 
@@ -910,6 +917,8 @@ class ClusterBoard(WhiteBoard):
             array as input and return a 1D numpy array of the same length as the number
             of columns in the input, representing the centroid. The default will use the
             mean values.
+        rasterized : bool
+            If True, the dendrogram will be rasterized
 
         Examples
         --------
@@ -979,6 +988,7 @@ class ClusterBoard(WhiteBoard):
             colors=colors,
             divider_style=divider_style,
             meta_ratio=meta_ratio,
+            rasterized=rasterized,
         )
 
         deform = self.get_deform()
@@ -990,9 +1000,10 @@ class ClusterBoard(WhiteBoard):
                 method=method,
                 metric=metric,
                 linkage=linkage,
-                meta_linkage=meta_linkage, 
+                meta_linkage=meta_linkage,
                 use_meta=add_meta,
                 get_meta_center=get_meta_center,
+                rasterized=rasterized
             )
         else:
             den_options["pos"] = "col"
@@ -1002,9 +1013,10 @@ class ClusterBoard(WhiteBoard):
                 method=method,
                 metric=metric,
                 linkage=linkage,
-                meta_linkage=meta_linkage, 
+                meta_linkage=meta_linkage,
                 use_meta=add_meta,
                 get_meta_center=get_meta_center,
+                rasterized=rasterized
             )
 
     def hsplit(self, cut=None, labels=None, order=None, spacing=0.01):
@@ -1341,7 +1353,8 @@ class ClusterBoard(WhiteBoard):
                     if (color is not None) & (not is_color_like(color)):
                         color = color[0]
                     den_obj.draw(
-                        ax, orient=den["side"], color=color, linewidth=den["linewidth"]
+                        ax, orient=den["side"], color=color,
+                        linewidth=den["linewidth"], rasterized=den["rasterized"]
                     )
                 else:
                     den_obj.draw(
@@ -1356,6 +1369,7 @@ class ClusterBoard(WhiteBoard):
                         divide=den["add_divider"],
                         divide_style=den["divider_style"],
                         meta_ratio=den["meta_ratio"],
+                        rasterized=den["rasterized"],
                     )
 
     def _render_plan(self):

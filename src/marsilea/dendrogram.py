@@ -18,6 +18,7 @@ class _DendrogramBase:
         linkage=None,
         get_meta_center=None,
         key=None,
+        **kwargs,
     ):
         self.key = key
         self.data = data
@@ -137,7 +138,7 @@ class _DendrogramBase:
         y1 = yc[1]
         return x1, y1
 
-    def _draw_dendrogram(self, ax, orient="top", color=".1", linewidth=0.7):
+    def _draw_dendrogram(self, ax, orient="top", color=".1", linewidth=0.7, rasterized=False):
         x_coords = self._render_x_coords
         y_coords = self._render_y_coords
         if orient in ["right", "left"]:
@@ -145,8 +146,7 @@ class _DendrogramBase:
 
         lines = LineCollection(
             [list(zip(x, y)) for x, y in zip(x_coords, y_coords)],
-            color=color,
-            linewidth=linewidth,
+            color=color, linewidth=linewidth, rasterized=rasterized,
         )
         ax.add_collection(lines)
 
@@ -173,6 +173,7 @@ class Dendrogram(_DendrogramBase):
         linkage=None,
         get_meta_center=None,
         key=None,
+        **kwargs,
     ):
         super().__init__(
             data,
@@ -181,6 +182,7 @@ class Dendrogram(_DendrogramBase):
             key=key,
             linkage=linkage,
             get_meta_center=get_meta_center,
+            **kwargs,
         )
 
     # here we left an empty **kwargs to align api with GroupDendrogram
@@ -193,6 +195,7 @@ class Dendrogram(_DendrogramBase):
         add_root=False,
         root_color=None,
         control_ax=True,
+        rasterized=False,
         **kwargs,
     ):
         """
@@ -210,6 +213,8 @@ class Dendrogram(_DendrogramBase):
             The color of the root line
         control_ax : bool
             Adjust the axes to ensure the dendrogram will display correctly
+        rasterized : bool
+            Rasterize the dendrogram to speed up rendering
 
         Returns
         -------
@@ -219,7 +224,10 @@ class Dendrogram(_DendrogramBase):
         root_color = color if root_color is None else root_color
         linewidth = 0.7 if linewidth is None else linewidth
 
-        self._draw_dendrogram(ax, orient=orient, color=color, linewidth=linewidth)
+        self._draw_dendrogram(
+            ax, orient=orient, color=color,
+            linewidth=linewidth, rasterized=rasterized
+        )
 
         xlim = self._render_xlim
         ylim = self._render_ylim
@@ -244,7 +252,8 @@ class Dendrogram(_DendrogramBase):
                 x2 = x1
                 y2 = ylim[1]
             root_line = Line2D(
-                [x1, x2], [y1, y2], color=root_color, linewidth=linewidth
+                [x1, x2], [y1, y2], color=root_color,
+                linewidth=linewidth, rasterized=rasterized
             )
             ax.add_artist(root_line)
 
@@ -274,7 +283,8 @@ class GroupDendrogram(_DendrogramBase):
     ):
         data = np.vstack([d.center for d in dens])
         super().__init__(
-            data, method=method, metric=metric, linkage=linkage, get_meta_center=get_meta_center, key=key
+            data, method=method, metric=metric, linkage=linkage,
+            get_meta_center=get_meta_center, key=key, **kwargs
         )
         self.orig_dens = np.asarray(dens)
         self.dens = np.asarray(dens)[self.reorder_index]
@@ -306,6 +316,7 @@ class GroupDendrogram(_DendrogramBase):
         divide=True,
         divide_style="--",
         meta_ratio=0.2,
+        rasterized=False,
     ):
         """
 
@@ -331,6 +342,8 @@ class GroupDendrogram(_DendrogramBase):
             The linestyle of the divide line
         meta_ratio : float
             The size of meta dendrogram relative to the base dendrogram
+        rasterized : bool
+            Rasterize the dendrogram to speed up rendering
 
         """
 
@@ -417,12 +430,15 @@ class GroupDendrogram(_DendrogramBase):
             self._render_y_coords = self.y_coords / 5
 
         if add_meta:
+            print("Add meta", rasterized)
             # Add meta dendrogram
             self._draw_dendrogram(
-                ax, orient=orient, color=meta_color, linewidth=linewidth
+                ax, orient=orient, color=meta_color,
+                linewidth=linewidth, rasterized=rasterized
             )
 
         if divide & add_base & add_meta:
+            print("Add divide", rasterized)
             xmin = np.min(draw_dens[0].x_coords)
             xmax = np.max(draw_dens[-1]._render_x_coords)
             if orient in ["top", "bottom"]:
@@ -433,6 +449,7 @@ class GroupDendrogram(_DendrogramBase):
                     linestyles=divide_style,
                     color=meta_color,
                     linewidth=linewidth,
+                    rasterized=rasterized,
                 )
             else:
                 ax.vlines(
@@ -442,9 +459,11 @@ class GroupDendrogram(_DendrogramBase):
                     linestyles=divide_style,
                     color=meta_color,
                     linewidth=linewidth,
+                    rasterized=rasterized,
                 )
 
         if add_base:
+            print("Add base", rasterized)
             for den, color in zip(draw_dens, base_colors):
                 # The singleton dendrogram will only be drawn if meta is drawn
                 if not den.is_singleton or add_meta:
@@ -456,6 +475,7 @@ class GroupDendrogram(_DendrogramBase):
                         linewidth=linewidth,
                         root_color=meta_color,
                         control_ax=False,
+                        rasterized=rasterized,
                     )
 
         xlim = render_xlim
