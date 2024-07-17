@@ -234,6 +234,8 @@ Other plots
     StackBar
     CenterBar
     SeqLogo
+    Image
+    Emoji
 
 
 Text Label
