@@ -1243,6 +1243,7 @@ class FixedChunk(_ChunkBase):
         ratio=None,
         props=None,
         padding=8,
+        underline=False,
         bordercolor=None,
         borderwidth=None,
         borderstyle=None,
@@ -1254,12 +1255,13 @@ class FixedChunk(_ChunkBase):
         super().__init__(
             texts,
             fill_colors,
-            align,
-            props,
-            padding,
-            bordercolor,
-            borderwidth,
-            borderstyle,
+            align=align,
+            props=props,
+            padding=padding,
+            underline=underline,
+            bordercolor=bordercolor,
+            borderwidth=borderwidth,
+            borderstyle=borderstyle,
             **options,
         )
         if ratio is not None:
