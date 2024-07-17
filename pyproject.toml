@@ -1,6 +1,6 @@
 [build-system]
-requires = ["flit_core >=3.2,<4"]
-build-backend = "flit_core.buildapi"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
 [project]
 name = "marsilea"
@@ -44,7 +44,13 @@ dev = [
     "mpl_fontkit"
 ]
 
-[tool.flit.sdist]
+[tool.hatch.version]
+path = "src/marsilea/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/marsilea", "src/oncoprinter"]
+
+[tool.hatch.build.targets.sdist]
 exclude = [
     "docs",
     "app",
@@ -53,6 +59,14 @@ exclude = [
     "tests",
     "scripts",
     "readthedocs.yaml",
+]
+include = [
+    "README.md",
+    "LICENSE",
+    "pyproject.toml",
+    "setup.py",
+    "src/marsilea",
+    "src/oncoprinter",
 ]
 
 [tool.ruff.format]
