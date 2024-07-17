@@ -61,7 +61,9 @@ jobs:
           HATCH_INDEX_REPO: https://test.ipynb.pypi.org/legacy/
           HATCH_INDEX_USER: __token__
           HATCH_INDEX_AUTH: ${{ secrets.PYPI_TOKEN }}
-        run: hatch publish || exit 0
+        run: |
+          hatch build
+          hatch publish || exit 0
 
       - name: Publish to pypi
         if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v')
@@ -69,4 +71,6 @@ jobs:
           HATCH_INDEX_REPO: https://upload.pypi.org/legacy/
           HATCH_INDEX_USER: __token__
           HATCH_INDEX_AUTH: ${{ secrets.PYPI_TOKEN }}
-        run: hatch publish
+        run: |
+          hatch build
+          hatch publish
