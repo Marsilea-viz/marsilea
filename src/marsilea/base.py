@@ -940,7 +940,7 @@ class ClusterBoard(WhiteBoard):
             :context: close-figs
 
             >>> h = ma.Heatmap(data)
-            >>> h.hsplit(cut=[4, 8])
+            >>> h.cut_rows(cut=[4, 8])
             >>> h.add_dendrogram("left", add_base=False)
             >>> h.render()
 
@@ -950,7 +950,7 @@ class ClusterBoard(WhiteBoard):
             :context: close-figs
 
             >>> h = ma.Heatmap(data)
-            >>> h.hsplit(cut=[4, 8])
+            >>> h.cut_rows(cut=[4, 8])
             >>> h.add_dendrogram("left", colors=["#5470c6", "#91cc75", "#fac858"])
             >>> h.render()
 

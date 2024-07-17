@@ -35,8 +35,8 @@ ordered from the upper left to the lower right.
     :context: close-figs
 
     >>> h = ma.Heatmap(data, cmap="binary", linewidth=1)
-    >>> h.hsplit(cut=[5])
-    >>> h.vsplit(cut=[5])
+    >>> h.cut_rows(cut=[5])
+    >>> h.cut_cols(cut=[5])
     >>> h.render()
     >>> # Get the ax after render()
     >>> hax = h.get_main_ax()

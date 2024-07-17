@@ -111,7 +111,7 @@ class ColorMesh(MeshBase):
 
         >>> data = np.random.randn(10, 8)
         >>> h = ma.Heatmap(data)
-        >>> h.hsplit(cut=[5])
+        >>> h.cut_rows(cut=[5])
         >>> h.add_dendrogram("left")
         >>> cmap1, cmap2 = "Purples", "Greens"
         >>> colors1 = ColorMesh(np.arange(10)+1, cmap=cmap1, label=cmap1, annot=True)
@@ -288,7 +288,7 @@ class Colors(MeshBase):
         :context: close-figs
 
         >>> h = ma.Heatmap(np.random.randn(10, 8))
-        >>> h.hsplit(cut=[5])
+        >>> h.cut_rows(cut=[5])
         >>> h.add_dendrogram("left")
         >>> color = Colors(data, label="Colors")
         >>> h.add_right(color, size=.2, pad=.05)
@@ -475,7 +475,7 @@ class SizedMesh(MeshBase):
         :context: close-figs
 
         >>> h = ma.Heatmap(np.random.randn(10, 8))
-        >>> h.hsplit(cut=[5])
+        >>> h.cut_rows(cut=[5])
         >>> h.add_dendrogram("left")
         >>> mesh = SizedMesh(size, color, marker="*", label="SizedMesh")
         >>> h.add_right(mesh, size=.2, pad=.05)

@@ -63,11 +63,11 @@ Grouping
 .. plot::
     :context: close-figs
 
-    >>> cb.vsplit(labels=["c1", "c1", "c2", "c2", "c3", "c3"],
-    ...           order=["c1", "c2", "c3"], spacing=.08)
+    >>> cb.group_cols(["c1", "c1", "c2", "c2", "c3", "c3"],
+    ...             order=["c1", "c2", "c3"], spacing=.08)
     >>> cb.render()
 
-We use :meth:`vsplit() <marsilea.base.ClusterBoard.vsplit>` to split the canvas into three groups.
+We use :meth:`group_cols() <marsilea.base.ClusterBoard.group_cols>` to split the canvas into three groups.
 The :code:`labels` parameter specifies the gr oup for each column.
 The :code:`order` parameter specifies the order of the groups that will present in the plot.
 Let's add side plots to the groups to make it more visually distinct.
@@ -169,8 +169,8 @@ Add to the side:
 
 Grouping:
 
-- Group vertically: :meth:`hsplit() <marsilea.base.ClusterBoard.hsplit>`
-- Group horizontally: :meth:`vsplit() <marsilea.base.ClusterBoard.vsplit>`
+- Group vertically: :meth:`cut_rows() <marsilea.base.ClusterBoard.cut_rows>`
+- Group horizontally: :meth:`cut_cols() <marsilea.base.ClusterBoard.cut_cols>`
 
 Add dendrogram: :meth:`add_dendrogram() <marsilea.base.ClusterBoard.add_dendrogram>`
 

@@ -139,7 +139,7 @@ for title, plotter in plotters.items():
         size = 1.5
     canvas3.add_bottom(plotter, pad=0.1, size=size, name=title)
 
-canvas3.vsplit(cut=[2])
+canvas3.cut_cols(cut=[2])
 canvas3.add_bottom(mp.Chunk(["Lower", "Upper"], ["#FFDD95", "#FFB000"], padding=10))
 
 canvas3.render()

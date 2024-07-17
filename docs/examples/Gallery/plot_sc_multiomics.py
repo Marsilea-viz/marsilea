@@ -70,7 +70,7 @@ with mpl.rc_context({"font.size": 14}):
     gene_profile.add_bottom(
         ma.plotter.Labels(marker_names, color="#392467", align="bottom", padding=10)
     )
-    gene_profile.vsplit([13])
+    gene_profile.cut_cols([13])
     gene_profile.add_bottom(
         ma.plotter.Chunk(
             ["Cluster of Differentiation", "Other Immune"],
@@ -125,7 +125,7 @@ with mpl.rc_context({"font.size": 14}):
     protein_profile.add_title("Proteomics Profile", fontsize=16)
 
     comb = gene_profile + protein_profile
-    comb.add_legends("left", stack_size=1, stack_by="column", align_stacks="top")
+    comb.add_legends("top", stack_size=1, stack_by="column", align_stacks="top")
     comb.render()
 
 # sphinx_gallery_start_ignore

@@ -195,7 +195,7 @@ def _seaborn_doc(obj: _SeabornBase):
         >>> sdata = {sdata}
         >>> plot = {cls_name}(sdata, {kws})
         >>> h = ma.Heatmap(data)
-        >>> h.hsplit(cut=[3, 7])
+        >>> h.cut_rows(cut=[3, 7])
         >>> h.add_right(plot)
         >>> h.render()
     """
@@ -208,7 +208,7 @@ def _seaborn_doc(obj: _SeabornBase):
         
         >>> plot = {cls_name}({hue_data}, {kws})
         >>> h = ma.Heatmap(data)
-        >>> h.hsplit(cut=[3, 7])
+        >>> h.cut_rows(cut=[3, 7])
         >>> h.add_right(plot)
         >>> h.render()
         
@@ -222,7 +222,7 @@ def _seaborn_doc(obj: _SeabornBase):
         >>> anno = ma.plotter.Chunk(['C1', 'C2', 'C3'], colors, padding=10)
         >>> cb = ma.ClusterBoard(data, height=2, margin=.5)
         >>> cb.add_layer(plot)
-        >>> cb.vsplit(cut=[3, 7])
+        >>> cb.cut_cols([3, 7])
         >>> cb.add_bottom(anno)
         >>> cb.render()
         
@@ -233,9 +233,10 @@ def _seaborn_doc(obj: _SeabornBase):
         
         >>> plot = {cls_name}(sdata, orient='h',
         ...                   {h_kws})
+        >>> anno = ma.plotter.Chunk(['C1', 'C2', 'C3'], colors, padding=10)
         >>> cb = ma.ClusterBoard(data.T, width=2)
         >>> cb.add_layer(plot)
-        >>> cb.hsplit(cut=[3, 7])
+        >>> cb.cut_rows([3, 7])
         >>> cb.add_left(anno)
         >>> cb.render()
         
