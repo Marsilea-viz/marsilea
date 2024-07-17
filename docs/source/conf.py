@@ -13,6 +13,7 @@
 # import os
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
+from datetime import datetime
 from sphinx_gallery.sorting import FileNameSortKey, ExplicitOrder
 from sphinx_gallery.scrapers import matplotlib_scraper
 import marsilea as ma
@@ -20,7 +21,7 @@ import marsilea as ma
 # -- Project information -----------------------------------------------------
 
 project = "marsilea"
-copyright = "2023, Mr-Milk"
+copyright = f"{datetime.now().year}, Mr-Milk"
 author = "Mr-Milk"
 
 # The full version, including alpha/beta/rc tags
@@ -54,7 +55,7 @@ add_module_names = False
 plot_include_source = True
 plot_html_show_source_link = False
 plot_html_show_formats = False
-plot_formats = [("png", 220)]
+plot_formats = [("png", 200)]
 plot_rcparams = {"savefig.bbox": "tight"}
 plot_pre_code = (
     "import numpy as np; "
