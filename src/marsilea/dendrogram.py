@@ -441,7 +441,6 @@ class GroupDendrogram(_DendrogramBase):
             self._render_y_coords = self.y_coords / 5
 
         if add_meta:
-            print("Add meta", rasterized)
             # Add meta dendrogram
             self._draw_dendrogram(
                 ax,
@@ -452,7 +451,6 @@ class GroupDendrogram(_DendrogramBase):
             )
 
         if divide & add_base & add_meta:
-            print("Add divide", rasterized)
             xmin = np.min(draw_dens[0].x_coords)
             xmax = np.max(draw_dens[-1]._render_x_coords)
             if orient in ["top", "bottom"]:
@@ -477,7 +475,6 @@ class GroupDendrogram(_DendrogramBase):
                 )
 
         if add_base:
-            print("Add base", rasterized)
             for den, color in zip(draw_dens, base_colors):
                 # The singleton dendrogram will only be drawn if meta is drawn
                 if not den.is_singleton or add_meta:
