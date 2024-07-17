@@ -55,5 +55,8 @@ exclude = [
     "readthedocs.yaml",
 ]
 
+[tool.ruff.format]
+docstring-code-format = true
+
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]
