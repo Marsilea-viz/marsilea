@@ -58,7 +58,7 @@ jobs:
 
       - name: Publish to test.ipynb pypi
         env:
-          HATCH_INDEX_REPO: https://test.ipynb.pypi.org/legacy/
+          HATCH_INDEX_REPO: https://test.pypi.org/legacy/
           HATCH_INDEX_USER: __token__
           HATCH_INDEX_AUTH: ${{ secrets.PYPI_TEST_TOKEN }}
         run: |
