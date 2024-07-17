@@ -516,7 +516,9 @@ class RenderPlan:
             if self._plan_label is not None:
                 self._plan_label.add(axes, self.side)
 
-    def get_canvas_size(self, figure, main_height=None, main_width=None, **kwargs) -> float:
+    def get_canvas_size(
+        self, figure, main_height=None, main_width=None, **kwargs
+    ) -> float:
         """
         If the size is unknown before rendering, this function must be
         implemented to return the canvas size in inches.

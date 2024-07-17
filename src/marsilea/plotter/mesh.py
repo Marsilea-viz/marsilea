@@ -103,7 +103,7 @@ class ColorMesh(MeshBase):
 
         >>> import marsilea as ma
         >>> from marsilea.plotter import ColorMesh
-        >>> _, ax = plt.subplots(figsize=(5, .5))
+        >>> _, ax = plt.subplots(figsize=(5, 0.5))
         >>> ColorMesh(np.arange(10), cmap="Blues").render(ax)
 
     .. plot::
@@ -114,10 +114,10 @@ class ColorMesh(MeshBase):
         >>> h.cut_rows(cut=[5])
         >>> h.add_dendrogram("left")
         >>> cmap1, cmap2 = "Purples", "Greens"
-        >>> colors1 = ColorMesh(np.arange(10)+1, cmap=cmap1, label=cmap1, annot=True)
-        >>> colors2 = ColorMesh(np.arange(10)+1, cmap=cmap2, label=cmap2)
-        >>> h.add_right(colors1, size=.2, pad=.05)
-        >>> h.add_right(colors2, size=.2, pad=.05)
+        >>> colors1 = ColorMesh(np.arange(10) + 1, cmap=cmap1, label=cmap1, annot=True)
+        >>> colors2 = ColorMesh(np.arange(10) + 1, cmap=cmap2, label=cmap2)
+        >>> h.add_right(colors1, size=0.2, pad=0.05)
+        >>> h.add_right(colors2, size=0.2, pad=0.05)
         >>> h.render()
 
 
@@ -280,7 +280,7 @@ class Colors(MeshBase):
 
         >>> import marsilea as ma
         >>> from marsilea.plotter import Colors
-        >>> _, ax = plt.subplots(figsize=(5, .5))
+        >>> _, ax = plt.subplots(figsize=(5, 0.5))
         >>> data = np.random.choice(["A", "B", "C"], 10)
         >>> Colors(data).render(ax)
 
@@ -291,7 +291,7 @@ class Colors(MeshBase):
         >>> h.cut_rows(cut=[5])
         >>> h.add_dendrogram("left")
         >>> color = Colors(data, label="Colors")
-        >>> h.add_right(color, size=.2, pad=.05)
+        >>> h.add_right(color, size=0.2, pad=0.05)
         >>> h.render()
 
 
@@ -467,7 +467,7 @@ class SizedMesh(MeshBase):
 
         >>> import marsilea as ma
         >>> from marsilea.plotter import SizedMesh
-        >>> _, ax = plt.subplots(figsize=(5, .5))
+        >>> _, ax = plt.subplots(figsize=(5, 0.5))
         >>> size, color = np.random.rand(1, 10), np.random.rand(1, 10)
         >>> SizedMesh(size, color).render(ax)
 
@@ -478,7 +478,7 @@ class SizedMesh(MeshBase):
         >>> h.cut_rows(cut=[5])
         >>> h.add_dendrogram("left")
         >>> mesh = SizedMesh(size, color, marker="*", label="SizedMesh")
-        >>> h.add_right(mesh, size=.2, pad=.05)
+        >>> h.add_right(mesh, size=0.2, pad=0.05)
         >>> h.render()
 
 

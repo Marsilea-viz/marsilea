@@ -309,8 +309,9 @@ class StackBar(_BarBase):
         :context: close-figs
 
         >>> from marsilea.plotter import StackBar
-        >>> stack_data = pd.DataFrame(data=np.random.randint(1, 10, (5, 10)),
-        ...                           index=list("abcde"))
+        >>> stack_data = pd.DataFrame(
+        ...     data=np.random.randint(1, 10, (5, 10)), index=list("abcde")
+        ... )
         >>> _, ax = plt.subplots()
         >>> StackBar(stack_data).render(ax)
 

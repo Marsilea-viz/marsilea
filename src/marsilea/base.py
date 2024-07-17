@@ -85,17 +85,17 @@ class LegendMaker:
         self._user_legends[name] = legend_func
 
     def add_legends(
-            self,
-            side="right",
-            pad=0.0,
-            order=None,
-            stack_by=None,
-            stack_size=3,
-            align_legends=None,
-            align_stacks=None,
-            legend_spacing=10,
-            stack_spacing=10,
-            box_padding=2,
+        self,
+        side="right",
+        pad=0.0,
+        order=None,
+        stack_by=None,
+        stack_size=3,
+        align_legends=None,
+        align_stacks=None,
+        legend_spacing=10,
+        stack_spacing=10,
+        box_padding=2,
     ):
         """Draw legend based on the order of annotation
 
@@ -312,7 +312,7 @@ class WhiteBoard(LegendMaker):
         super().__init__()
 
     def add_plot(
-            self, side, plot: RenderPlan, name=None, size=None, pad=0.0, legend=True
+        self, side, plot: RenderPlan, name=None, size=None, pad=0.0, legend=True
     ):
         """Add a plotter to the board
 
@@ -612,9 +612,9 @@ class WhiteBoard(LegendMaker):
 
         for plan in self._col_plan + self._row_plan:
             if plan.size is None:
-                render_size = plan.get_canvas_size(figure,
-                                                   main_width=main_width,
-                                                   main_height=main_height)
+                render_size = plan.get_canvas_size(
+                    figure, main_width=main_width, main_height=main_height
+                )
                 if render_size is not None:
                     self.layout.set_render_size(plan.name, render_size)
 
@@ -816,13 +816,13 @@ class ClusterBoard(WhiteBoard):
     _mesh = None
 
     def __init__(
-            self,
-            cluster_data,
-            width=None,
-            height=None,
-            name=None,
-            margin=0.2,
-            init_main=True,
+        self,
+        cluster_data,
+        width=None,
+        height=None,
+        name=None,
+        margin=0.2,
+        init_main=True,
     ):
         super().__init__(
             width=width, height=height, name=name, margin=margin, init_main=init_main
@@ -836,26 +836,26 @@ class ClusterBoard(WhiteBoard):
         self._deform = Deformation(cluster_data)
 
     def add_dendrogram(
-            self,
-            side,
-            method=None,
-            metric=None,
-            linkage=None,
-            meta_linkage=None,
-            add_meta=True,
-            add_base=True,
-            add_divider=True,
-            meta_color=None,
-            linewidth=None,
-            colors=None,
-            divider_style="--",
-            meta_ratio=0.2,
-            show=True,
-            name=None,
-            size=0.5,
-            pad=0.0,
-            get_meta_center=None,
-            rasterized=False,
+        self,
+        side,
+        method=None,
+        metric=None,
+        linkage=None,
+        meta_linkage=None,
+        add_meta=True,
+        add_base=True,
+        add_divider=True,
+        meta_color=None,
+        linewidth=None,
+        colors=None,
+        divider_style="--",
+        meta_ratio=0.2,
+        show=True,
+        name=None,
+        size=0.5,
+        pad=0.0,
+        get_meta_center=None,
+        rasterized=False,
     ):
         """Run cluster and add dendrogram
 
@@ -1003,7 +1003,7 @@ class ClusterBoard(WhiteBoard):
                 meta_linkage=meta_linkage,
                 use_meta=add_meta,
                 get_meta_center=get_meta_center,
-                rasterized=rasterized
+                rasterized=rasterized,
             )
         else:
             den_options["pos"] = "col"
@@ -1016,7 +1016,7 @@ class ClusterBoard(WhiteBoard):
                 meta_linkage=meta_linkage,
                 use_meta=add_meta,
                 get_meta_center=get_meta_center,
-                rasterized=rasterized
+                rasterized=rasterized,
             )
 
     def hsplit(self, cut=None, labels=None, order=None, spacing=0.01):
@@ -1179,7 +1179,7 @@ class ClusterBoard(WhiteBoard):
             >>> h = ma.Heatmap(data)
             >>> labels = ["A", "B", "C", "A", "B", "C", "A", "B", "C", "A"]
             >>> h.group_rows(labels, order=["A", "B", "C"])
-            >>> h.add_left(ma.plotter.Labels(labels), pad=.1)
+            >>> h.add_left(ma.plotter.Labels(labels), pad=0.1)
             >>> h.render()
 
         """
@@ -1221,7 +1221,7 @@ class ClusterBoard(WhiteBoard):
             >>> h = ma.Heatmap(data)
             >>> labels = ["A", "B", "C", "A", "B", "C", "A", "B", "C", "A"]
             >>> h.group_cols(labels, order=["A", "B", "C"])
-            >>> h.add_top(ma.plotter.Labels(labels), pad=.1)
+            >>> h.add_top(ma.plotter.Labels(labels), pad=0.1)
             >>> h.render()
 
         """
@@ -1353,8 +1353,11 @@ class ClusterBoard(WhiteBoard):
                     if (color is not None) & (not is_color_like(color)):
                         color = color[0]
                     den_obj.draw(
-                        ax, orient=den["side"], color=color,
-                        linewidth=den["linewidth"], rasterized=den["rasterized"]
+                        ax,
+                        orient=den["side"],
+                        color=color,
+                        linewidth=den["linewidth"],
+                        rasterized=den["rasterized"],
                     )
                 else:
                     den_obj.draw(

@@ -138,7 +138,9 @@ class _DendrogramBase:
         y1 = yc[1]
         return x1, y1
 
-    def _draw_dendrogram(self, ax, orient="top", color=".1", linewidth=0.7, rasterized=False):
+    def _draw_dendrogram(
+        self, ax, orient="top", color=".1", linewidth=0.7, rasterized=False
+    ):
         x_coords = self._render_x_coords
         y_coords = self._render_y_coords
         if orient in ["right", "left"]:
@@ -146,7 +148,9 @@ class _DendrogramBase:
 
         lines = LineCollection(
             [list(zip(x, y)) for x, y in zip(x_coords, y_coords)],
-            color=color, linewidth=linewidth, rasterized=rasterized,
+            color=color,
+            linewidth=linewidth,
+            rasterized=rasterized,
         )
         ax.add_collection(lines)
 
@@ -225,8 +229,7 @@ class Dendrogram(_DendrogramBase):
         linewidth = 0.7 if linewidth is None else linewidth
 
         self._draw_dendrogram(
-            ax, orient=orient, color=color,
-            linewidth=linewidth, rasterized=rasterized
+            ax, orient=orient, color=color, linewidth=linewidth, rasterized=rasterized
         )
 
         xlim = self._render_xlim
@@ -252,8 +255,11 @@ class Dendrogram(_DendrogramBase):
                 x2 = x1
                 y2 = ylim[1]
             root_line = Line2D(
-                [x1, x2], [y1, y2], color=root_color,
-                linewidth=linewidth, rasterized=rasterized
+                [x1, x2],
+                [y1, y2],
+                color=root_color,
+                linewidth=linewidth,
+                rasterized=rasterized,
             )
             ax.add_artist(root_line)
 
@@ -283,8 +289,13 @@ class GroupDendrogram(_DendrogramBase):
     ):
         data = np.vstack([d.center for d in dens])
         super().__init__(
-            data, method=method, metric=metric, linkage=linkage,
-            get_meta_center=get_meta_center, key=key, **kwargs
+            data,
+            method=method,
+            metric=metric,
+            linkage=linkage,
+            get_meta_center=get_meta_center,
+            key=key,
+            **kwargs,
         )
         self.orig_dens = np.asarray(dens)
         self.dens = np.asarray(dens)[self.reorder_index]
@@ -433,8 +444,11 @@ class GroupDendrogram(_DendrogramBase):
             print("Add meta", rasterized)
             # Add meta dendrogram
             self._draw_dendrogram(
-                ax, orient=orient, color=meta_color,
-                linewidth=linewidth, rasterized=rasterized
+                ax,
+                orient=orient,
+                color=meta_color,
+                linewidth=linewidth,
+                rasterized=rasterized,
             )
 
         if divide & add_base & add_meta:
