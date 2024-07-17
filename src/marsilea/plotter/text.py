@@ -10,6 +10,7 @@ import warnings
 from dataclasses import dataclass
 from matplotlib.axes import Axes
 from matplotlib.colors import is_color_like
+from matplotlib.lines import Line2D
 from matplotlib.patches import Rectangle
 from matplotlib.text import Text
 from typing import List, Iterable
@@ -887,6 +888,7 @@ class _ChunkBase(_LabelBase):
         align=None,
         props=None,
         padding=2,
+        underline=False,
         bordercolor=None,
         borderwidth=None,
         borderstyle=None,
@@ -910,6 +912,7 @@ class _ChunkBase(_LabelBase):
             props = [props for _ in range(n)]
         self.props = props
 
+        self.underline = underline
         if is_color_like(bordercolor):
             bordercolor = [bordercolor for _ in range(n)]
         if bordercolor is not None:
@@ -923,6 +926,12 @@ class _ChunkBase(_LabelBase):
         if isinstance(borderstyle, str):
             borderstyle = [borderstyle for _ in range(n)]
         self.borderstyle = borderstyle
+
+        if self.underline:
+            if self.bordercolor is None:
+                self.bordercolor = np.asarray(["black" for _ in range(n)])
+            if self.borderwidth is None:
+                self.borderwidth = np.asarray([3 for _ in range(n)])
 
         self._draw_bg = (self.fill_colors is not None) or (self.bordercolor is not None)
         self.text_pad = 0
@@ -939,6 +948,13 @@ class _ChunkBase(_LabelBase):
         "left": 90,
         "top": 0,
         "bottom": 0,
+    }
+
+    default_underline = {
+        "right": [(0, 0), (0, 1)],
+        "left": [(1, 1), (1, 0)],
+        "top": [(0, 1), (0, 0)],
+        "bottom": [(0, 1), (1, 1)],
     }
 
     def get_alignment(self, ha, va, rotation):
@@ -1005,16 +1021,27 @@ class _ChunkBase(_LabelBase):
             if self._draw_bg:
                 if bgcolor is None:
                     bgcolor = "white"
-                rect = Rectangle(
-                    (0, 0),
-                    1,
-                    1,
-                    facecolor=bgcolor,
-                    edgecolor=bc,
-                    linewidth=lw,
-                    linestyle=ls,
-                    transform=ax.transAxes,
-                )
+                if not self.underline:
+                    rect = Rectangle(
+                        (0, 0),
+                        1,
+                        1,
+                        facecolor=bgcolor,
+                        edgecolor=bc,
+                        linewidth=lw,
+                        linestyle=ls,
+                        transform=ax.transAxes,
+                    )
+                else:
+                    xdata, ydata = self.default_underline[self.side]
+                    rect = Line2D(
+                        xdata,
+                        ydata,
+                        color=bc,
+                        linewidth=lw,
+                        linestyle=ls,
+                        transform=ax.transAxes,
+                    )
                 ax.add_artist(rect)
                 fontdict.setdefault("color", self.get_text_color(bgcolor))
 
@@ -1086,6 +1113,7 @@ class Chunk(_ChunkBase):
         align=None,
         props=None,
         padding=8,
+        underline=False,
         bordercolor=None,
         borderwidth=None,
         borderstyle=None,
@@ -1100,6 +1128,7 @@ class Chunk(_ChunkBase):
             align=align,
             props=props,
             padding=padding,
+            underline=underline,
             bordercolor=bordercolor,
             borderwidth=borderwidth,
             borderstyle=borderstyle,
