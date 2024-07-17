@@ -29,7 +29,7 @@ def _cache_remote(url, cache=True):
 
     dest = data_dir / fname
     if not (cache and dest.exists()):
-        r = requests.get(url)
+        r = requests.get(url, headers={"User-Agent": "Mozilla/5.0"})
         r.raise_for_status()
         with open(dest, "wb") as f:
             f.write(r.content)
