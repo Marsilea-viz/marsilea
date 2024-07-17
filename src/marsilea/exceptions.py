@@ -7,15 +7,16 @@ class DuplicateName(Exception):
 
 
 class DuplicatePlotter(Exception):
-
     def __init__(self, plotter):
         self.plotter = plotter
 
     def __str__(self):
         name = self.plotter.__class__.__name__
-        return (f"You have added `{name}` "
-                f"to the `{self.plotter.side}`, "
-                f"please create a new `{name}` if you want to add it again.")
+        return (
+            f"The `{name}` added"
+            f"to the `{self.plotter.side}` has been registered,"
+            f"please create a new `{name}` if you want to add the same plotter again."
+        )
 
 
 class SplitTwice(Exception):
