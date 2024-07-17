@@ -1,11 +1,8 @@
 name: Deploy streamlit docker to Azure
-on: []
-#  push:
-#    paths:
-#      - '.github/**'
-#      - 'app/**'
-#      - 'marsilea/**'
-#      - 'pyproject.toml'
+on:
+  push:
+    paths:
+      - 'app/**'
 
 jobs:
   build:
