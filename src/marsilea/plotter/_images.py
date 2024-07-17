@@ -2,38 +2,93 @@
 # issues across different rendering backend at different DPI. Currently
 # not a public API.
 from functools import partial
+from hashlib import sha256
 from numbers import Number
-from PIL import Image as PILImage
+from pathlib import Path
 
 import numpy as np
+from PIL import Image as PILImage
 from matplotlib.image import imread, BboxImage
 from matplotlib.transforms import Bbox
-from pathlib import Path
 from platformdirs import user_cache_dir
-from urllib.request import urlretrieve
 
 from .base import RenderPlan
 
 
 def _cache_remote(url, cache=True):
+    try:
+        import requests
+    except ImportError:
+        raise ImportError("Required requests, try `pip install requests`.")
     data_dir = Path(user_cache_dir(appname="Marsilea"))
     data_dir.mkdir(exist_ok=True, parents=True)
 
-    fname = url.split("/")[-1]
+    hasher = sha256()
+    hasher.update(url.encode("utf-8"))
+    fname = hasher.hexdigest()
+
     dest = data_dir / fname
     if not (cache and dest.exists()):
-        urlretrieve(url, dest)
+        r = requests.get(url)
+        r.raise_for_status()
+        with open(dest, "wb") as f:
+            f.write(r.content)
 
     return dest
 
 
 class Image(RenderPlan):
-    def __init__(self,
-                 images,
-                 align="center",
-                 scale=1,
-                 resize=None,
-                 ):
+    """Plot static images
+
+    Parameters
+    ----------
+    images : array of image
+        You can input either path to the image, URL, or numpy array.
+    align : {"center", "top", "bottom", "left", "right"}, default: "center"
+        The alignment of the images.
+    scale : float, default: 1
+        The scale of the images.
+    spacing : float, default: 0.1
+        The spacing between images, a value between 0 and 1,
+        relative to the image container size.
+    resize : int or tuple, default: None
+        The size to resize the images.
+
+    Examples
+    --------
+
+    .. plot::
+        :context: close-figs
+
+        >>> import numpy as np
+        >>> import marsilea as ma
+        >>> c = ma.ZeroWidth(height=2)
+        >>> c.add_right(
+        ...     ma.plotter.Image(
+        ...         [
+        ...             "https://www.iconfinder.com/icons/4375050/download/png/512",
+        ...             "https://www.iconfinder.com/icons/8666426/download/png/512",
+        ...             "https://www.iconfinder.com/icons/652581/download/png/512",
+        ...         ],
+        ...         align="right",
+        ...     ),
+        ...     pad=0.1,
+        ... )
+        >>> c.add_right(
+        ...     ma.plotter.Labels(["Python", "Rust", "JavaScript"], fontsize=20), pad=0.1
+        ... )
+        >>> c.render()
+
+    """
+
+    def __init__(
+        self,
+        images,
+        align="center",
+        scale=1,
+        spacing=0.1,
+        resize=None,
+    ):
         self.images_mapper = {}
 
         for i, img in enumerate(images):
@@ -50,6 +105,7 @@ class Image(RenderPlan):
             else:
                 # Read from array interface
                 img = np.asarray(img)
+
             self.images_mapper[i] = img
 
         self.images_codes = np.asarray(list(self.images_mapper.keys()))
@@ -57,24 +113,31 @@ class Image(RenderPlan):
         self.images = images
         self.align = align
         self.scale = scale
+        if not 0 <= spacing <= 1:
+            raise ValueError("spacing should be between 0 and 1")
+        self.spacing = spacing
         if resize is not None:
             if isinstance(resize, Number):
-                resize = (resize, resize)
+                resize = (int(resize), int(resize))
             for i, img in self.images_mapper.items():
-                self.images_mapper[i] = (PILImage.fromarray(img)
-                                         .resize(resize, PILImage.ANTIALIAS))
+                self.images_mapper[i] = img.resize(resize, PILImage.Resampling.LANCZOS)
+        for i, img in self.images_mapper.items():
+            self.images_mapper[i] = np.asarray(img)
         self.set_data(self.images_codes)
 
-    def _get_bbox_imges(self, ax, imgs, scale=1, align="center", ax_height=None, ax_width=None):
-
+    def _get_bbox_imges(
+        self, ax, imgs, scale=1, align="center", ax_height=None, ax_width=None
+    ):
         locs = np.linspace(0, 1, len(imgs) + 1)
+        slot_size = locs[1] - locs[0]
+        locs = locs[:-1] + slot_size * self.spacing / 2
 
         xmin, ymin = ax.transAxes.transform((0, 0))
         xmax, ymax = ax.transAxes.transform((1, 1))
 
-        if ax_width is None:
+        if ax_width is None or ax_width == 0:
             ax_width = xmax - xmin
-        if ax_height is None:
+        if ax_height is None or ax_height == 0:
             ax_height = ymax - ymin
 
         base_dpi = ax.get_figure().get_dpi()
@@ -83,11 +146,9 @@ class Image(RenderPlan):
         imgaes_sizes = []
 
         if self.is_body:
-
+            fit_width = ax_width / len(imgs) * (1 - self.spacing)
             for loc, img in zip(locs, imgs):
-                width, height = img.shape[:2]
-
-                fit_width = ax_width / len(imgs)
+                height, width = img.shape[:2]
                 fit_height = height / width * fit_width
 
                 fit_scale_width = fit_width * scale
@@ -121,10 +182,9 @@ class Image(RenderPlan):
                 bbox_images.append(i1)
                 imgaes_sizes.append(fit_scale_height)
         else:
+            fit_height = ax_height / len(imgs) * (1 - self.spacing)
             for loc, img in zip(locs, imgs[::-1]):
-                width, height = img.shape[:2]
-
-                fit_height = ax_height / len(imgs)
+                height, width = img.shape[:2]
                 fit_width = width / height * fit_height
 
                 fit_scale_width = fit_width * scale
@@ -168,10 +228,14 @@ class Image(RenderPlan):
             ax.add_artist(i)
         ax.set_axis_off()
 
-    def get_canvas_size(self, figure, main_height=None, main_width=None, **kwargs) -> float:
+    def get_canvas_size(
+        self, figure, main_height=None, main_width=None, **kwargs
+    ) -> float:
         ax = figure.add_subplot(111)
         imgs = [self.images_mapper[i] for i in self.images_codes]
-        _, size = self._get_bbox_imges(ax, imgs, ax_width=main_width, ax_height=main_height)
+        _, size = self._get_bbox_imges(
+            ax, imgs, ax_width=main_width, ax_height=main_height
+        )
         ax.remove()
         return size
 
@@ -182,7 +246,37 @@ TWEMOJI_CDN = "https://cdn.jsdelivr.net/gh/twitter/twemoji/assets/72x72/"
 
 
 class Emoji(Image):
-    def __init__(self, codes, lang="en", scale=1):
+    """Have fun with emoji images
+
+    The emoji images are from `twemoji <https://twemoji.twitter.com/>`_.
+
+    You can will all twemoji from `here <https://twemoji-cheatsheet.vercel.app/>`_
+
+    Parameters
+    ----------
+    codes : array of str
+        The emoji codes. You can input either unicode or short code.
+    lang : str, default: "en"
+        The language of the emoji.
+    scale : float, default: 1
+        The scale of the emoji.
+    spacing : float, default: 0.1
+        The spacing between emoji, a value between 0 and 1,
+        relative to the emoji container size.
+
+    Examples
+    --------
+
+    .. plot::
+
+        >>> import marsilea as ma
+        >>> c = ma.ZeroHeight(width=2)
+        >>> c.add_top(ma.plotter.Emoji("😆😆🤣😂😉😇🐍🦀🦄"))
+        >>> c.render()
+
+    """
+
+    def __init__(self, codes, lang="en", scale=1, spacing=0.1, **kwargs):
         try:
             import emoji
         except ImportError:
@@ -196,4 +290,4 @@ class Emoji(Image):
             c = f"{ord(i):X}".lower()
             urls.append(f"{TWEMOJI_CDN}{c}.png")
 
-        super().__init__(urls, scale=scale)
+        super().__init__(urls, scale=scale, spacing=spacing, **kwargs)
