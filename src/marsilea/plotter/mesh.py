@@ -668,6 +668,8 @@ class MarkerMesh(MeshBase):
         See :mod:`matplotlib.markers`
     size : int
         The of marker in fontsize unit
+    frameon : bool
+        Whether to draw the border of the plot
     label : str
         The label of the plot, only show when added to the side plot
     label_loc : {'top', 'bottom', 'left', 'right'}
@@ -698,6 +700,7 @@ class MarkerMesh(MeshBase):
         color="black",
         marker="*",
         size=35,
+        frameon=False,
         label=None,
         label_loc=None,
         label_props=None,
@@ -706,9 +709,10 @@ class MarkerMesh(MeshBase):
         self.set_data(np.asarray(data))
         self.color = color
         self.marker = marker
+        self.marker_size = size
+        self.frameon = frameon
         self.set_label(label, label_loc, label_props)
         self.kwargs = kwargs
-        self.marker_size = size
 
     def get_legends(self):
         return CatLegend(
@@ -737,6 +741,8 @@ class MarkerMesh(MeshBase):
         ax.set_xlim(0, xticks[-1] + 0.5)
         ax.set_ylim(0, yticks[-1] + 0.5)
         ax.invert_yaxis()
+        if not self.frameon:
+            ax.set_axis_off()
 
 
 class TextMesh(MeshBase):
@@ -748,6 +754,8 @@ class TextMesh(MeshBase):
         The text to draw
     color : color
         The color of the text
+    frameon : bool
+        Whether to draw the border of the plot
     label : str
         The label of the plot, only show when added to the side plot
     label_loc : {'top', 'bottom', 'left', 'right'}
@@ -765,6 +773,7 @@ class TextMesh(MeshBase):
         self,
         texts,
         color="black",
+        frameon=False,
         label=None,
         label_loc=None,
         label_props=None,
@@ -772,6 +781,7 @@ class TextMesh(MeshBase):
     ):
         self.set_data(self.data_validator(texts))
         self.color = color
+        self.frameon = frameon
         self.set_label(label, label_loc, label_props)
         self.kwargs = kwargs
 
@@ -797,3 +807,5 @@ class TextMesh(MeshBase):
         ax.set_xlim(0, xticks[-1] + 0.5)
         ax.set_ylim(0, yticks[-1] + 0.5)
         ax.invert_yaxis()
+        if not self.frameon:
+            ax.set_axis_off()
