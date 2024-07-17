@@ -276,13 +276,13 @@ class CenterBar(_BarBase):
 class StackBar(_BarBase):
     """Stacked Bar
 
-     Parameters
-     ----------
-     data : np.ndarray, pd.DataFrame
+    Parameters
+    ----------
+    data : np.ndarray, pd.DataFrame
         2D data, index of dataframe is used as the name of items.
-     items : list of str
+    items : list of str
         The name of items.
-     colors : list of colors, mapping of (item, color)
+    colors : list of colors, mapping of (item, color)
         The colors of the bar for each item.
     orient : {"v", "h"}
         The orientation of the plot
