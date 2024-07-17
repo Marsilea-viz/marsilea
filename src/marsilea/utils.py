@@ -69,7 +69,7 @@ def relative_luminance(color):
 
 def get_colormap(cmap):
     try:
-        return mpl.cm.ColormapRegistry.get_cmap(cmap)
+        return mpl.colormaps.get_cmap(cmap)
     except AttributeError:
         try:
             return mpl.colormaps.get(cmap)

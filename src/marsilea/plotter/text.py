@@ -651,7 +651,7 @@ class Labels(_LabelBase):
         >>> import marsilea as ma
         >>> from marsilea.plotter import Labels
         >>> h = ma.Heatmap(np.random.randn(20, 20))
-        >>> h.add_right(Labels(labels, text_props={'color': colors}))
+        >>> h.add_right(Labels(labels, text_props={"color": colors}))
         >>> h.render()
 
     """
@@ -778,10 +778,10 @@ class Title(_LabelBase):
         >>> matrix = np.random.randn(15, 10)
         >>> h = ma.Heatmap(matrix)
         >>> for align in ["left", "right", "center"]:
-        ...     title = Title(f'Title align={align}', align=align)
+        ...     title = Title(f"Title align={align}", align=align)
         ...     h.add_top(title)
         >>> for align in ["top", "bottom", "center"]:
-        ...     title = Title(f'Title align={align}', align=align)
+        ...     title = Title(f"Title align={align}", align=align)
         ...     h.add_left(title)
         >>> h.render()
 
@@ -1069,10 +1069,10 @@ class Chunk(_ChunkBase):
         >>> from marsilea.plotter import Chunk
         >>> matrix = np.random.randn(20, 20)
         >>> h = ma.Heatmap(matrix)
-        >>> chunk = ['C1', 'C2', 'C3', 'C4']
+        >>> chunk = ["C1", "C2", "C3", "C4"]
         >>> labels = np.random.choice(chunk, size=20)
-        >>> h.hsplit(labels=labels, order=chunk)
-        >>> h.add_right(Chunk(chunk, bordercolor="gray"), pad=.1)
+        >>> h.group_rows(labels, order=chunk)
+        >>> h.add_right(Chunk(chunk, bordercolor="gray"), pad=0.1)
         >>> h.add_dendrogram("left")
         >>> h.render()
 
@@ -1175,10 +1175,10 @@ class FixedChunk(_ChunkBase):
         >>> from marsilea.plotter import FixedChunk
         >>> matrix = np.random.randn(20, 20)
         >>> h = ma.Heatmap(matrix)
-        >>> chunk = ['C1', 'C2', 'C3', 'C4']
+        >>> chunk = ["C1", "C2", "C3", "C4"]
         >>> labels = np.random.choice(chunk, size=20)
-        >>> h.hsplit(labels=labels, order=chunk)
-        >>> h.add_right(FixedChunk(chunk, bordercolor="gray"), pad=.1)
+        >>> h.group_rows(labels, order=chunk)
+        >>> h.add_right(FixedChunk(chunk, bordercolor="gray"), pad=0.1)
         >>> h.add_dendrogram("left")
         >>> h.render()
 
@@ -1188,12 +1188,18 @@ class FixedChunk(_ChunkBase):
         :context: close-figs
 
         >>> h = ma.Heatmap(matrix)
-        >>> chunk = ['C1', 'C2-1', 'C2-2', 'C4']
+        >>> chunk = ["C1", "C2-1", "C2-2", "C4"]
         >>> labels = np.random.choice(chunk, size=20)
-        >>> h.hsplit(labels=labels, order=chunk)
-        >>> h.add_right(FixedChunk(chunk, bordercolor="gray"), pad=.1)
-        >>> h.add_right(FixedChunk(['C1', 'C2', 'C3'], fill_colors="red",
-        ...                        ratio=[1, 2, 1], ), pad=.1)
+        >>> h.group_rows(labels, order=chunk)
+        >>> h.add_right(FixedChunk(chunk, bordercolor="gray"), pad=0.1)
+        >>> h.add_right(
+        ...     FixedChunk(
+        ...         ["C1", "C2", "C3"],
+        ...         fill_colors="red",
+        ...         ratio=[1, 2, 1],
+        ...     ),
+        ...     pad=0.1,
+        ... )
         >>> h.render()
 
 

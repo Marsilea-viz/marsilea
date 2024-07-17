@@ -66,7 +66,7 @@ gene_profile.add_dendrogram(
 gene_profile.add_bottom(
     ma.plotter.Labels(marker_names, color="#392467", align="bottom", padding=4)
 )
-gene_profile.vsplit([13])
+gene_profile.cut_cols([13])
 gene_profile.add_bottom(
     ma.plotter.Chunk(
         ["Cluster of Differentiation", "Other Immune"],
