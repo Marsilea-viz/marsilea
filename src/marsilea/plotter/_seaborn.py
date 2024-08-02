@@ -96,7 +96,7 @@ class _SeabornBase(StatsBase):
                 df["hue"] = hue
                 dfs.append(df)
 
-            pdata = pd.concat(dfs)
+            pdata = pd.concat(dfs).reset_index(drop=True)
             self.kws["hue"] = "hue"
             self.kws["hue_order"] = self.hue
             if self.get_orient() == "h":
@@ -123,7 +123,8 @@ class _SeabornBase(StatsBase):
             ax.invert_xaxis()
         # barplot(data=data, orient=orient, ax=ax, **self.kws)
         plotter = getattr(seaborn, self._seaborn_plot)
-
+        print(pdata)
+        print(options)
         plotter(data=pdata, orient=orient, ax=ax, **options)
         ax.set(xlabel=None, ylabel=None)
         leg = ax.get_legend()
