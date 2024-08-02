@@ -23,6 +23,8 @@ __all__ = [
     "Chunk",
     "FixedChunk",
     "Area",
+    "Image",
+    "Emoji",
 ]
 
 from ._seaborn import Bar, Box, Boxen, Violin, Point, Strip, Swarm
@@ -33,5 +35,5 @@ from .bio import SeqLogo
 from .mesh import Colors, ColorMesh, SizedMesh, MarkerMesh, TextMesh
 from .text import Labels, AnnoLabels, Title, Chunk, FixedChunk
 
-from ._images import Emoji, Image
+from .images import Emoji, Image
 from .area import Area
