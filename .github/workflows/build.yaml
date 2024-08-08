@@ -56,7 +56,7 @@ jobs:
       - name: Install Hatch
         uses: pypa/hatch@install
 
-      - name: Publish to test.ipynb pypi
+      - name: Publish to test pypi
         env:
           HATCH_INDEX_REPO: https://test.pypi.org/legacy/
           HATCH_INDEX_USER: __token__
