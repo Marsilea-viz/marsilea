@@ -10,15 +10,15 @@ BASE_URL = "https://raw.githubusercontent.com/Marsilea-viz/marsilea-data/main"
 def load_data(name, cache=True):
     """To load marsilea dataset
 
-    - 'cooking_oils': Cooking oils dataset
-    - 'imdb': The IMDB Top 100 Movies
-    - 'pbmc3k': single-cell RNA-seq dataset from 10X Genomics
-    - 'oncoprint': Subsample of Breast Invasive Carcinoma
-                (TCGA, PanCancer Atlas)
-    - 'mouse_embryo': Spatial mapping of mouse embryo at E12.5
-    - 'seq_align': Sequence alignment data
-    - 'les_miserables': Characters in Les Misérables
-    - 'sc_multiomics': Single-cell multi-omics dataset from COVID-19 patients
+    - `cooking_oils`: Cooking oils dataset
+    - `imdb`: The IMDB Top 100 Movies
+    - `pbmc3k`: single-cell RNA-seq dataset from 10X Genomics
+    - `oncoprint`: Subsample of Breast Invasive Carcinoma (TCGA, PanCancer Atlas)
+    - `mouse_embryo`: Spatial mapping of mouse embryo at E12.5
+    - `seq_align`: Sequence alignment data
+    - `les_miserables`: Characters in Les Misérables
+    - `sc_multiomics`: Single-cell multi-omics dataset from COVID-19 patients
+    - `track`: Track data from GEO GSE137105 for MYC gene
 
     Parameters
     ----------
@@ -47,6 +47,8 @@ def load_data(name, cache=True):
         return _load_cooking_oils(cache)
     elif name == "les_miserables":
         return _load_les_miserables(cache)
+    elif name == "track":
+        return _load_track(cache)
     else:
         raise NameError("Dataset not found")
 
@@ -151,3 +153,8 @@ def _load_les_miserables(cache=True):
         cache=cache,
     )
     return {"nodes": pd.read_csv(nodes), "links": pd.read_csv(links)}
+
+
+def _load_track(cache=True):
+    data = _cache_remote("track.parquet", cache=cache)
+    return pd.read_parquet(data)
