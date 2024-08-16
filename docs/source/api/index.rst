@@ -236,6 +236,7 @@ Other plots
     SeqLogo
     Image
     Emoji
+    Range
 
 
 Text Label
@@ -308,3 +309,13 @@ Render plan
     RenderPlan
     RenderSpec
 
+Datasets
+========
+
+.. currentmodule:: marsilea
+.. autosummary::
+    :toctree: APIs/
+    :template: autosummary.rst
+    :nosignatures:
+
+    load_data

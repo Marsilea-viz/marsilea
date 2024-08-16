@@ -25,6 +25,7 @@ __all__ = [
     "Area",
     "Image",
     "Emoji",
+    "Range",
 ]
 
 from ._seaborn import Bar, Box, Boxen, Violin, Point, Strip, Swarm
@@ -37,3 +38,4 @@ from .text import Labels, AnnoLabels, Title, Chunk, FixedChunk
 
 from .images import Emoji, Image
 from .area import Area
+from .range import Range
