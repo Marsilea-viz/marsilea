@@ -20,7 +20,7 @@ requires-python = ">=3.8"
 urls = {Home="https://github.com/Marsilea-viz/marsilea"}
 dependencies = [
     "numpy",
-    "pandas",
+    "pandas[parquet]",
     "matplotlib>=3.6",
     "seaborn",
     "scipy",
