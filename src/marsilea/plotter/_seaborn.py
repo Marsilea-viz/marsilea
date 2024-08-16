@@ -123,8 +123,6 @@ class _SeabornBase(StatsBase):
             ax.invert_xaxis()
         # barplot(data=data, orient=orient, ax=ax, **self.kws)
         plotter = getattr(seaborn, self._seaborn_plot)
-        print(pdata)
-        print(options)
         plotter(data=pdata, orient=orient, ax=ax, **options)
         ax.set(xlabel=None, ylabel=None)
         leg = ax.get_legend()
