@@ -8,6 +8,7 @@
 
 [![Documentation Status](https://img.shields.io/readthedocs/marsilea?color=57B77E&logo=readthedocs&logoColor=white&style=flat-square)](https://marsilea.readthedocs.io/en/stable)
 ![pypi version](https://img.shields.io/pypi/v/marsilea?color=0098FF&logo=python&logoColor=white&style=flat-square)
+![Conda Version](https://img.shields.io/conda/vn/conda-forge/marsilea?style=flat-square&logo=anaconda&logoColor=white&color=%2344A833)
 ![PyPI - License](https://img.shields.io/pypi/l/marsilea?color=FFD43B&style=flat-square)
 
 # Marsilea: Declarative creation of composable visualization!
@@ -22,8 +23,15 @@ You can read the documentation on Read the Docs.
 
 ## Installation
 
+### Using PIP
 ```shell
 pip install marsilea
+```
+### Using Conda/Mamba
+```shell
+conda install -c conda-forge marsilea
+# or
+mamba install -c conda-forge marsilea
 ```
 
 ## What is Composable Visualization?
