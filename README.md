@@ -6,7 +6,7 @@
   </picture>
 </p>
 
-[![Documentation Status](https://img.shields.io/readthedocs/marsilea?color=57B77E&logo=readthedocs&logoColor=white&style=flat-square)](https://marsilea.readthedocs.io/en/stable)
+[![Documentation Status](https://readthedocs.org/projects/marsilea/badge/?version=stable&style=flat-square)](https://marsilea.readthedocs.io/en/stable)
 ![pypi version](https://img.shields.io/pypi/v/marsilea?color=0098FF&logo=python&logoColor=white&style=flat-square)
 ![Conda Version](https://img.shields.io/conda/vn/conda-forge/marsilea?style=flat-square&logo=anaconda&logoColor=white&color=%2344A833)
 ![PyPI - License](https://img.shields.io/pypi/l/marsilea?color=FFD43B&style=flat-square)
