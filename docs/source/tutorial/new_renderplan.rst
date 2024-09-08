@@ -126,7 +126,7 @@ Now we try add it to the left again.
 
     >>> h = ma.Heatmap(data)
     >>> h.add_left(Lollipop(lp_data))
-    >>> h.hsplit(cut=[5, 10])
+    >>> h.cut_rows(cut=[5, 10])
     >>> h.render()
 
 

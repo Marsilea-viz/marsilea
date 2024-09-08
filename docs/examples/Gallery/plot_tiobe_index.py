@@ -27,8 +27,18 @@ plt.rcParams["font.size"] = 12
 # ---------
 
 data = {
-    "Programming Language": ["Python", "C++", "C", "Java", "C#", "JavaScript",
-                             "Go", "Visual Basic", "Fortran", "SQL"],
+    "Programming Language": [
+        "Python",
+        "C++",
+        "C",
+        "Java",
+        "C#",
+        "JavaScript",
+        "Go",
+        "Visual Basic",
+        "Fortran",
+        "SQL",
+    ],
     "Ratings": [16.12, 10.34, 9.48, 8.59, 6.72, 3.79, 2.19, 2.08, 2.05, 2.04],
 }
 data = pd.DataFrame(data).set_index("Programming Language")
@@ -50,8 +60,10 @@ images = {
 # Plot
 c = ma.ZeroWidth(5)
 c.add_right(mp.Image([images[lang] for lang in data.index]))
-c.add_left(mp.Labels(data.index, fontweight=600), pad=.1)
-c.add_right(mp.Numbers(data['Ratings'], color="#009FBD", label="Rating"), pad=.1)
-c.add_title("https://www.tiobe.com/tiobe-index/", align="left", fontsize=10, fontstyle="italic")
+c.add_left(mp.Labels(data.index, fontweight=600), pad=0.1)
+c.add_right(mp.Numbers(data["Ratings"], color="#009FBD", label="Rating"), pad=0.1)
+c.add_title(
+    "https://www.tiobe.com/tiobe-index/", align="left", fontsize=10, fontstyle="italic"
+)
 c.add_title("TIOBE Index July 2024", align="left", fontweight=600)
 c.render()

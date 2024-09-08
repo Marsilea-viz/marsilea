@@ -98,7 +98,7 @@ order = [
     "150-199 °C (Light saute)",
     "<150 °C (Dressings)",
 ]
-cb.hsplit(labels=oils["cooking conditions"], order=order)
+cb.group_rows(oils["cooking conditions"], order=order)
 cb.add_left(conditions, pad=0.1)
 cb.add_dendrogram(
     "left", add_meta=False, colors=colors, linewidth=1.5, size=0.5, pad=0.02

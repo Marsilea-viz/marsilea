@@ -58,7 +58,7 @@ with mpl.rc_context({"font.size": 14}):
             "title": "% expression in group",
         },
     )
-    gene_profile.hsplit(labels=lineage_cells, order=lineage)
+    gene_profile.group_rows(lineage_cells, order=lineage)
     gene_profile.add_left(ma.plotter.Chunk(lineage, lineage_colors, padding=10))
     gene_profile.add_dendrogram(
         "left",
@@ -103,7 +103,7 @@ with mpl.rc_context({"font.size": 14}):
             "title": "% expression in group",
         },
     )
-    protein_profile.hsplit(labels=lineage_cells, order=lineage)
+    protein_profile.group_rows(lineage_cells, order=lineage)
     protein_profile.add_bottom(
         ma.plotter.Labels(marker_names, color="#E36414", align="bottom", padding=10)
     )

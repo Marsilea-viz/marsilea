@@ -60,7 +60,7 @@ to retrieve the named axes.
     :context: close-figs
 
     >>> h = ma.Heatmap(data, linewidth=1)
-    >>> h.hsplit(cut=[5])
+    >>> h.cut_rows(cut=[5])
     >>> bar = ma.plotter.Numbers(np.arange(20))
     >>> h.add_right(bar, name="My Bar")
     >>> h.render()

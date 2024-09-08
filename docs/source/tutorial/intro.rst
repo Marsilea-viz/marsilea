@@ -3,28 +3,19 @@ Introduction: Basic Concepts
 
 .. py:currentmodule:: marsilea
 
-Marsilea is a powerful Python package that allows you to effortlessly
-create visually appealing X-layout visualization. X-layout visualization is
-designed specifically for multi-feature dataset.
+Marsilea is a powerful Python package that helps you to create
+composable visualizations with ease. It's built on top of Matplotlib, but you don't need to
+know the details of Matplotlib to use Marsilea.
 
 This tutorial will guide you through the basic operation
-for creating a x-layout visualization.
+on building a composable visualization.
 
 
 Prerequisites
 -------------
 
 This tutorial assumes that you have basic knowledge of Python,
-and you know how to use NumPy and Matplotlib.
-
-If you are not familiar with these packages, you can check out the following links:
-
-- `NumPy <https://numpy.org/>`_
-- `Matplotlib <https://matplotlib.org/>`_
-
-It's recommended that you should be familiar with
-the concept of :class:`Figure <matplotlib.figure.Figure>` and
-:class:`Axes <matplotlib.axes.Axes>` in Matplotlib.
+and you have basic knowledge of `numpy <https://numpy.org/>`_.
 
 Create main visualization
 -------------------------
@@ -32,20 +23,21 @@ Create main visualization
 .. plot::
     :context: close-figs
 
+    >>> import numpy as np
     >>> import marsilea as ma
     >>> import marsilea.plotter as mp
 
     The shorthand convention for Marsilea is :code:`ma` and for plotter is :code:`mp`.
 
     >>> data = np.random.randn(10, 6)
-    >>> cb = ma.ClusterBoard(data, height=2, margin=.5)
+    >>> cb = ma.ClusterBoard(data, height=2, margin=0.5)
     >>> cb.add_layer(mp.Violin(data, color="#FF6D60"))
     >>> cb.render()
 
 Firstly, we create a :class:`ClusterBoard <marsilea.base.ClusterBoard>` to
 draw the main visualization.
 It's an empty canvas that allows you to append plots to it.
-The canvas is initialized with height of 2 and margin of .5.
+The canvas is initialized with height of 2 and margin of 0.5.
 The margin can be used to reserve white space around the canvas to avoid
 clipping of visualization when you save the plot.
 In Marsilea, if not specified, the unit is **inches**.
@@ -68,7 +60,7 @@ Grouping
     >>> cb.render()
 
 We use :meth:`group_cols() <marsilea.base.ClusterBoard.group_cols>` to split the canvas into three groups.
-The :code:`labels` parameter specifies the gr oup for each column.
+The :code:`group` parameter specifies the gr oup for each column.
 The :code:`order` parameter specifies the order of the groups that will present in the plot.
 Let's add side plots to the groups to make it more visually distinct.
 Here the spacing is the fraction of the width of the canvas.
@@ -107,13 +99,13 @@ Hierarchical Clustering
     >>> cb.add_dendrogram("bottom", colors="g")
     >>> cb.render()
 
-We use :meth:`add_dendrogram() <marsilea.base.WhiteBoard.add_dendrogram>` to
+We use :meth:`add_dendrogram() <marsilea.base.ClusterBoard.add_dendrogram>` to
 add a dendrogram to the bottom of the canvas.
 The dendrogram is a tree-like diagram that records the hierarchical clustering process.
 In Marsilea, the clustering can be performed on different visualizations not limited to
 heatmap.
 
-Here, you may notice that the order of the order of groups and
+Here, you may notice that the order of groups and
 the order within groups are automatically changed according
 to the clustering result.
 

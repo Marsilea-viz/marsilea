@@ -2,6 +2,7 @@
 Track Plot
 ==========
 """
+
 import marsilea as ma
 import marsilea.plotter as mp
 
@@ -42,8 +43,14 @@ for _, row in tracks.iterrows():
     name = f"{cond}{enz}"
     color = colors[enz]
     canvas.add_bottom(
-        mp.Area(track, color=color, add_outline=False, alpha=1,
-                label=cond, label_loc="right"),
+        mp.Area(
+            track,
+            color=color,
+            add_outline=False,
+            alpha=1,
+            label=cond,
+            label_loc="right",
+        ),
         size=TRACK_HEIGHT,
         pad=TRACK_PAD,
         name=name,

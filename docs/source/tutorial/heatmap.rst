@@ -169,7 +169,7 @@ You can easily split the heatmap into multiple groups.
 .. plot::
     :context: close-figs
 
-    >>> h.hsplit(labels=cat, order=["A", "B", "C"])
+    >>> h.group_rows(cat, order=["A", "B", "C"])
     >>> h.render()
 
 

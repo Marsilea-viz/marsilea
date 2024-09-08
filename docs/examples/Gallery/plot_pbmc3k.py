@@ -76,7 +76,7 @@ h.add_top(cell_exp, pad=0.1, size=0.75, name="exp")
 h.add_left(cell_types)
 h.add_bottom(gene_names)
 
-h.hsplit(labels=cell_cat, order=["Lymphoid", "Myeloid"])
+h.group_rows(cell_cat, order=["Lymphoid", "Myeloid"])
 h.add_left(mp.Chunk(["Lymphoid", "Myeloid"], ["#33A6B8", "#B481BB"]), pad=0.05)
 h.add_dendrogram("left", colors=["#33A6B8", "#B481BB"])
 h.add_dendrogram("bottom")

@@ -1,7 +1,7 @@
 Introduction: Real World Example
 ==================================
 
-Now that you get a general idea of how to create x-layout visualization
+Now that you get a general idea of how to create composable visualization
 in Marsilea. Let's apply it on a real dataset.
 
 Load Dataset
@@ -83,7 +83,7 @@ We split the data into groups based on the cooking conditions.
     >>> order=["Control", ">230 °C (Deep-frying)", "200-229 °C (Stir-frying)",
     ...        "150-199 °C (Light saute)", "<150 °C (Dressings)"]
     >>> group_color = ["#e5e7eb", "#c2410c", "#fb923c", "#fca5a5", "#fecaca"]
-    >>> cb.hsplit(labels=data['cooking conditions'], order=order)
+    >>> cb.group_rows(data['cooking conditions'], order=order)
 
     Add text to annotate the groups.
 
