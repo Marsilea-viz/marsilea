@@ -115,7 +115,7 @@ class RenderSpec:
     total: int = 1
 
     def __repr__(self):
-        return f"{self.__class__.__name__}({self.current_ix} -> {self.total})"
+        return f"{self.__class__.__name__}(id={self.current_ix}, total={self.total})"
 
     @property
     def is_first(self):
@@ -408,36 +408,6 @@ class RenderPlan:
                 f"with {self.__class__.__name__} at '{self.side}'"
             )
 
-    # def get_render_data(self):
-    #     """Define how render data is organized
-    #
-    #     The render data could be different depends on following situations:
-    #
-    #     #. Render at different sides: left, right, top, bottom and main canvas
-    #     #. The canvas is split or not
-    #
-    #     """
-    #     deform_func = self.get_deform_func()
-    #     data = self.get_data()
-    #     datasets = self.get_datasets()
-    #     if deform_func is None:
-    #         if data is not None:
-    #             return data
-    #         else:
-    #             return datasets
-    #     else:
-    #         if data is not None:
-    #             return deform_func(data)
-    #         elif datasets is not None:
-    #             return self.create_render_datasets(*datasets)
-
-    # def create_render_datasets(self, deform_func, *datasets):
-    #     datasets = [deform_func(d) for d in datasets]
-    #     if self.is_split:
-    #         return [d for d, in zip(*datasets)]
-    #     else:
-    #         return datasets
-
     @property
     def has_deform(self):
         """If the RenderPlan has Deformation"""
@@ -473,23 +443,6 @@ class RenderPlan:
         Define how the plot is drawn
         """
         pass
-
-    # def render_axes(self, axes):
-    #     """Use to render plots when the canvas is split
-    #
-    #     By default, it will match each data chunk to each axes
-    #
-    #     .. code-block:: python
-    #
-    #         for ax, data in zip(axes, self.get_render_data()):
-    #             self.render_ax(ax, data)
-    #
-    #     """
-    #     total = len(axes)
-    #     for ix, (ax, data) in enumerate(
-    #             zip_longest(axes, self.get_render_data())):
-    #         self.render_ax(RenderSpec(ax=ax, data=data,
-    #                                   current_ix=ix, total=total))
 
     def render(self, axes):
         """
@@ -553,13 +506,6 @@ class RenderPlan:
         if self.is_flank:
             return self._split_regroup[::-1]
         return self._split_regroup
-
-
-class AxisOption:
-    inverted: bool
-    label: str
-    visibility: bool
-    ticklabels: bool
 
 
 class StatsBase(RenderPlan):

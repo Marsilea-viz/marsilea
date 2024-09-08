@@ -54,20 +54,21 @@ class Range(StatsBase):
 
     """
 
-    def __init__(self,
-                 data,
-                 items=None,
-                 marker='o',
-                 markersize=50,
-                 color1='#F75940',
-                 color2='#3DC7BE',
-                 edgecolor1='black',
-                 edgecolor2='black',
-                 edgewidth=1,
-                 linecolor='black',
-                 linewidth=1,
-                 label=None,
-                 ):
+    def __init__(
+        self,
+        data,
+        items=None,
+        marker="o",
+        markersize=50,
+        color1="#F75940",
+        color2="#3DC7BE",
+        edgecolor1="black",
+        edgecolor2="black",
+        edgewidth=1,
+        linecolor="black",
+        linewidth=1,
+        label=None,
+    ):
         if isinstance(data, pd.DataFrame):
             if items is None:
                 items = data.columns
@@ -95,12 +96,28 @@ class Range(StatsBase):
         data = spec.data.T
 
         for ix, (r1, r2) in enumerate(data):
-            ix += .5
+            ix += 0.5
             x, y = [ix, ix], [r1, r2]
             if self.is_flank:
                 x, y = y, x
-            ax.scatter([x[0]], [y[0]], s=self.markersize, marker=self.marker, color=self.color1, edgecolor=self.edgecolor1, zorder=1)
-            ax.scatter([x[1]], [y[1]], s=self.markersize, marker=self.marker, color=self.color2, edgecolor=self.edgecolor2, zorder=1)
+            ax.scatter(
+                [x[0]],
+                [y[0]],
+                s=self.markersize,
+                marker=self.marker,
+                color=self.color1,
+                edgecolor=self.edgecolor1,
+                zorder=1,
+            )
+            ax.scatter(
+                [x[1]],
+                [y[1]],
+                s=self.markersize,
+                marker=self.marker,
+                color=self.color2,
+                edgecolor=self.edgecolor2,
+                zorder=1,
+            )
             ax.plot(x, y, color=self.linecolor, linewidth=self.linewidth, zorder=0)
 
         if self.is_flank:
@@ -111,4 +128,8 @@ class Range(StatsBase):
             ax.invert_xaxis()
 
     def get_legends(self):
-        return [cat_legend(colors=[self.color1, self.color2], labels=self.items, title=self.label)]
+        return [
+            cat_legend(
+                colors=[self.color1, self.color2], labels=self.items, title=self.label
+            )
+        ]

@@ -245,9 +245,9 @@ class _MarginMixin:
 
 
 class CrossLayout(_MarginMixin):
-    """The X-layout engine
+    """The cross-layout engine
 
-    This class implements the x-layout. The axes are added
+    This class implements the cross-layout. The axes are added
     incrementally to the main axes.
 
     - The size is always in the unit of inches
@@ -743,8 +743,8 @@ class CompositeCrossLayout(_MarginMixin):
         """Get the max extend of a side, the center is the
         main cell of the main layout, not the whole main layout
         legend axes included"""
-        # It's possible the left side of top x-layout
-        # is longer than the left x-layout
+        # It's possible the left side of top cross-layout
+        # is longer than the left cross-layout
 
         size = 0
         other_size = []
