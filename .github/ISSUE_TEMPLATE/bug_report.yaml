@@ -1,0 +1,56 @@
+name: Bug Report
+description: Report a bug on Marsilea
+title: "[BUG]: "
+labels: ["bug", "triage"]
+assignees:
+  - Mr-Milk
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Describe the bug
+      description: Describe what the bug is in 1-2 short sentences.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Code for reproduction
+      description: >-
+        If possible, please provide a minimum self-contained example. You can use synthetic datasets.
+      placeholder: Paste your code here. This field is automatically formatted as Python code.
+      render: Python
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual outcome
+      description: >-
+        Paste the output produced by the code provided above, e.g.
+        console output, images/videos produced by the code, any relevant screenshots/screencasts, etc.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected outcome
+      description: Describe (or provide a visual example of) the expected outcome from the code snippet.
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: Additional information
+      description: |
+        - What are the conditions under which this bug happens? input parameters, edge cases, etc?
+        - Has this worked in earlier versions?
+        - Do you know why this bug is happening?
+        - Do you maybe even know a fix?
+  - type: input
+    id: marsilea-version
+    attributes:
+      label: Marsilea Version
+      description: "From Python prompt: `import marsilea; print(marsilea.__version__)`"
+    validations:
+      required: true
