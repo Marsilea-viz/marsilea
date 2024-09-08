@@ -6,6 +6,7 @@ from legendkit import CatLegend
 from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
 from matplotlib.ticker import FuncFormatter
+from matplotlib.colors import is_color_like
 
 from ._utils import _format_labels
 from .base import StatsBase
@@ -67,7 +68,7 @@ class Numbers(_BarBase):
         1D data
     width : float
         The width of bar
-    color : color
+    color : color or list of color
         The color of bar
     show_value : bool
         Whether to show value on the bar
@@ -109,8 +110,6 @@ class Numbers(_BarBase):
         props=None,
         **kwargs,
     ):
-        self.set_data(self.data_validator(data, target="1d"))
-        self.color = color
         self.bars = None
 
         self._process_params(
@@ -118,9 +117,15 @@ class Numbers(_BarBase):
         )
         self.set_label(label, label_loc, label_props)
 
+        if is_color_like(color):
+            color = np.repeat(color, len(data))
+        else:
+            color = self.data_validator(color, target="1d")
+        self.set_data(self.data_validator(data, target="1d"), color)
+
     def render_ax(self, spec):
         ax = spec.ax
-        data = spec.data
+        data, color = spec.data
 
         lim = len(data)
         orient = self.get_orient()
@@ -128,7 +133,7 @@ class Numbers(_BarBase):
         if orient == "h":
             data = data[::-1]
         self.bars = bar(
-            np.arange(0, lim) + 0.5, data, self.width, color=self.color, **self.options
+            np.arange(0, lim) + 0.5, data, self.width, color=color, **self.options
         )
 
         if orient == "v":
