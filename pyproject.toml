@@ -41,7 +41,8 @@ dev = [
     "pydata-sphinx-theme",
     "sphinx-copybutton",
     "sphinx_gallery",
-    "mpl_fontkit"
+    "mpl_fontkit",
+    "pre-commit",
 ]
 
 [tool.hatch.version]
@@ -74,3 +75,5 @@ docstring-code-format = true
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]
+"docs/*" = ["E402", "E731"]
+"scripts/*" = ["E402", "E731"]
