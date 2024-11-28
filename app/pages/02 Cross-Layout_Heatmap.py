@@ -1,6 +1,7 @@
 import matplotlib as mpl
 import numpy as np
 import streamlit as st
+import textwrap
 from components.data_input import FileUpload
 from components.initialize import init_page
 from components.main_plots import MainHeatmap, MainSizedHeatmap, MainMark
@@ -14,7 +15,7 @@ import marsilea as hg
 init_page("X-Layout Heatmap")
 
 s = State(key="x-layout-heatmap")
-s.init_state(figure=None, data_loaded=False, error=False)
+s.init_state(figure=None, data_loaded=False, error=False, literal_codes=None)
 ds = DataStorage(key="x-layout-heatmap")
 
 st.title("X-Layout Visualization Creator")
@@ -214,26 +215,53 @@ if s["data_loaded"]:
             use_container_width=True,
         )
     if render:
+        literal_codes = (
+            "import marsilea as ma\n"
+            + "import marsilea.plotter as mp\n\n"
+            + f"h = hg.ClusterBoard(cluster_data=cluster_data, width={width}, height={height})\n"
+        )
+
         with mpl.rc_context({"font.family": font_family, "font.size": font_size}):
             h = hg.ClusterBoard(cluster_data=cluster_data, width=width, height=height)
             # apply main
             heatmap.apply(h)
+            literal_codes += textwrap.dedent(heatmap.literal_code("h"))
+
             sized_heatmap.apply(h)
+            literal_codes += textwrap.dedent(sized_heatmap.literal_code("h"))
+
             mark_heatmap.apply(h)
+            literal_codes += textwrap.dedent(mark_heatmap.literal_code("h"))
 
             # apply split
             hsplitter.apply(h)
+            literal_codes += textwrap.dedent(hsplitter.literal_code("h"))
+
             vsplitter.apply(h)
+            literal_codes += textwrap.dedent(vsplitter.literal_code("h"))
 
             # Add Side plot
             side_plotter.apply(h)
+            literal_codes += textwrap.dedent(side_plotter.literal_code("h"))
 
             h.add_legends()
             h.render()
+
+            literal_codes += "\nh.add_legends()"
+            literal_codes += "\nh.render()"
         s["figure"] = h.figure
+        s["literal_codes"] = literal_codes
 
     if s["figure"] is not None:
         st.pyplot(s["figure"])
+
+    if s["literal_codes"] is not None:
+        with st.expander("Reference Code"):
+            st.markdown(
+                "The following code may not work directly. "
+                "But it can be used to as a skeleton to reproduce the figure."
+            )
+            st.code(s["literal_codes"], language="python")
 
 with st.sidebar:
     ChartSaver(s["figure"])

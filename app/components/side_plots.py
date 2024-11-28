@@ -114,6 +114,20 @@ class PlotAdder:
             p = self.plotter(self.data, **self.get_options())
             h.add_plot(self.side, p, size=self.size, pad=self.pad)
 
+    def literal_code(self, canvas_var_name):
+        plotter_name = self.plotter.__name__
+
+        kwargs = []
+        for k, v in self.get_options().items():
+            if isinstance(v, str):
+                v = f"'{v}'"
+            kwargs.append(f"{k}={v}")
+        kwargs = ", ".join(kwargs)
+        return f"""
+                plotter = {plotter_name}({plotter_name}_data, {kwargs})
+                {canvas_var_name}.add_{self.side}(plotter, size={self.size}, pad={self.pad})
+                """
+
 
 class LabelAdder(PlotAdder):
     name = "Labels"
@@ -325,6 +339,21 @@ class DendrogramAdder(PlotAdder):
             linewidth=self.linewidth,
             add_divider=self.add_divider,
         )
+
+    def literal_code(self, canvas_var_name):
+        return f"""
+            {canvas_var_name}.add_dendrogram(
+                side='{self.side}',
+                method='{self.method}',
+                metric='{self.metric}',
+                add_base={self.add_base},
+                add_meta={self.add_meta},
+                meta_color='{self.meta_color}',
+                colors='{self.colors}',
+                linewidth={self.linewidth},
+                add_divider={self.add_divider},
+            )
+        """
 
 
 STATS_INPUT_HELP = (
@@ -804,6 +833,15 @@ class SidePlotAdder:
             for plotter in self.side_plotter[side]:
                 plotter.apply(h)
 
+    def literal_code(self, canvas_var_name):
+        import textwrap
+
+        literal_codes = ""
+        for side in self.side_options:
+            for plotter in self.side_plotter[side]:
+                literal_codes += textwrap.dedent(plotter.literal_code(canvas_var_name))
+        return literal_codes
+
 
 class Splitter:
     ready = False
@@ -871,10 +909,26 @@ class Splitter:
     def apply(self, h: ClusterBoard):
         if not self.ready:
             return
-        caller = h.hsplit if self.orient == "h" else h.vsplit
         if self.how == "By Position":
+            caller = h.cut_rows if self.orient == "h" else h.cut_cols
             caller(cut=self.cut, spacing=self.space / 100)
         else:
             if self.dataset_name != "":
                 labels = self.datastorage.get_datasets(self.dataset_name)
-                caller(labels=labels, order=self.order, spacing=self.space / 100)
+                caller = h.group_rows if self.orient == "h" else h.group_cols
+                caller(group=labels, order=self.order, spacing=self.space / 100)
+
+    def literal_code(self, canvas_var_name):
+        if not self.ready:
+            return ""
+        if self.how == "By Position":
+            code = f"""
+            h.cut_rows(cut={self.cut}, spacing={self.space / 100})
+            """
+        else:
+            if self.dataset_name != "":
+                code = f"""
+                labels = datastorage.get_datasets("{self.dataset_name}")
+                h.group_rows(group=labels, order={self.order}, spacing={self.space / 100})
+                """
+        return code

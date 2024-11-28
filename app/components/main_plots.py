@@ -62,6 +62,9 @@ class MainPlotter:
     def apply(self, h):
         pass
 
+    def literal_code(self, canvas_var_name):
+        return ""
+
 
 class MainHeatmap(MainPlotter):
     annot: bool
@@ -101,6 +104,21 @@ class MainHeatmap(MainPlotter):
                 label=self.label,
             )
             h.add_layer(mesh, zorder=self.zorder)
+
+    def literal_code(self, canvas_var_name):
+        code = f"""
+            mesh = ColorMesh(
+                data=colormesh_data,
+                cmap='{self.cmap.name}',
+                norm={self.norm},
+                linewidth={self.linewidth},
+                annot={self.annot},
+                annot_kws=dict(fontsize={self.fontsize}),
+                label={self.label},
+            )
+            {canvas_var_name}.add_layer(mesh, zorder={self.zorder})
+        """
+        return code
 
 
 MARKER_OPTIONS = {
@@ -287,3 +305,17 @@ class MainMark(MainPlotter):
             )
             legend = self.label != ""
             h.add_layer(mesh, zorder=self.zorder, legend=legend)
+
+    def literal_code(self, canvas_var_name):
+        code = f"""
+        mesh = mp.MarkerMesh(
+            data=markermesh_data,
+            color='{self.color}',
+            marker='{self.marker}',
+            size={self.marker_size},
+            label={self.label},
+        )
+        legend = {self.label != ""}
+        {canvas_var_name}.add_layer(mesh, zorder={self.zorder}, legend=legend)
+        """
+        return code

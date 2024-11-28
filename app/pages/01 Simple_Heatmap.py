@@ -1,6 +1,7 @@
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import streamlit as st
+import textwrap
 from components.cmap_selector import ColormapSelector
 from components.data_input import FileUpload
 from components.initialize import enable_nested_columns
@@ -24,6 +25,7 @@ s.init_state(
     datasets=[],
     figure=None,
     error=False,
+    literal_codes=None,
 )
 
 st.title("Simple Heatmap")
@@ -184,6 +186,20 @@ if s["data"] is not None:
         )
 
     if render:
+        literal_codes = f"""
+        import marsilea as ma
+        import marsilea.plotter as mp
+        
+        h = ma.Heatmap(
+            data=main_data, 
+            cmap="{s["cmap"].name}", 
+            norm={s["norm"]}, 
+            width={width}, 
+            height={height}
+        )
+        """
+        literal_codes = textwrap.dedent(literal_codes)
+
         with mpl.rc_context({"font.family": font_family, "font.size": font_size}):
             h = hg.Heatmap(
                 data=main_data,
@@ -196,39 +212,50 @@ if s["data"] is not None:
                 metric = "euclidean"
             if cluster == "Row":
                 h.add_dendrogram("left", method=method, metric=metric, size=row_size)
+                literal_codes += f"h.add_dendrogram('left', method='{method}', metric='{metric}', size={row_size})\n"
             elif cluster == "Column":
                 h.add_dendrogram("top", method=method, metric=metric, size=col_size)
+                literal_codes += f"h.add_dendrogram('top', method='{method}', metric='{metric}', size={col_size})\n"
             elif cluster == "Both":
                 h.add_dendrogram("left", method=method, metric=metric, size=row_size)
                 h.add_dendrogram("top", method=method, metric=metric, size=col_size)
+                literal_codes += f"h.add_dendrogram('left', method='{method}', metric='{metric}', size={row_size})\n"
+                literal_codes += f"h.add_dendrogram('top', method='{method}', metric='{metric}', size={col_size})\n"
 
             if add_row_labels:
                 if len(row_marks) > 0:
                     row_label_plot = AnnoLabels(
                         row_labels, mark=row_marks, fontsize=font_size
                     )
+                    literal_codes += f"row_label_plot = mp.AnnoLabels(row_labels, mark={row_marks}, fontsize={font_size})\n"
                 else:
                     row_label_plot = Labels(
                         row_labels, padding=1, rotation=row_rotation, fontsize=font_size
                     )
+                    literal_codes += f"row_label_plot = mp.Labels(row_labels, padding=1, rotation={row_rotation}, fontsize={font_size})\n"
                 h.add_right(row_label_plot)
+                literal_codes += "h.add_right(row_label_plot)\n"
             if add_col_labels:
                 kws = dict()
                 if len(col_marks) > 0:
                     col_label_plot = AnnoLabels(
                         col_labels, mark=col_marks, fontsize=font_size
                     )
+                    literal_codes += f"col_label_plot = mp.AnnoLabels(col_labels, mark={col_marks}, fontsize={font_size})\n"
                 else:
                     col_label_plot = Labels(
                         col_labels, padding=1, rotation=col_rotation, fontsize=font_size
                     )
+                    literal_codes += f"col_label_plot = mp.Labels(col_labels, padding=1, rotation={col_rotation}, fontsize={font_size})\n"
                 h.add_bottom(col_label_plot)
+                literal_codes += "h.add_bottom(col_label_plot)\n"
             if heatmap_title != "":
                 h.add_plot(
                     title_side,
                     Title(heatmap_title, align=title_align, fontsize=title_fontsize),
                     pad=0.1,
                 )
+                literal_codes += f"h.add_plot('{title_side}', mp.Title('{heatmap_title}', align='{title_align}', fontsize={title_fontsize}), pad=0.1)\n"
 
             h.add_legends()
             if s["figure"] is not None:
@@ -236,8 +263,17 @@ if s["data"] is not None:
             h.render()
             s["figure"] = h.figure
 
+            literal_codes = textwrap.dedent(literal_codes)
+            literal_codes += "\nh.add_legends()"
+            literal_codes += "\nh.render()"
+            s["literal_codes"] = literal_codes
+
     if s["figure"] is not None:
         st.pyplot(s["figure"])
+
+    if s["literal_codes"] is not None:
+        with st.expander("Reference Code"):
+            st.code(s["literal_codes"])
 
 with st.sidebar:
     ChartSaver(s["figure"])

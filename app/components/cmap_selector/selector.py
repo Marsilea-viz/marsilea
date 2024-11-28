@@ -2,13 +2,22 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import streamlit as st
-from matplotlib.cm import get_cmap
 from matplotlib.colors import (
     LinearSegmentedColormap,
     Normalize,
     CenteredNorm,
     TwoSlopeNorm,
 )
+
+
+def get_colormap(cmap):
+    try:
+        return mpl.colormaps.get_cmap(cmap)
+    except AttributeError:
+        try:
+            return mpl.colormaps.get(cmap)
+        except AttributeError:
+            return mpl.cm.get_cmap(cmap)
 
 
 @st.cache_data
@@ -72,7 +81,7 @@ class ColormapSelector:
                     help="The preset colormap are illuminated "
                     "compensated for best visual effect",
                 )
-                cmap = get_cmap(cmap)
+                cmap = get_colormap(cmap)
                 if self.reverse:
                     cmap = cmap.reversed()
                 self.cmap = cmap
