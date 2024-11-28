@@ -218,7 +218,7 @@ if s["data_loaded"]:
         literal_codes = (
             "import marsilea as ma\n"
             + "import marsilea.plotter as mp\n\n"
-            + f"h = hg.ClusterBoard(cluster_data=cluster_data, width={width}, height={height})\n"
+            + f"h = ma.ClusterBoard(cluster_data=cluster_data, width={width}, height={height})\n"
         )
 
         with mpl.rc_context({"font.family": font_family, "font.size": font_size}):
