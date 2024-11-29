@@ -19,19 +19,25 @@ class InputBase:
         pass
 
     def seperator(self):
-        sep_options = {"Tab (\\t)": "\t", "Comma (,)": ",", "Space (' ')": " "}
+        sep_options = {
+            "Auto": None,
+            "Tab (\\t)": "\t",
+            "Comma (,)": ",",
+            "Space (' ')": " ",
+        }
         user_sep = st.selectbox("Seperator", key=self.key, options=sep_options.keys())
         self.sep = sep_options[user_sep]
 
 
 @st.cache_data
-def parse_file(file, header=False, index=False, sheet_name=0):
+def parse_file(file, header=False, index=False, sheet_name=0, sep=None):
     index_col = None if not index else 0
     suffix = file.name.split(".")[-1]
     if suffix in ["csv", "txt", "tsv"]:
         header = None if not header else "infer"
         reader = pd.read_csv
-        sep = "," if suffix == "csv" else "\t"
+        if sep is None:
+            sep = "," if suffix == "csv" else "\t"
         kws = dict(sep=sep, header=header, index_col=index_col)
     else:
         header = None if not header else 0
@@ -55,6 +61,7 @@ class FileUpload(InputBase):
             label_visibility="collapsed",
             type=["txt", "csv", "xlsx"],
         )
+        self.seperator()
 
         if index & header:
             h1, h2 = st.columns(2)
@@ -101,6 +108,7 @@ class FileUpload(InputBase):
                 header=self.header,
                 index=self.index,
                 sheet_name=self.sheet_name,
+                sep=self.sep,
             )
 
     def parse(self) -> np.ndarray:
