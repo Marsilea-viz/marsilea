@@ -16,7 +16,7 @@ from matplotlib.figure import Figure
 from ._deform import Deformation
 from .dendrogram import Dendrogram
 from .exceptions import SplitTwice, DuplicatePlotter
-from .layout import CrossLayout, CompositeCrossLayout
+from .layout import CrossLayout, CompositeCrossLayout, StackCrossLayout
 from .plotter import RenderPlan, Title, SizedMesh
 from .utils import pairwise, batched, get_plot_name, _check_side
 
@@ -47,7 +47,7 @@ def get_breakpoints(arr):
 class LegendMaker:
     """The factory class to handle legends"""
 
-    layout: CrossLayout | CompositeCrossLayout
+    layout: CrossLayout | CompositeCrossLayout | StackCrossLayout
     _legend_box: List[Artist] = None
     _legend_name: str = None
 
@@ -711,20 +711,47 @@ class ZeroHeight(WhiteBoard):
 
 
 class CompositeBoard(LegendMaker):
+    """Layout multiple canvas
+
+    Parameters
+    ----------
+    main_board : :class:`WhiteBoard` or :class:`ClusterBoard`
+        The main canvas
+    keep_legends : bool, default: False
+        Whether to keep the legends in each canvas
+        If False, you can group all legends with `.add_legends()`
+    align_main : bool, default: True
+        Whether to force the size of other canvas to align with the main canvas
+    margin : float, default: 0
+        The margin space reserved around the whole canvas
+
+    """
+
     layout: CompositeCrossLayout = None
     figure: Figure = None
 
-    def __init__(self, main_board: WhiteBoard):
+    def __init__(
+        self,
+        main_board: WhiteBoard,
+        keep_legends=False,
+        align_main=True,
+        margin=0,
+    ):
+        self.keep_legends = keep_legends
+
         self.main_board = self.new_board(main_board)
-        # self.main_board.remove_legends()
-        self.layout = CompositeCrossLayout(self.main_board.layout)
+        if not keep_legends:
+            self.main_board.remove_legends()
+        self.layout = CompositeCrossLayout(
+            self.main_board.layout, align_main=align_main, margin=margin
+        )
         self._board_list = [self.main_board]
+
         super().__init__()
 
-    @staticmethod
-    def new_board(board):
+    def new_board(self, board):
         board = deepcopy(board)
-        if isinstance(board, LegendMaker):
+        if not self.keep_legends & isinstance(board, LegendMaker):
             board.remove_legends()
         return board
 
@@ -736,13 +763,16 @@ class CompositeBoard(LegendMaker):
         """Define behavior that vertical appends two grid"""
         return self.append("bottom", other)
 
-    def append(self, side, other):
+    def append(self, side, other, pad=0):
         if isinstance(other, Number):
             self.layout.append(side, other)
         else:
             board = self.new_board(other)
             self._board_list.append(board)
             self.layout.append(side, board.layout)
+
+        if pad > 0:
+            self.layout.append(side, pad)
         return self
 
     def render(self, figure=None, scale=1):
@@ -776,6 +806,92 @@ class CompositeBoard(LegendMaker):
 
     def get_ax(self, board_name, ax_name):
         return self.layout.get_ax(board_name, ax_name)
+
+    def get_main_ax(self, name):
+        return self.layout.get_main_ax(name)
+
+    def set_margin(self, margin):
+        self.layout.set_margin(margin)
+
+
+class StackBoard(LegendMaker):
+    """Stack multiple boards
+
+    Parameters
+    ----------
+    boards : list of :class:`WhiteBoard`, :class:`StackBoard`
+
+    """
+
+    def __init__(
+        self,
+        boards: List[WhiteBoard, StackBoard],
+        direction="horizontal",
+        align="center",
+        spacing=0.2,
+        margin=0,
+        keep_legends=False,
+    ):
+        self.keep_legends = keep_legends
+        board_list = []
+        layouts = []
+        for board in boards:
+            board = self.new_board(board)
+            board_list.append(board)
+            layouts.append(board.layout)
+
+        self.layout = StackCrossLayout(
+            layouts, margin=margin, direction=direction, align=align, spacing=spacing
+        )
+
+        self._board_list = board_list
+        super().__init__()
+
+    # To mimic the board API
+    def _freeze_flex_plots(self, figure):
+        for board in self._board_list:
+            board._freeze_flex_plots(figure)
+
+    def new_board(self, board):
+        board = deepcopy(board)
+        if not self.keep_legends & isinstance(board, LegendMaker):
+            board.remove_legends()
+        return board
+
+    def render(self, figure=None, scale=1):
+        if figure is None:
+            figure = plt.figure()
+        self._freeze_legend(figure)
+        for board in self._board_list:
+            board._freeze_flex_plots(figure)
+        self.layout.freeze(figure=figure, scale=scale)
+        self.figure = figure
+        for board in self._board_list:
+            board.render(figure=self.figure)
+
+        self._render_legend()
+
+    def save(self, fname, **kwargs):
+        if self.figure is not None:
+            save_options = dict(bbox_inches="tight")
+            save_options.update(kwargs)
+            self.figure.savefig(fname, **save_options)
+        else:
+            warnings.warn(
+                "Figure does not exist, " "please render it before saving as file."
+            )
+
+    def get_legends(self):
+        legends = {}
+        for m in self._board_list:
+            legends.update(m.get_legends())
+        return legends
+
+    def get_ax(self, board_name, ax_name):
+        return self.layout.get_ax(board_name, ax_name)
+
+    def get_main_ax(self, name):
+        return self.layout.get_main_ax(name)
 
     def set_margin(self, margin):
         self.layout.set_margin(margin)

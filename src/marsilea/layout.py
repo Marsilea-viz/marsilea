@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-import numpy as np
 from dataclasses import dataclass
+from numbers import Number
+from typing import List, Dict, Literal
+from uuid import uuid4
+
+import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.axes import Axes
-from numbers import Number
-from typing import List, Dict
-from uuid import uuid4
 
 from .exceptions import AppendLayoutError, DuplicateName
 from .utils import _check_side
@@ -16,7 +17,7 @@ from .utils import _check_side
 # 1. Size is inch unit
 # 2. Origin point is left-bottom
 
-# Axes is a rect, a rect can be recorded by a left-bottom anchor point
+# Axes is a  rect, a rect can be recorded by a left-bottom anchor point
 # and width and height. When other axes is added, the anchor point is aligned
 # to either x-axis or y-axis, we could easily compute the final anchor point
 # if we know the size of added axes
@@ -443,7 +444,7 @@ class CrossLayout(_MarginMixin):
             if self.is_composite:
                 return self.get_bbox_size()
             w, h = self.get_bbox_size()
-            return (w + self.get_margin_w(), h + self.get_margin_h())
+            return w + self.get_margin_w(), h + self.get_margin_h()
 
         else:
             ox, oy = self.anchor
@@ -514,6 +515,11 @@ class CrossLayout(_MarginMixin):
     def set_anchor(self, anchor):
         self.anchor = anchor
 
+    def set_bbox_anchor(self, anchor):
+        xoff = self.margin.left + self.get_side_size("left")
+        yoff = self.margin.bottom + self.get_side_size("bottom")
+        self.anchor = anchor[0] + xoff, anchor[1] + yoff
+
     def set_figsize(self, figsize):
         self.figsize = figsize
 
@@ -578,12 +584,13 @@ class CrossLayout(_MarginMixin):
         """
         # If not composed, update the figsize
         if not self.is_composite:
-            self.figsize = np.array(self.get_figure_size()) * scale
+            self.figsize = np.array(self.get_figure_size())
+        figsize = self.figsize * scale
         if figure is None:
-            figure = plt.figure(figsize=self.figsize)
+            figure = plt.figure(figsize=figsize)
         else:
             if not self.is_composite:
-                figure.set_size_inches(*self.figsize)
+                figure.set_size_inches(*figsize)
 
         main_anchor = self.get_main_anchor()
         self.set_layout(main_anchor)
@@ -647,6 +654,12 @@ def close_ticks(ax):
     )
 
 
+def _reset_layout(layout: CrossLayout):
+    layout.set_anchor((0, 0))
+    layout.is_composite = True
+    return layout
+
+
 @dataclass
 class _LegendAxes:
     side: str
@@ -673,8 +686,8 @@ class CompositeCrossLayout(_MarginMixin):
 
     figure = None
 
-    def __init__(self, main_layout, margin=0) -> None:
-        self.main_layout = self._reset_layout(main_layout)
+    def __init__(self, main_layout, margin=0, align_main=True) -> None:
+        self.main_layout = _reset_layout(main_layout)
         self.main_cell_height = self.main_layout.get_main_height()
         self.main_cell_width = self.main_layout.get_main_width()
         self._side_layouts: Dict[str, List[CrossLayout]] = {
@@ -686,12 +699,7 @@ class CompositeCrossLayout(_MarginMixin):
         self._legend_axes = None
         self.layouts = {self.main_layout.main_cell.name: self.main_layout}
         self.set_margin(margin)
-
-    @staticmethod
-    def _reset_layout(layout):
-        layout.set_anchor((0, 0))
-        layout.is_composite = True
-        return layout
+        self.align_main = align_main
 
     def append(self, side, other):
         _check_side(side)
@@ -709,10 +717,11 @@ class CompositeCrossLayout(_MarginMixin):
             other.is_composite = True
             self._side_layouts[side].append(other)
         elif isinstance(other, CrossLayout):
-            adjust = "height" if side in ["left", "right"] else "width"
-            other = self._reset_layout(other)
-            adjust_size = getattr(self, f"main_cell_{adjust}")
-            getattr(other, f"set_main_{adjust}").__call__(adjust_size)
+            other = _reset_layout(other)
+            if self.align_main:
+                adjust = "height" if side in ["left", "right"] else "width"
+                adjust_size = getattr(self, f"main_cell_{adjust}")
+                getattr(other, f"set_main_{adjust}").__call__(adjust_size)
             self._side_layouts[side].append(other)
             self.layouts[other.main_cell.name] = other
         else:
@@ -920,3 +929,325 @@ class CompositeCrossLayout(_MarginMixin):
 
     def get_ax(self, layout_name, ax_name):
         return self.layouts[layout_name].get_ax(ax_name)
+
+    def get_main_ax(self, layout_name):
+        return self.layouts[layout_name].get_main_ax()
+
+
+class StackCrossLayout(_MarginMixin):
+    """A stack of cross layouts
+
+    This class allow users to stack multiple cross layouts
+    either horizontally or vertically
+
+    Multiple StackCrossLayout can also be stacked
+
+    .. warning::
+        This class are not supposed to be used directly by user
+
+    Parameters
+    ----------
+    layouts : list of :class:`CrossLayout`, :class:`StackCrossLayout`
+        The layouts to be stacked
+    direction : {"horizontal", "vertical"}
+        The direction of the stack, horizontal will stack from left to right
+        vertical will stack from top to bottom
+    align : {"center", "bottom", "top", "left", "right"}
+        The alignment of the stack, the default is center
+
+    """
+
+    _direction_align = {
+        "horizontal": {"center", "top", "bottom"},
+        "vertical": {"center", "left", "right"},
+    }
+
+    def __init__(
+        self,
+        layouts: List[CrossLayout | StackCrossLayout],
+        direction="horizontal",
+        align: Literal["center", "bottom", "top", "left", "right"] = "center",
+        spacing=0,
+        margin=0,
+        name=None,
+    ):
+        # Check the direction and align
+        if direction not in self._direction_align:
+            raise ValueError(f"Invalid direction {direction}")
+        if align not in self._direction_align[direction]:
+            raise ValueError(
+                f"When setting direction={direction}, "
+                f"align must be one of {self._direction_align[direction]}"
+            )
+
+        self.layouts = []
+        self._layouts_mapper = {}
+        for layout in layouts:
+            layout = _reset_layout(layout)
+            self.layouts.append(layout)
+            if hasattr(layout, "name"):
+                self._layouts_mapper[layout.name] = layout
+            else:
+                self._layouts_mapper[layout.main_cell.name] = layout
+        self.direction = direction
+        self.align = align
+        self.spacing = spacing
+        if name is None:
+            name = uuid4().hex
+        self.name = name
+        self.set_margin(margin)
+        self.is_composite = False
+        self.figure = None
+        self.figsize = None
+        # The left bottom anchor point of the layout
+        self.anchor = None
+        self._legend_axes = None
+
+    def remove_legend_ax(self):
+        self._legend_axes = None
+        for layout in self.layouts:
+            layout.remove_legend_ax()
+
+    def _get_layout_widths(self):
+        return [layout.get_bbox_width() for layout in self.layouts]
+
+    def _get_layout_heights(self):
+        return [layout.get_bbox_height() for layout in self.layouts]
+
+    def _get_spacing_widths(self):
+        return self.spacing * (len(self.layouts) - 1)
+
+    def _get_spacing_heights(self):
+        return self.spacing * (len(self.layouts) - 1)
+
+    def get_bbox_width(self):
+        ws = self._get_layout_widths()
+        if self.direction == "horizontal":
+            return np.sum(ws) + self._get_spacing_widths()
+        else:
+            if self.align == "center":
+                return np.max(ws)
+            elif self.align == "left":
+                left_sides = np.asarray(
+                    [layout.get_side_size("left") for layout in self.layouts]
+                )
+                right_leftover = ws - left_sides
+                return np.max(left_sides) + np.max(right_leftover)
+            else:
+                right_sides = np.asarray(
+                    [layout.get_side_size("right") for layout in self.layouts]
+                )
+                left_leftover = ws - right_sides
+                return np.max(right_sides) + np.max(left_leftover)
+
+    def get_bbox_height(self):
+        hs = self._get_layout_heights()
+        if self.direction == "vertical":
+            return np.sum(hs) + self._get_spacing_heights()
+        else:
+            if self.align == "center":
+                return np.max(hs)
+            elif self.align == "top":
+                top_sides = np.asarray(
+                    [layout.get_side_size("top") for layout in self.layouts]
+                )
+                bottom_leftover = hs - top_sides
+                return np.max(top_sides) + np.max(bottom_leftover)
+            else:
+                bottom_sides = np.asarray(
+                    [layout.get_side_size("bottom") for layout in self.layouts]
+                )
+                top_leftover = hs - bottom_sides
+                return np.max(bottom_sides) + np.max(top_leftover)
+
+    def get_bbox_size(self):
+        return self.get_bbox_width(), self.get_bbox_height()
+
+    def get_figure_size(self):
+        fig_w = self.get_bbox_width() + self.get_margin_w()
+        fig_h = self.get_bbox_height() + self.get_margin_h()
+        return fig_w, fig_h
+
+    def set_figsize(self, figsize):
+        self.figsize = figsize
+        for layout in self.layouts:
+            layout.set_figsize(figsize)
+
+    # Mimic the CrossLayoutAPI
+    def get_side_size(self, side):
+        legend_size = 0
+        if self._legend_axes is not None:
+            if self._legend_axes.side == side:
+                legend_size = self._legend_axes.get_length()
+        return self._get_layouts_offset(side) + legend_size
+
+    # Mimic the CrossLayoutAPI
+    def get_main_height(self):
+        return (
+            self.get_bbox_height()
+            - self._get_layouts_offset("bottom")
+            - self._get_layouts_offset("top")
+        )
+
+    # Mimic the CrossLayoutAPI
+    def get_main_width(self):
+        return (
+            self.get_bbox_width()
+            - self._get_layouts_offset("left")
+            - self._get_layouts_offset("right")
+        )
+
+    def _get_layouts_offset(self, side):
+        if self.direction == "horizontal":
+            if side in {"bottom", "top"}:
+                return np.max([layout.get_side_size(side) for layout in self.layouts])
+            elif side == "left":
+                return self.layouts[0].get_side_size("left")
+            else:
+                return self.layouts[-1].get_side_size("right")
+        else:
+            if side in {"left", "right"}:
+                return np.max([layout.get_side_size(side) for layout in self.layouts])
+            elif side == "bottom":
+                return self.layouts[-1].get_side_size("bottom")
+            else:
+                return self.layouts[0].get_side_size("top")
+
+    def get_layout_anchors(self):
+        """Get the anchor points of all layouts assume the layout is not composite"""
+        base_x, base_y = self.margin.left, self.margin.bottom
+        xs, ys = [], []
+        if self.direction == "horizontal":
+            # x is always the same regardless of the alignment
+            for layout in self.layouts:
+                base_x += layout.get_side_size("left")
+                xs.append(base_x)
+                base_x += (
+                    layout.get_main_width()
+                    + layout.get_side_size("right")
+                    + self.spacing
+                )
+            # only y is different
+            if self.align == "bottom":
+                base_y = self.margin.bottom + self._get_layouts_offset("bottom")
+                ys = [base_y for _ in range(len(self.layouts))]
+            elif self.align == "top":
+                base_y = (
+                    self.margin.bottom
+                    + self.get_bbox_height()
+                    - self._get_layouts_offset("top")
+                )
+                ys = [base_y - layout.get_main_height() for layout in self.layouts]
+            else:
+                center_y = self.margin.bottom + self.get_bbox_height() / 2
+                ys = [
+                    center_y - layout.get_main_height() / 2 for layout in self.layouts
+                ]
+        else:
+            # y is always the same regardless of the alignment
+            for layout in self.layouts[::-1]:
+                base_y += layout.get_side_size("bottom")
+                ys.append(base_y)
+                base_y += (
+                    layout.get_main_height()
+                    + layout.get_side_size("top")
+                    + self.spacing
+                )
+            # only x is different
+            if self.align == "left":
+                base_x = self.margin.left + self._get_layouts_offset("left")
+                xs = [base_x for _ in range(len(self.layouts))]
+            elif self.align == "right":
+                base_x = (
+                    self.margin.left
+                    + self.get_bbox_width()
+                    - self._get_layouts_offset("right")
+                )
+                xs = [base_x - layout.get_main_width() for layout in self.layouts]
+            else:
+                center_x = self.margin.left + self.get_bbox_width() / 2
+                xs = [center_x - layout.get_main_width() / 2 for layout in self.layouts]
+            ys = ys[::-1]
+
+        return np.array(list(zip(xs, ys)))
+
+    def set_layout_anchors(self, anchors):
+        for layout, a in zip(self.layouts, anchors):
+            layout.set_anchor(a)
+
+    def set_anchor(self, anchor):
+        self.anchor = anchor
+
+    def add_legend_ax(self, side, size, pad=0.0):
+        """Extend the layout
+
+        This is used to draw legends after concatenation
+
+        """
+        self._legend_axes = _LegendAxes(side=side, size=size, pad=pad)
+
+    def get_legend_ax(self):
+        if self._legend_axes is not None:
+            return self._legend_axes.ax
+
+    def set_legend_size(self, size):
+        self._legend_axes.size = size
+
+    def freeze(self, figure=None, scale=1, _debug=False):
+        # If not composed, update the figsize
+        if not self.is_composite:
+            self.figsize = np.array(self.get_figure_size())
+        figsize = self.figsize * scale
+        if figure is None:
+            figure = plt.figure(figsize=figsize)
+        else:
+            if not self.is_composite:
+                figure.set_size_inches(*figsize)
+
+        # Compute the anchor points for all sub layouts
+        anchors = self.get_layout_anchors()
+        # Offset the anchor point by the main anchor
+        main_anchor = np.min(anchors, axis=0)
+        if self.anchor is not None:
+            xoff = self.anchor[0] - main_anchor[0]
+            yoff = self.anchor[1] - main_anchor[1]
+            anchors = [(x + xoff, y + yoff) for x, y in anchors]
+        self.set_layout_anchors(anchors)
+
+        for layout in self.layouts:
+            layout.set_figsize(figsize)
+            layout.freeze(figure, _debug=_debug)
+
+        if self._legend_axes is not None:
+            bbox_w, bbox_h = self.get_bbox_size()
+            ax, ay = main_anchor
+
+            side = self._legend_axes.side
+            size = self._legend_axes.size
+
+            if side == "right":
+                cx, cy = ax + bbox_w, ay
+                cw, ch = size, bbox_h
+            elif side == "left":
+                cx, cy = ax - size, ay
+                cw, ch = size, bbox_h
+            elif side == "top":
+                cx, cy = ax, ay + bbox_h
+                cw, ch = bbox_w, size
+            elif side == "bottom":
+                cx, cy = ax, ay - size
+                cw, ch = bbox_w, size
+
+            rect = get_axes_rect((cx, cy, cw, ch), figsize)
+            ax = figure.add_axes(rect)
+            if _debug:
+                _debug_ax(ax, side=side, text="Legend Axes")
+            self._legend_axes.ax = ax
+
+        self.figure = figure
+
+    def get_ax(self, layout_name, ax_name):
+        return self._layouts_mapper[layout_name].get_ax(ax_name)
+
+    def get_main_ax(self, layout_name):
+        return self._layouts_mapper[layout_name].get_main_ax()

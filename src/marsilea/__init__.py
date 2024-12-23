@@ -1,6 +1,6 @@
 """Declarative creation of composable visualization"""
 
-__version__ = "0.4.6"
+__version__ = "0.4.7"
 
 import marsilea.plotter as plotter
 from ._deform import Deformation
@@ -11,10 +11,12 @@ from .base import (
     ZeroHeight,
     ZeroWidthCluster,
     ZeroHeightCluster,
+    CompositeBoard,
+    StackBoard,
 )
 from .dataset import load_data
 from .dendrogram import Dendrogram, GroupDendrogram
 from .heatmap import Heatmap, SizedHeatmap, CatHeatmap
 from .layers import Piece, Layers
-from .layout import CrossLayout, CompositeCrossLayout
+from .layout import CrossLayout, CompositeCrossLayout, StackCrossLayout
 from .upset import UpsetData, Upset
