@@ -947,7 +947,7 @@ class Upset(WhiteBoard):
     def _extra_legends(self):
         handles = [Patch(**entry) for entry in self._legend_entries]
         highlight_legend = ListLegend(handles=handles, handlelength=2)
-        highlight_legend.figure = None
+        # highlight_legend.set_figure(None)
         return {"highlight_subsets": [highlight_legend]}
 
     def render(self, figure=None, scale=1):

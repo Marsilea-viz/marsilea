@@ -169,7 +169,14 @@ class LegendMaker:
         for _, legs in legends.items():
             for leg in legs:
                 try:
+                    # Try to detach legend from figure
                     leg.remove()
+                    # For matplotlib >= 3.10.0
+                    if hasattr(leg, "_parent_figure"):
+                        setattr(leg, "_parent_figure", None)
+                    # For matplotlib < 3.10.0
+                    if hasattr(leg, "figure"):
+                        setattr(leg, "figure", None)
                 except Exception:
                     pass
 

@@ -231,11 +231,9 @@ class Arc(StatsBase):
             ax.set_ylim(lim * 1.1, 0)
             ax.set_xlim(0, 1)
         if self.side == "top":
-            if not ax.yaxis_inverted():
-                ax.invert_yaxis()
+            ax.invert_yaxis()
         if self.side == "left":
-            if not ax.xaxis_inverted():
-                ax.invert_xaxis()
+            ax.invert_xaxis()
         ax.set_axis_off()
 
     def get_legends(self):

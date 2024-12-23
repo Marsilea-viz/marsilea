@@ -171,12 +171,9 @@ class SeqLogo(StatsBase):
             ax.set_xlim(0, lim)
             ax.set_ylim(0, data.shape[1])
         if self.is_flank:
-            if not ax.yaxis_inverted():
-                ax.invert_yaxis()
+            ax.invert_yaxis()
         if self.side == "left":
-            if not ax.xaxis_inverted():
-                ax.invert_xaxis()
+            ax.invert_xaxis()
         if self.side == "bottom":
-            if not ax.yaxis_inverted():
-                ax.invert_yaxis()
+            ax.invert_yaxis()
         ax.set_axis_off()

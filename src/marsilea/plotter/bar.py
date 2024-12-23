@@ -270,8 +270,7 @@ class CenterBar(_BarBase):
             ax.xaxis.set_major_formatter(FuncFormatter(lambda x, p: f"{np.abs(x):g}"))
 
         if self.is_flank:
-            if not ax.yaxis_inverted():
-                ax.invert_yaxis()
+            ax.invert_yaxis()
 
         if self.show_value:
             left_label = _format_labels(left_bar, self.fmt)

@@ -90,8 +90,7 @@ class Area(StatsBase):
                 ax.plot(data, x, **line_options)
             ax.set_ylim(-0.5, len(data) - 0.5)
             if self.side == "left":
-                if not ax.xaxis_inverted():
-                    ax.invert_xaxis()
+                ax.invert_xaxis()
         else:
             ax.fill_between(x, data, **fill_options)
             if self.add_outline:
