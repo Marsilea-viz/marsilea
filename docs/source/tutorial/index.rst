@@ -74,6 +74,27 @@ Tutorial
     .. grid-item-card::
         :shadow: none
         :class-body: sd-card-center
+        :link: stack.html
+
+        .. toctree::
+            :maxdepth: 1
+
+            stack.rst
+
+        .. raw:: html
+
+            <div class="img-frame">
+                <img style="max-width: 240px; max-height: 240px;" src="../_images/stack-8.png"/>
+            </div>
+
+.. grid::
+    :gutter: 3
+    :margin: 1
+    :padding: 1
+
+    .. grid-item-card::
+        :shadow: none
+        :class-body: sd-card-center
         :link: axes-level.html
 
         .. toctree::

@@ -295,6 +295,8 @@ Main Canvas
     ZeroHeight
     ZeroWidthCluster
     ZeroHeightCluster
+    CompositeBoard
+    StackBoard
 
 Layout Engine
 =============
@@ -307,6 +309,7 @@ Layout Engine
 
     CrossLayout
     CompositeCrossLayout
+    StackCrossLayout
 
 
 Data Manipulation

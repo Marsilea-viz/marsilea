@@ -1,9 +1,9 @@
-Concatenate multiple x-layout
-=============================
+Concatenate Multiple Cross-layouts
+==================================
 
 
-For situations where a single x-layout is insufficient to demonstrate your data,
-you may want to concatenate multiple x-layouts together.
+For situations where a single cross-layout is insufficient to demonstrate your data,
+you may want to concatenate multiple cross-layouts together.
 
 Suppose you have a blue heatmap and a green heatmap, as shown below:
 
@@ -87,4 +87,43 @@ The example also demonstrates how to arrange multiple legends.
         >>> c.add_legends(side="right", order=["h1", "marker1", "h2", "marker2"],
         ...               stack_by='row', stack_size=2, align_legends='center')
         >>> c.render()
+
+
+Advanced
+--------
+
+To get finer control over your concatenation, you can use :class:`marsilea.base.CompositeBoard`,
+which is a cross-layout for cross-layouts instead of plots. The result of `+` or `/` operations
+is a :class:`marsilea.base.CompositeBoard` object.
+
+
+.. plot::
+    :context: close-figs
+
+    >>> c = ma.CompositeBoard(h1)
+    >>> c.append("bottom", h2, pad=.2)
+    >>> c.render()
+
+
+By default, the size of the appended heatmap will be forced to aligned with the main heatmap.
+You can change this behavior by setting :code:`align=False`:
+
+.. plot::
+    :context: close-figs
+
+    >>> c = ma.CompositeBoard(h1, align_main=False)
+    >>> c.append("bottom", h2, pad=.2)
+    >>> c.render()
+
+If you want to keep the legends within each heatmap, you can set :code:`keep_legends=True`:
+
+.. plot::
+    :context: close-figs
+
+    >>> c = ma.CompositeBoard(h1, keep_legends=True)
+    >>> c.append("bottom", h2, pad=.2)
+    >>> c.render()
+
+
+
 
