@@ -2,7 +2,7 @@
 Fat content in cooking oils
 ===========================
 
-This example shows how to apply x-layout on statistical plots.
+This example shows how to apply cross-layout on statistical plots.
 
 """
 

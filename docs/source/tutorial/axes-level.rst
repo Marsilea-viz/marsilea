@@ -1,4 +1,4 @@
-Axes-level customization
+Axes-level Customization
 ========================
 
 You may find the default style in Marsilea does not fit your taste.
