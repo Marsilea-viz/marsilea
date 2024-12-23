@@ -210,7 +210,8 @@ class ColorMesh(MeshBase):
             self._annotate_text(ax, mesh, texts)
         # set the mesh for legend
 
-        ax.invert_yaxis()
+        if not ax.yaxis_inverted():
+            ax.invert_yaxis()
         ax.set_axis_off()
 
 
@@ -391,7 +392,8 @@ class Colors(MeshBase):
             **self.kwargs,
         )
         ax.set_axis_off()
-        ax.invert_yaxis()
+        if not ax.yaxis_inverted():
+            ax.invert_yaxis()
 
 
 class SizedMesh(MeshBase):
@@ -646,7 +648,8 @@ class SizedMesh(MeshBase):
             ax.set_axis_off()
         ax.set_xlim(0, xticks[-1] + 0.5)
         ax.set_ylim(0, yticks[-1] + 0.5)
-        ax.invert_yaxis()
+        if not ax.yaxis_inverted():
+            ax.invert_yaxis()
 
 
 # TODO: A patch mesh
@@ -740,7 +743,8 @@ class MarkerMesh(MeshBase):
         close_ticks(ax)
         ax.set_xlim(0, xticks[-1] + 0.5)
         ax.set_ylim(0, yticks[-1] + 0.5)
-        ax.invert_yaxis()
+        if not ax.yaxis_inverted():
+            ax.invert_yaxis()
         if not self.frameon:
             ax.set_axis_off()
 
@@ -806,6 +810,7 @@ class TextMesh(MeshBase):
         close_ticks(ax)
         ax.set_xlim(0, xticks[-1] + 0.5)
         ax.set_ylim(0, yticks[-1] + 0.5)
-        ax.invert_yaxis()
+        if not ax.yaxis_inverted():
+            ax.invert_yaxis()
         if not self.frameon:
             ax.set_axis_off()

@@ -125,7 +125,8 @@ class Range(StatsBase):
         else:
             ax.set_xlim(0, len(data))
         if self.side == "left":
-            ax.invert_xaxis()
+            if not ax.xaxis_inverted():
+                ax.invert_xaxis()
 
     def get_legends(self):
         return [

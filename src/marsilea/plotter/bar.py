@@ -142,7 +142,8 @@ class Numbers(_BarBase):
             ax.set_ylim(0, lim)
 
         if self.side == "left":
-            ax.invert_xaxis()
+            if not ax.xaxis_inverted():
+                ax.invert_xaxis()
 
         if self.show_value:
             ax.bar_label(self.bars, fmt=self.fmt, padding=self.value_pad, **self.props)
@@ -269,7 +270,8 @@ class CenterBar(_BarBase):
             ax.xaxis.set_major_formatter(FuncFormatter(lambda x, p: f"{np.abs(x):g}"))
 
         if self.is_flank:
-            ax.invert_yaxis()
+            if not ax.yaxis_inverted():
+                ax.invert_yaxis()
 
         if self.show_value:
             left_label = _format_labels(left_bar, self.fmt)
@@ -412,7 +414,8 @@ class StackBar(_BarBase):
         else:
             ax.set_xlim(0, lim)
         if self.side == "left":
-            ax.invert_xaxis()
+            if not ax.xaxis_inverted():
+                ax.invert_xaxis()
 
         # Hanlde data
         if orient == "h":

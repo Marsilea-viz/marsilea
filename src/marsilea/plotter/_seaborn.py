@@ -120,7 +120,8 @@ class _SeabornBase(StatsBase):
 
         orient = self.get_orient()
         if self.side == "left":
-            ax.invert_xaxis()
+            if not ax.xaxis_inverted():
+                ax.invert_xaxis()
         # barplot(data=data, orient=orient, ax=ax, **self.kws)
         plotter = getattr(seaborn, self._seaborn_plot)
         plotter(data=pdata, orient=orient, ax=ax, **options)
