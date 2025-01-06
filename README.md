@@ -48,6 +48,16 @@ and then create a bar chart to show the expression of genes in different cell ty
 A visualization contains multiple plots is called a composable visualization.
 In Marsilea, we employ a declarative approach for user to create composable visualization incrementally.
 
+## Citation
+
+If you use Marsilea in your research, please cite the following:
+
+> Marsilea: an intuitive generalized paradigm for composable visualizations
+> 
+> Yimin Zheng, Zhihang Zheng, André F. Rendeiro & Edwin Cheung
+> 
+> _Genome Biology_ 2025 Jan 06. DOI: [10.1186/s13059-017-1382-0](https://doi.org/10.1186/s13059-024-03469-3)
+
 ## Examples
 
 <table>
