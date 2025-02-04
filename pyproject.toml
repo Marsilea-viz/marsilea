@@ -7,7 +7,7 @@ name = "marsilea"
 description = "Declarative creation of composable visualizations"
 authors = [
     {name = "Yimin Zheng", email = "yzheng@cemm.at"},
-    {name = "Zhihang Zheng"}
+    {name = "Zhihang Zheng", email = "zhihang.zheng@connect.polyu.hk"},
 ]
 license = {file = "LICENSE"}
 readme = "README.md"
