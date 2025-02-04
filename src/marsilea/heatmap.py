@@ -50,6 +50,7 @@ class Heatmap(ClusterBoard):
         height=None,
         cluster_data=None,
         init_main=True,
+        legend=True,
         **kwargs,
     ):
         if cluster_data is None:
@@ -80,7 +81,7 @@ class Heatmap(ClusterBoard):
         )
         name = get_plot_name(name, "main", mesh.__class__.__name__)
         mesh.set(name=name)
-        self.add_layer(mesh)
+        self.add_layer(mesh, legend=legend)
 
 
 class CatHeatmap(ClusterBoard):
@@ -109,6 +110,7 @@ class CatHeatmap(ClusterBoard):
         name=None,
         width=None,
         height=None,
+        legend=True,
         cluster_data=None,
         linewidth=0,
         linecolor="white",
@@ -128,7 +130,7 @@ class CatHeatmap(ClusterBoard):
         super().__init__(cluster_data, width=width, height=height, name=name)
         name = get_plot_name(name, "main", mesh.__class__.__name__)
         mesh.set(name=name)
-        self.add_layer(mesh)
+        self.add_layer(mesh, legend=legend)
 
 
 class SizedHeatmap(ClusterBoard):
@@ -156,6 +158,7 @@ class SizedHeatmap(ClusterBoard):
         name=None,
         width=None,
         height=None,
+        legend=True,
         **kwargs,
     ):
         if cluster_data is None:
@@ -166,4 +169,4 @@ class SizedHeatmap(ClusterBoard):
         super().__init__(cluster_data, width=width, height=height, name=name)
 
         mesh = SizedMesh(size=size, color=color, **kwargs)
-        self.add_layer(mesh)
+        self.add_layer(mesh, legend=legend)
