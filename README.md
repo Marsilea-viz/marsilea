@@ -10,7 +10,7 @@
 ![pypi version](https://img.shields.io/pypi/v/marsilea?color=0098FF&logo=python&logoColor=white&style=flat-square)
 ![Conda Version](https://img.shields.io/conda/vn/conda-forge/marsilea?style=flat-square&logo=anaconda&logoColor=white&color=%2344A833)
 ![PyPI - License](https://img.shields.io/pypi/l/marsilea?color=FFD43B&style=flat-square)
-[![DOI](https://img.shields.io/badge/DOI-10.1186%2Fs13059--024--03469--3-blue?style=flat-square)](https://doi.org/10.1186/s13059-024-03469-3)
+[![DOI](https://img.shields.io/badge/DOI-10.1186%2Fs13059--024--03469--3-blue?color=0098FF&style=flat-square)](https://doi.org/10.1186/s13059-024-03469-3)
 
 # Marsilea: Declarative creation of composable visualization!
 
