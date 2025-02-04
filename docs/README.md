@@ -4,21 +4,17 @@ The marsilea documentation is written in reStructuredText and built with Sphinx.
 
 ## Build
 
-Install dependencies
 ```shell
-pip install -r requirements.txt
+uv run task doc-build
+# or
+uv run task doc-clean-build
 ```
 
-Build html
-```shell
-make html
-```
+To serve the documentation, use:
 
-Clean build cache
 ```shell
-make clean
+uv run task doc-serve
 ```
-
 
 ## Writing Style
 
