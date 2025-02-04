@@ -4,8 +4,9 @@ build-backend = "hatchling.build"
 
 [project]
 name = "marsilea"
+description = "Declarative creation of composable visualizations"
 authors = [
-    {name = "Mr-Milk", email = "yzheng@cemm.at"},
+    {name = "Yimin Zheng", email = "yzheng@cemm.at"},
     {name = "Zhihang Zheng"}
 ]
 license = {file = "LICENSE"}
@@ -14,10 +15,12 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
     "Framework :: Matplotlib",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Visualization",
 ]
-dynamic = ["version", "description"]
+dynamic = ["version"]
 requires-python = ">=3.8"
-urls = {Home="https://github.com/Marsilea-viz/marsilea"}
+urls = { Home="https://github.com/Marsilea-viz/marsilea", Documentation="https://marsilea.readthedocs.io"}
 dependencies = [
     "numpy",
     "pandas[parquet]",
@@ -26,23 +29,6 @@ dependencies = [
     "scipy",
     "legendkit",
     "platformdirs"
-]
-
-[project.optional-dependencies]
-dev = [
-    "ruff",
-    "icecream",
-    "python-hmr",
-    "pytest",
-    "scikit-learn",
-    "sphinx",
-    "numpydoc",
-    "sphinx_design",
-    "pydata-sphinx-theme",
-    "sphinx-copybutton",
-    "sphinx_gallery",
-    "mpl_fontkit",
-    "pre-commit",
 ]
 
 [tool.hatch.version]
@@ -77,3 +63,28 @@ docstring-code-format = true
 "__init__.py" = ["F401"]
 "docs/*" = ["E402", "E731"]
 "scripts/*" = ["E402", "E731"]
+
+[tool.taskipy.tasks]
+hello = "echo Hello, World!"
+test = "pytest tests"
+doc-build = "sphinx-build -b html docs/source docs/build"
+doc-clean-build = "python docs/clean_up.py && sphinx-build -b html docs/source docs/build"
+doc-serve = "python -m http.server -d docs/build"
+fmt = "ruff format docs/source wsidata tests"
+
+[dependency-groups]
+dev = [
+    "sphinx>=7.1.2",
+    "ruff",
+    "pytest",
+    "scikit-learn",
+    "sphinx",
+    "numpydoc",
+    "sphinx_design",
+    "pydata-sphinx-theme",
+    "sphinx-copybutton",
+    "sphinx_gallery",
+    "mpl_fontkit",
+    "pre-commit",
+    "taskipy",
+]
