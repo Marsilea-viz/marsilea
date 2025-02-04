@@ -3,3 +3,5 @@ examples/
 how_to/
 tutorial/*.png
 sg_execution_times.rst
+source/how_to/*.png
+source/how/*.pdf

@@ -87,4 +87,5 @@ dev = [
     "mpl_fontkit",
     "pre-commit",
     "taskipy",
+    "emoji>=2.14.1",
 ]
