@@ -12,6 +12,8 @@
 ![PyPI - License](https://img.shields.io/pypi/l/marsilea?color=FFD43B&style=flat-square)
 [![DOI](https://img.shields.io/badge/DOI-10.1186%2Fs13059--024--03469--3-blue?color=0098FF&style=flat-square)](https://doi.org/10.1186/s13059-024-03469-3)
 
+[![Gitter](https://img.shields.io/gitter/room/Marsilea/Questions?style=flat-square)](https://app.gitter.im/#/room/#Marsilea:gitter.im)
+
 # Marsilea: Declarative creation of composable visualization!
 
 ---
@@ -58,6 +60,12 @@ If you use Marsilea in your research, please cite the following:
 > Yimin Zheng, Zhihang Zheng, André F. Rendeiro & Edwin Cheung
 > 
 > _Genome Biology_ 2025 Jan 06. DOI: [10.1186/s13059-017-1382-0](https://doi.org/10.1186/s13059-024-03469-3)
+
+## Get helps
+
+1. Open an issue
+2. Join us on [Gitter](https://app.gitter.im/#/room/#Marsilea:gitter.im)
+
 
 ## Examples
 
