@@ -239,8 +239,8 @@ class UpsetData:
             marks = marks & (sets_table["cardinality"] <= max_cardinality)
         if min_degree is not None:
             marks = marks & (sets_table["degree"] >= min_degree)
-        if min_degree is not None:
-            marks = marks & (sets_table["degree"] >= max_degree)
+        if max_degree is not None:
+            marks = marks & (sets_table["degree"] <= max_degree)
         return marks
 
     def reset(self):
@@ -561,6 +561,7 @@ class Upset(WhiteBoard):
         self._legend_entries = []
         self._add_intersections = add_intersections
         self._intersection_bar = None
+        self._intersection_bar_side = None
         self._sets_size_bar = None
 
         if orient not in ["h", "v"]:
@@ -732,6 +733,7 @@ class Upset(WhiteBoard):
         )
         data = self.data.cardinality()
         self._intersection_bar = Numbers(data, color=self.color)
+        self._intersection_bar_side = side
         self.add_plot(side, self._intersection_bar, size=size, pad=pad)
 
     def add_sets_size(self, side, pad=0.1, size=1.0, **props):
@@ -956,7 +958,10 @@ class Upset(WhiteBoard):
         self._render_matrix(main_ax)
         # apply highlight style to bar
         if self._add_intersections:
-            for ix, rect in enumerate(self._intersection_bar.bars):
+            bars = self._intersection_bar.bars
+            if self._intersection_bar_side in {"left", "right"}:
+                bars = bars[::-1]
+            for ix, rect in enumerate(bars):
                 bar_style = self._subset_styles.get(ix)
                 if bar_style is not None:
                     rect.set(**bar_style)

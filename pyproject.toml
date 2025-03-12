@@ -28,7 +28,7 @@ dependencies = [
     "seaborn",
     "scipy",
     "legendkit",
-    "platformdirs"
+    "platformdirs",
 ]
 
 [tool.hatch.version]
