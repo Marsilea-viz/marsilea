@@ -10,12 +10,12 @@ def _format_labels(labels, fmt):
 
 
 def _format_label(a, fmt):
-    if np.isnan(a):
-        a = ""
     if isinstance(fmt, str):
         label = _auto_format_str(fmt, a)
     elif callable(fmt):
         label = fmt(a)
+    elif np.isnan(a):
+        a = ""
     else:
         raise TypeError("fmt must be a str or callable")
     return label
