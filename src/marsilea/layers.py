@@ -2,6 +2,7 @@ import numpy as np
 from legendkit import ListLegend
 from matplotlib import pyplot as plt
 from matplotlib.artist import Artist
+from matplotlib.axes import Axes
 from matplotlib.collections import PathCollection
 from matplotlib.lines import Line2D
 from matplotlib.markers import MarkerStyle
@@ -12,6 +13,25 @@ from typing import Mapping, Iterable
 from .base import ClusterBoard
 from .layout import close_ticks
 from .plotter import RenderPlan
+
+
+def add_artists(ax: Axes, artists: Artist | Iterable[Artist]):
+    """Adds one or more Matplotlib artists to an Axes object.
+
+    Parameters
+    ----------
+    ax : matplotlib.axes.Axes
+        The Matplotlib Axes object to which the artists will be added.
+    artists : matplotlib.artist.Artist or Iterable[matplotlib.artist.Artist]
+        A single Matplotlib Artist instance or an iterable
+        containing multiple Artist instances to be added to the Axes.
+
+    """
+    if isinstance(artists, Artist):  # add one artist
+        ax.add_artist(artists)
+    else:  # add multiple artists
+        for art in artists:
+            ax.add_artist(art)
 
 
 class LayersMesh(RenderPlan):
@@ -186,7 +206,7 @@ class LayersMesh(RenderPlan):
                                 self.height,
                                 ax,
                             )
-                            ax.add_artist(art)
+                            add_artists(ax, art)
         else:
             for iy, row in enumerate(data):
                 for ix, v in enumerate(row):
@@ -198,7 +218,7 @@ class LayersMesh(RenderPlan):
                         self.height,
                         ax,
                     )
-                    ax.add_artist(art)
+                    add_artists(ax, art)
         ax.invert_yaxis()
 
 
@@ -253,7 +273,7 @@ class Piece:
         cy = y + h / 2.0
         return cx, cy
 
-    def draw(self, x, y, w, h, ax) -> Artist:
+    def draw(self, x, y, w, h, ax) -> Artist | Iterable[Artist]:
         raise NotImplementedError
 
     def legend(self, x, y, w, h) -> Artist:
@@ -388,4 +408,4 @@ def preview(piece: Piece, figsize=(1, 1)):
     arts = piece.draw(0, 0, 1, 1, ax)
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 1)
-    ax.add_artist(arts)
+    add_artists(ax, arts)
