@@ -20,7 +20,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12']
+        python-version: ['3.9', '3.10', '3.11', '3.12', '3.13']
 
     steps:
       - uses: actions/checkout@v4
@@ -35,8 +35,10 @@ jobs:
       - name: Tests
         run: uv run task test
 
-  Upload_to_test_pypi:
+  pypi_publish:
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
     steps:
       - uses: actions/checkout@v4
       - name: Set up UV
@@ -45,18 +47,13 @@ jobs:
           python-version: '3.12'
           enable-cache: true
           cache-dependency-glob: "uv.lock"
-      - run: uv sync --dev
       - name: Publish to test pypi
-        env:
-          UV_PUBLISH_TOKEN: ${{ secrets.PYPI_TEST_TOKEN }}
         run: |
           uv build
           uv publish --publish-url https://test.pypi.org/legacy/ || exit 0
 
       - name: Publish to pypi
         if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v')
-        env:
-          UV_PUBLISH_TOKEN: ${{ secrets.PYPI_TOKEN }}
         run: |
           uv build
           uv publish
