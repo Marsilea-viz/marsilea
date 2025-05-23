@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import numpy as np
 from legendkit import ListLegend
 from matplotlib import pyplot as plt
