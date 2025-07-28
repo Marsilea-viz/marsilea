@@ -483,8 +483,6 @@ class SizedMesh(MeshBase):
         >>> h.add_right(mesh, size=0.2, pad=0.05)
         >>> h.render()
 
-
-
     """
 
     def __init__(
@@ -550,6 +548,9 @@ class SizedMesh(MeshBase):
                         render_colors.append(c)
                     self.cmap = ListedColormap(render_colors)
                     self.color2d = encode_numeric(color, encoder)
+                    if self.norm is None:
+                        vs = encoder.values()
+                        self.norm = Normalize(vmin=min(vs), vmax=max(vs))
                 else:
                     self._process_cmap(color, vmin, vmax, cmap, norm, center)
                     self.color2d = color
@@ -636,9 +637,8 @@ class SizedMesh(MeshBase):
             linewidths=self.linewidth,
             marker=self.marker,
         )
-
         if self.color is not None:
-            options["c"] = self.color
+            options["c"] = color
         else:
             options.update(dict(c=color, norm=self.norm, cmap=self.cmap))
         self._collections = ax.scatter(xv, yv, **options, **self.kwargs)
