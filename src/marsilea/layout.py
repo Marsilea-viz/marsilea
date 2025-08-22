@@ -461,8 +461,8 @@ class CrossLayout(_MarginMixin):
             y = self.get_side_size("bottom")
             if self.is_composite:
                 return x, y
-            x += self.margin.bottom
-            y += self.margin.left
+            x += self.margin.left
+            y += self.margin.bottom
             return x, y
         else:
             return self.anchor
@@ -550,7 +550,9 @@ class CrossLayout(_MarginMixin):
                     c.set_ax(axes)
                 else:
                     ax_rect = c.get_rect()
+                    print(ax_rect)
                     ax_rect = get_axes_rect(ax_rect, figsize)
+                    print(ax_rect)
                     ax = figure.add_axes(ax_rect, projection=c.projection)
                     c.set_ax(ax)
                     if _debug:
