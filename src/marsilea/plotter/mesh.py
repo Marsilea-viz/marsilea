@@ -1,13 +1,20 @@
 __all__ = ["ColorMesh", "Colors", "SizedMesh", "MarkerMesh", "TextMesh", "PatchMesh"]
 
-import numpy as np
-import pandas as pd
 import warnings
 from itertools import cycle
-from legendkit import ColorArt, CatLegend, SizeLegend
-from matplotlib.cm import ScalarMappable
-from matplotlib.colors import ListedColormap, TwoSlopeNorm, Normalize, is_color_like
 from typing import Mapping
+
+import numpy as np
+import pandas as pd
+from legendkit import ColorArt, CatLegend, SizeLegend, ListLegend
+from matplotlib.cm import ScalarMappable
+from matplotlib.colors import (
+    ListedColormap,
+    TwoSlopeNorm,
+    Normalize,
+    is_color_like,
+    to_hex,
+)
 
 from ._utils import _format_label
 from .base import RenderPlan
@@ -426,8 +433,9 @@ class SizedMesh(MeshBase):
         The range of the size of elements
     size_norm : :class:`matplotlib.colors.Normalize`
         A Normalize instance to map size
-    edgecolor : color
-        The border color of each elements
+    edgecolor : color or array of colors
+        The border color of each elements, if you want to control every element,
+        please supply a 2d array with the same shape as input.
     linewidth : float
         The width of the border of each elements
     frameon : bool
@@ -454,6 +462,10 @@ class SizedMesh(MeshBase):
         Control the size legend, See :class:`legendkit.size_legend`
     color_legend_kws : dict
         Control the color legend, See :class:`legendkit.colorart`
+    edgecolor_legend_text : list of str
+        The texts for the edgecolor legend
+    edgecolor_legend_kws : dict
+        Control the edgecolor legend, See :class:`legendkit.legend`
     kwargs : dict
         Pass to :meth:`matplotlib.axes.Axes.scatter`
 
@@ -511,6 +523,8 @@ class SizedMesh(MeshBase):
         legend=True,
         size_legend_kws=None,
         color_legend_kws=None,
+        edgecolor_legend_text=None,
+        edgecolor_legend_kws=None,
         **kwargs,
     ):
         # normalize size
@@ -528,6 +542,11 @@ class SizedMesh(MeshBase):
         self.legend = legend
         self.color_legend_kws = {} if color_legend_kws is None else color_legend_kws
         self.size_legend_kws = {} if size_legend_kws is None else size_legend_kws
+        self.edgecolor_legend_text = edgecolor_legend_text
+        self.edgecolor_legend_kws = (
+            {} if edgecolor_legend_kws is None else edgecolor_legend_kws
+        )
+
         self._has_colormesh = False
         # process color
         # By default, the circles colors are uniform
@@ -557,7 +576,22 @@ class SizedMesh(MeshBase):
                 self._has_colormesh = True
         self.alpha = alpha
         self.frameon = frameon
-        self.edgecolor = edgecolor
+
+        if edgecolor is not None:
+            if is_color_like(edgecolor):
+                self.edgecolor = np.repeat(edgecolor, size.size).reshape(size.shape)
+                self._single_edgecolor = True
+            else:
+                edgecolor = np.asarray(edgecolor)
+                if edgecolor.shape != self.size_matrix.shape:
+                    raise ValueError(
+                        "If use multiple edgecolors, "
+                        "the shape must be the same as input size"
+                    )
+                # Covert to hex
+                edgecolor = [[to_hex(c) for c in row] for row in edgecolor]
+                self.edgecolor = np.asarray(edgecolor)
+                self._single_edgecolor = False
         self.linewidth = linewidth
         self.set_label(label, label_loc, label_props)
         self.grid = grid
@@ -566,7 +600,7 @@ class SizedMesh(MeshBase):
         self.kwargs = kwargs
 
         self._collections = None
-        self.set_data(self.size_matrix, self.color2d)
+        self.set_data(self.size_matrix, self.color2d, self.edgecolor)
 
     def update_main_canvas_size(self):
         return get_canvas_size_by_data(self.orig_size.shape)
@@ -574,11 +608,18 @@ class SizedMesh(MeshBase):
     def get_legends(self):
         if not self.legend:
             return None
+
+        legends = []
+
         if self.color is not None:
             size_color = self.color
         else:
             size_color = "black"
-        handler_kw = dict(edgecolor=self.edgecolor, linewidth=self.linewidth)
+        if self._single_edgecolor:
+            edgecolor = self.edgecolor.flatten()[0]
+        else:
+            edgecolor = None
+        handler_kw = dict(edgecolor=edgecolor, linewidth=self.linewidth)
         options = dict(
             colors=size_color,
             handle=self.marker,
@@ -588,6 +629,25 @@ class SizedMesh(MeshBase):
         )
         options.update(self.size_legend_kws)
         size_legend = SizeLegend(self.size_matrix, array=self.orig_size, **options)
+        legends.append(size_legend)
+
+        # Construct edgecolor legend
+        if self.edgecolor_legend_text is not None:
+            unique_ecs = np.unique(self.edgecolor)
+            if len(self.edgecolor_legend_text) == len(unique_ecs):
+                legend_items = [
+                    ("circle", text, dict(ec=ec, fc="none"))
+                    for text, ec in zip(self.edgecolor_legend_text, unique_ecs)
+                ]
+                ec_legend = ListLegend(
+                    legend_items=legend_items, **self.color_legend_kws
+                )
+                legends.append(ec_legend)
+            else:
+                raise ValueError(
+                    "If edgecolor legend text is provided, the number of unique edgecolors "
+                    "must match the number of texts"
+                )
 
         if self._has_colormesh & (self.color != "none"):
             if self.palette is not None:
@@ -606,16 +666,20 @@ class SizedMesh(MeshBase):
             else:
                 ScalarMappable(norm=self.norm, cmap=self.cmap)
                 color_legend = ColorArt(self._collections, **self.color_legend_kws)
-            return [size_legend, color_legend]
+            legends.append(color_legend)
+
+        if len(legends) == 1:
+            return legends[0]
         else:
-            return size_legend
+            return legends
 
     def render_ax(self, spec):
         ax = spec.ax
-        size, color = spec.data
+        size, color, edgecolors = spec.data
         if self.is_flank:
             size = size.T
             color = color.T
+            edgecolors = edgecolors.T
         Y, X = size.shape
         xticks = np.arange(X) + 0.5
         yticks = np.arange(Y) + 0.5
@@ -633,7 +697,7 @@ class SizedMesh(MeshBase):
 
         options = dict(
             s=size,
-            edgecolor=self.edgecolor,
+            edgecolors=edgecolors.flatten(),
             linewidths=self.linewidth,
             marker=self.marker,
         )
