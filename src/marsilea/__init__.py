@@ -1,6 +1,8 @@
 """Declarative creation of composable visualization"""
 
-__version__ = "0.5.4"
+from ._version import version
+
+__version__ = version
 
 import marsilea.plotter as plotter
 from ._deform import Deformation

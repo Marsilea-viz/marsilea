@@ -1,5 +1,5 @@
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling", "uv-dynamic-versioning"]
 build-backend = "hatchling.build"
 
 [project]
@@ -32,7 +32,13 @@ dependencies = [
 ]
 
 [tool.hatch.version]
-path = "src/marsilea/__init__.py"
+source = "uv-dynamic-versioning"
+
+[tool.hatch.build.hooks.version]
+path = "src/marsilea/_version.py"
+template = '''
+version = "{version}"
+'''
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/marsilea", "src/oncoprinter"]
