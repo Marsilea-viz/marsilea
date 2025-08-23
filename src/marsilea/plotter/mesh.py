@@ -577,6 +577,7 @@ class SizedMesh(MeshBase):
         self.alpha = alpha
         self.frameon = frameon
 
+        self.edgecolor = None
         if edgecolor is not None:
             if is_color_like(edgecolor):
                 self.edgecolor = np.repeat(edgecolor, size.size).reshape(size.shape)
@@ -600,7 +601,11 @@ class SizedMesh(MeshBase):
         self.kwargs = kwargs
 
         self._collections = None
-        self.set_data(self.size_matrix, self.color2d, self.edgecolor)
+        render_data = [self.size_matrix, self.color2d]
+        if self.edgecolor is not None:
+            render_data.append(self.edgecolor)
+
+        self.set_data(*render_data)
 
     def update_main_canvas_size(self):
         return get_canvas_size_by_data(self.orig_size.shape)
@@ -615,10 +620,10 @@ class SizedMesh(MeshBase):
             size_color = self.color
         else:
             size_color = "black"
-        if self._single_edgecolor:
-            edgecolor = self.edgecolor.flatten()[0]
-        else:
-            edgecolor = None
+        edgecolor = None
+        if self.edgecolor is not None:
+            if self._single_edgecolor:
+                edgecolor = self.edgecolor.flatten()[0]
         handler_kw = dict(edgecolor=edgecolor, linewidth=self.linewidth)
         options = dict(
             colors=size_color,
@@ -632,22 +637,23 @@ class SizedMesh(MeshBase):
         legends.append(size_legend)
 
         # Construct edgecolor legend
-        if self.edgecolor_legend_text is not None:
-            unique_ecs = np.unique(self.edgecolor)
-            if len(self.edgecolor_legend_text) == len(unique_ecs):
-                legend_items = [
-                    ("circle", text, dict(ec=ec, fc="none"))
-                    for text, ec in zip(self.edgecolor_legend_text, unique_ecs)
-                ]
-                ec_legend = ListLegend(
-                    legend_items=legend_items, **self.color_legend_kws
-                )
-                legends.append(ec_legend)
-            else:
-                raise ValueError(
-                    "If edgecolor legend text is provided, the number of unique edgecolors "
-                    "must match the number of texts"
-                )
+        if self.edgecolor is not None:
+            if self.edgecolor_legend_text is not None:
+                unique_ecs = np.unique(self.edgecolor)
+                if len(self.edgecolor_legend_text) == len(unique_ecs):
+                    legend_items = [
+                        ("circle", text, dict(ec=ec, fc="none"))
+                        for text, ec in zip(self.edgecolor_legend_text, unique_ecs)
+                    ]
+                    ec_legend = ListLegend(
+                        legend_items=legend_items, **self.color_legend_kws
+                    )
+                    legends.append(ec_legend)
+                else:
+                    raise ValueError(
+                        "If edgecolor legend text is provided, the number of unique edgecolors "
+                        "must match the number of texts"
+                    )
 
         if self._has_colormesh & (self.color != "none"):
             if self.palette is not None:
