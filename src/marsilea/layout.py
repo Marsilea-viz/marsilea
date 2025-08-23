@@ -550,9 +550,7 @@ class CrossLayout(_MarginMixin):
                     c.set_ax(axes)
                 else:
                     ax_rect = c.get_rect()
-                    print(ax_rect)
                     ax_rect = get_axes_rect(ax_rect, figsize)
-                    print(ax_rect)
                     ax = figure.add_axes(ax_rect, projection=c.projection)
                     c.set_ax(ax)
                     if _debug:
