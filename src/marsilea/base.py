@@ -440,18 +440,16 @@ class WhiteBoard(LegendMaker):
         self.add_plot("bottom", plot, name, size, pad, legend)
 
     def _render_plan(self):
-        for plan in self._col_plan:
-            axes = self.layout.get_ax(plan.name)
-            plan.render(axes)
+        try:
+            for plan in self._col_plan + self._row_plan:
+                axes = self.layout.get_ax(plan.name)
+                plan.render(axes)
 
-        # render other plots
-        for plan in self._row_plan:
-            axes = self.layout.get_ax(plan.name)
-            plan.render(axes)
-
-        main_ax = self.get_main_ax()
-        for plan in self._get_layers_zorder():
-            plan.render(main_ax)
+            main_ax = self.get_main_ax()
+            for plan in self._get_layers_zorder():
+                plan.render(main_ax)
+        except Exception as e:
+            raise Exception(f"An error occur during rendering of {plan}") from e
 
     def add_layer(self, plot: RenderPlan, zorder=None, name=None, legend=True):
         """Add a plotter to the main canvas
@@ -1364,23 +1362,19 @@ class ClusterBoard(WhiteBoard):
 
     def _render_plan(self):
         deform = self.get_deform()
-        for plan in self._col_plan:
-            if plan.allow_split:
-                plan.set_deform(deform)
-            axes = self.layout.get_ax(plan.name)
-            plan.render(axes)
+        try:
+            for plan in self._col_plan + self._row_plan:
+                if plan.allow_split:
+                    plan.set_deform(deform)
+                axes = self.layout.get_ax(plan.name)
+                plan.render(axes)
 
-        # render other plots
-        for plan in self._row_plan:
-            if plan.allow_split:
+            main_ax = self.get_main_ax()
+            for plan in self._get_layers_zorder():
                 plan.set_deform(deform)
-            axes = self.layout.get_ax(plan.name)
-            plan.render(axes)
-
-        main_ax = self.get_main_ax()
-        for plan in self._get_layers_zorder():
-            plan.set_deform(deform)
-            plan.render(main_ax)
+                plan.render(main_ax)
+        except Exception as e:
+            raise Exception(f"An error occur during rending of {plan}") from e
 
     def get_deform(self):
         """Return the deformation object of the cluster data"""
