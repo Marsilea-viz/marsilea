@@ -47,7 +47,7 @@ images = {
     "Python": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/Python-logo-notext.svg/1200px-Python-logo-notext.svg.png",
     "C++": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/18/ISO_C%2B%2B_Logo.svg/1822px-ISO_C%2B%2B_Logo.svg.png",
     "C": "https://upload.wikimedia.org/wikipedia/commons/1/19/C_Logo.png",
-    "Java": "https://static-00.iconduck.com/assets.00/java-icon-1511x2048-6ikx8301.png",
+    "Java": "https://upload.wikimedia.org/wikipedia/en/thumb/3/30/Java_programming_language_logo.svg/234px-Java_programming_language_logo.svg.png",
     "C#": "https://upload.wikimedia.org/wikipedia/commons/4/4f/Csharp_Logo.png",
     "JavaScript": "https://upload.wikimedia.org/wikipedia/commons/6/6a/JavaScript-logo.png",
     "Go": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2d/Go_gopher_favicon.svg/2048px-Go_gopher_favicon.svg.png",

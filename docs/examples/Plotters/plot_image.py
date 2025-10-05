@@ -16,9 +16,9 @@ from marsilea.plotter import Image
 _, ax = plt.subplots()
 Image(
     [
-        "https://www.iconfinder.com/icons/4375050/download/png/512",
-        "https://www.iconfinder.com/icons/8666426/download/png/512",
-        "https://www.iconfinder.com/icons/652581/download/png/512",
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/Python-logo-notext.svg/1200px-Python-logo-notext.svg.png",
+        "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d5/Rust_programming_language_black_logo.svg/480px-Rust_programming_language_black_logo.svg.png",
+        "https://upload.wikimedia.org/wikipedia/commons/6/6a/JavaScript-logo.png",
     ],
     align="right",
 ).render(ax)
