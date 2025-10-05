@@ -125,6 +125,9 @@ class MatchRule:
 
 MATCH_POOL = {
     Alteration.AMP: MatchRule(startswith="amp"),
+    Alteration.BACKGROUND: MatchRule(
+        contains=["background", "no", "none", "na", "nan", "bg"], flexible=True
+    ),
     Alteration.GAIN: MatchRule(startswith="gain"),
     Alteration.HOMDEL: MatchRule(
         startswith="homdel", contains=["deep", "deletion"], flexible=True
