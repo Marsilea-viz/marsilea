@@ -653,7 +653,8 @@ class WhiteBoard(LegendMaker):
     def save(self, fname, **kwargs):
         """Save the figure to a file
 
-        This will force a re-render of the figure
+        Save the current opened figure to a file, if no figure is open,
+        a render will be performed first.
 
         Parameters
         ----------
@@ -663,7 +664,8 @@ class WhiteBoard(LegendMaker):
             Additional options for saving the figure, will be passed to :meth:`~matplotlib.pyplot.savefig`
 
         """
-        self.render()
+        if self.figure is None:
+            self.render()
         save_options = dict(bbox_inches="tight")
         save_options.update(kwargs)
         self.figure.savefig(fname, **save_options)
