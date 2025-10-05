@@ -168,7 +168,7 @@ class GenomicData:
         cs = {}
         for track, df in gb:
             cs[track] = Counter(df["event"])
-        return pd.DataFrame(cs).fillna(0.0)
+        return pd.DataFrame(cs).fillna(0.0).loc[:, self.tracks]
 
     def get_sample_mutation_types(self):
         gb = self.data.groupby("sample", sort=False, observed=True)
