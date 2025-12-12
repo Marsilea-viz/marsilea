@@ -603,7 +603,7 @@ class SizedMesh(MeshBase):
         self.kwargs = kwargs
 
         self._collections = None
-        self._transparent_marker = "none" in self.color2d
+        self._transparent_marker = "none" in self.color2d  # If the marker is filled
         render_data = [self.size_matrix, self.color2d]
         if self.edgecolor is not None:
             render_data.append(self.edgecolor)
@@ -659,7 +659,7 @@ class SizedMesh(MeshBase):
                         "If edgecolor legend text is provided, the number of unique edgecolors "
                         "must match the number of texts"
                     )
-        if self._has_colormesh & (self._transparent_marker):
+        if self._has_colormesh & (not self._transparent_marker):
             if self.palette is not None:
                 labels, colors = [], []
                 for label, c in self.palette.items():
