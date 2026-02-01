@@ -94,4 +94,7 @@ dev = [
     "pre-commit",
     "taskipy",
     "emoji>=2.14.1",
+    "notebook>=7.3.3",
+    "ipykernel>=6.29.5",
+    "pip>=25.0.1",
 ]
