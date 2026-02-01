@@ -236,13 +236,12 @@ class Dendrogram(_DendrogramBase):
         ylim = self._render_ylim
         if orient in ["right", "left"]:
             xlim, ylim = ylim, xlim
-
         if control_ax:
             ax.set_xlim(*xlim)
             ax.set_ylim(*ylim)
             if orient == "left":
                 ax.invert_xaxis()
-            if orient == "bottom":
+            if orient != "top":
                 ax.invert_yaxis()
 
         if add_root:
