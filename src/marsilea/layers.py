@@ -121,7 +121,7 @@ class LayersMesh(RenderPlan):
         # with different elements
         if data is not None:
             if not isinstance(pieces, Mapping):
-                msg = f"Expect pieces to be dict " f"but found {type(pieces)} instead."
+                msg = f"Expect pieces to be dict but found {type(pieces)} instead."
                 raise TypeError(msg)
             self.pieces_mapper = pieces
             self.mode = "cell"
@@ -131,7 +131,7 @@ class LayersMesh(RenderPlan):
         # each layer is an elements
         else:
             if not isinstance(pieces, Iterable):
-                msg = f"Expect pieces to be list " f"but found {type(pieces)} instead."
+                msg = f"Expect pieces to be list but found {type(pieces)} instead."
                 raise TypeError(msg)
             self.pieces, data = self._sort_by_zorder(pieces, layers)
             self.mode = "layer"
@@ -297,9 +297,7 @@ class Rect(Piece):
         self.zorder = zorder
 
     def __repr__(self):
-        return (
-            f"{self.__class__.__name__}(color='{self.color}', " f"label='{self.label}')"
-        )
+        return f"{self.__class__.__name__}(color='{self.color}', label='{self.label}')"
 
     def draw(self, x, y, w, h, ax) -> Artist:
         return Rectangle((x, y), w, h, facecolor=self.color)
@@ -314,9 +312,7 @@ class FracRect(Piece):
         self.zorder = zorder
 
     def __repr__(self):
-        return (
-            f"{self.__class__.__name__}(color='{self.color}', " f"label='{self.label}')"
-        )
+        return f"{self.__class__.__name__}(color='{self.color}', label='{self.label}')"
 
     def draw(self, x, y, w, h, ax):
         fx, fy = self.frac
@@ -337,7 +333,7 @@ class FrameRect(Piece):
         self.zorder = zorder
 
     def __repr__(self):
-        return f"{self.__class__.__name__}(color={self.color}, " f"label={self.label})"
+        return f"{self.__class__.__name__}(color={self.color}, label={self.label})"
 
     def draw(self, x, y, w, h, ax):
         return Rectangle((x, y), w, h, fill=False, ec=self.color, linewidth=self.width)
@@ -361,7 +357,7 @@ class RightTri(Piece):
         self.zorder = zorder
 
     def __repr__(self):
-        return f"{self.__class__.__name__}(color={self.color}, " f"label={self.label})"
+        return f"{self.__class__.__name__}(color={self.color}, label={self.label})"
 
     def draw(self, x, y, w, h, ax):
         p0 = (x, y)

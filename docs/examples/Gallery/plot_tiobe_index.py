@@ -43,17 +43,20 @@ data = {
 }
 data = pd.DataFrame(data).set_index("Programming Language")
 
+# Wikimedia thumbnails must use standard widths:
+# 20, 40, 60, 120, 250, 330, 500, 960, 1280, 1920, 3840
+# See https://w.wiki/GHai
 images = {
-    "Python": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/Python-logo-notext.svg/1200px-Python-logo-notext.svg.png",
-    "C++": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/18/ISO_C%2B%2B_Logo.svg/1822px-ISO_C%2B%2B_Logo.svg.png",
-    "C": "https://upload.wikimedia.org/wikipedia/commons/1/19/C_Logo.png",
-    "Java": "https://upload.wikimedia.org/wikipedia/en/thumb/3/30/Java_programming_language_logo.svg/234px-Java_programming_language_logo.svg.png",
-    "C#": "https://upload.wikimedia.org/wikipedia/commons/4/4f/Csharp_Logo.png",
-    "JavaScript": "https://upload.wikimedia.org/wikipedia/commons/6/6a/JavaScript-logo.png",
-    "Go": "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2d/Go_gopher_favicon.svg/2048px-Go_gopher_favicon.svg.png",
-    "Visual Basic": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/40/VB.NET_Logo.svg/2048px-VB.NET_Logo.svg.png",
-    "Fortran": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b8/Fortran_logo.svg/2048px-Fortran_logo.svg.png",
-    "SQL": "https://upload.wikimedia.org/wikipedia/commons/4/44/SQL_%D0%BB%D0%BE%D0%B3%D0%BE%D1%82%D0%B8%D0%BF.png",
+    "Python": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/Python-logo-notext.svg/250px-Python-logo-notext.svg.png",
+    "C++": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/18/ISO_C%2B%2B_Logo.svg/250px-ISO_C%2B%2B_Logo.svg.png",
+    "C": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/18/C_Programming_Language.svg/250px-C_Programming_Language.svg.png",
+    "Java": "https://upload.wikimedia.org/wikipedia/commons/thumb/5/5d/Duke_%28Java_mascot%29_waving.svg/250px-Duke_%28Java_mascot%29_waving.svg.png",
+    "C#": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d2/C_Sharp_Logo_2023.svg/250px-C_Sharp_Logo_2023.svg.png",
+    "JavaScript": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6a/JavaScript-logo.png/250px-JavaScript-logo.png",
+    "Go": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/05/Go_Logo_Blue.svg/250px-Go_Logo_Blue.svg.png",
+    "Visual Basic": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/40/VB.NET_Logo.svg/250px-VB.NET_Logo.svg.png",
+    "Fortran": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b8/Fortran_logo.svg/250px-Fortran_logo.svg.png",
+    "SQL": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/87/Sql_data_base_with_logo.png/250px-Sql_data_base_with_logo.png",
 }
 
 # %%

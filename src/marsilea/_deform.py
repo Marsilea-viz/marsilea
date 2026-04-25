@@ -97,6 +97,7 @@ class Deformation:
             self.is_col_cluster = col
             self.col_cluster_kws = kwargs
             self._col_clustered = False
+            self._col_ratios_cache = None
             self._use_col_meta = use_meta
             self.col_linkage = linkage
             self.col_meta_linkage = meta_linkage
@@ -104,6 +105,7 @@ class Deformation:
             self.is_row_cluster = row
             self.row_cluster_kws = kwargs
             self._row_clustered = False
+            self._row_ratios_cache = None
             self._use_row_meta = use_meta
             self.row_linkage = linkage
             self.row_meta_linkage = meta_linkage
@@ -123,6 +125,7 @@ class Deformation:
             if order is None:
                 order = np.arange(len(breakpoints) + 1)
             self.row_split_order = order
+            self._row_ratios_cache = None
 
     def set_split_col(self, breakpoints=None, order=None):
         if breakpoints is not None:
@@ -131,36 +134,44 @@ class Deformation:
             if order is None:
                 order = np.arange(len(breakpoints) + 1)
             self.col_split_order = order
+            self._col_ratios_cache = None
+
+    _row_ratios_cache = None
+    _col_ratios_cache = None
 
     @property
     def row_ratios(self):
+        if self._row_ratios_cache is not None:
+            return self._row_ratios_cache
         self._run_cluster()
         if self.row_breakpoints is None:
             return None
         ratios = np.array([ix2 - ix1 for ix1, ix2 in pairwise(self.row_breakpoints)])
-
         if self.row_chunk_index is not None:
-            return ratios[self.row_chunk_index]
-        else:
-            return ratios
+            ratios = ratios[self.row_chunk_index]
+        self._row_ratios_cache = ratios
+        return ratios
 
     @property
     def col_ratios(self):
+        if self._col_ratios_cache is not None:
+            return self._col_ratios_cache
         self._run_cluster()
         if self.col_breakpoints is None:
             return None
         ratios = np.array([ix2 - ix1 for ix1, ix2 in pairwise(self.col_breakpoints)])
-
         if self.col_chunk_index is not None:
-            return ratios[self.col_chunk_index]
-        else:
-            return ratios
+            ratios = ratios[self.col_chunk_index]
+        self._col_ratios_cache = ratios
+        return ratios
 
     def set_row_chunk_order(self, order):
         self.row_chunk_index = order
+        self._row_ratios_cache = None
 
     def set_col_chunk_order(self, order):
         self.col_chunk_index = order
+        self._col_ratios_cache = None
 
     def split_by_row(self, data: np.ndarray):
         if not self.is_row_split:

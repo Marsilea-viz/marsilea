@@ -13,6 +13,10 @@
 Marsilea: Declarative creation of composable visualization
 ==========================================================
 
+Marsilea is a Python library for creating composable visualizations in a declarative way.
+It is built on top of Matplotlib and provides a high-level API for you to puzzle different visualizations
+together like logo.
+
 
 .. grid:: 1 1 2 2
 
@@ -20,9 +24,12 @@ Marsilea: Declarative creation of composable visualization
 
     .. grid-item::
 
-        Marsilea is a Python library for creating composable visualizations in a declarative way.
-        It is built on top of Matplotlib and provides a high-level API for you to puzzle different visualizations
-        together like logo.
+        .. card ::
+            :shadow: none
+
+            If you use Marsilea in your research, please cite:
+            `Marsilea: an intuitive generalized framework for composable visualizations <https://doi.org/10.1186/s13059-024-03469-3>`_
+            — *Genome Biology*, 2024
 
         .. card :: Related Projects
             :shadow: none

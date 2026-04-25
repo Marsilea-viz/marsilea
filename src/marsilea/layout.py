@@ -36,8 +36,12 @@ def _split(chunk_ratios, spacing=0.05, group_ratios=None):
     spacing = np.asarray(spacing)
 
     canvas_size = 1 - np.sum(spacing)
+    if canvas_size <= 0:
+        raise ValueError(
+            f"Total spacing ({np.sum(spacing):.4g}) must be less than 1. "
+            "Reduce spacing values so the panels have room to render."
+        )
     ratios = ratios * canvas_size
-    assert np.sum(spacing) + np.sum(ratios) - 1 <= 0.00001
 
     if group_ratios is not None:
         c = np.asarray(group_ratios)
@@ -585,6 +589,9 @@ class CrossLayout(_MarginMixin):
         # If not composed, update the figsize
         if not self.is_composite:
             self.figsize = np.array(self.get_figure_size())
+        # Fallback: if figsize was not set by parent, compute it
+        if self.figsize is None:
+            self.figsize = np.array(self.get_figure_size())
         figsize = self.figsize * scale
         if figure is None:
             figure = plt.figure(figsize=figsize)
@@ -611,6 +618,7 @@ class CrossLayout(_MarginMixin):
     def append(self, side, other):
         c = self._append_check(other)
         c.append(side, other)
+        return c
 
     def __truediv__(self, other):
         return self.append("bottom", other)
@@ -729,9 +737,11 @@ class CompositeCrossLayout(_MarginMixin):
 
     def __truediv__(self, other: CrossLayout):
         self.append("bottom", other)
+        return self
 
     def __add__(self, other: CrossLayout):
         self.append("right", other)
+        return self
 
     def add_legend_ax(self, side, size, pad=0.0):
         """Extend the layout
@@ -1196,6 +1206,9 @@ class StackCrossLayout(_MarginMixin):
     def freeze(self, figure=None, scale=1, _debug=False):
         # If not composed, update the figsize
         if not self.is_composite:
+            self.figsize = np.array(self.get_figure_size())
+        # Fallback: if figsize was not set by parent, compute it
+        if self.figsize is None:
             self.figsize = np.array(self.get_figure_size())
         figsize = self.figsize * scale
         if figure is None:

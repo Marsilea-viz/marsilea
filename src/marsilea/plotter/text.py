@@ -113,9 +113,7 @@ def adjust_segments(lim: Segment, segments: List[Segment]):
     segments_length = np.sum(sl)
     space = lim.length
     if segments_length > space:
-        warnings.warn(
-            "No enough space to place all labels, " "try reducing the fontsize."
-        )
+        warnings.warn("No enough space to place all labels, try reducing the fontsize.")
 
     segments_length_r = segments_length
     space_r = space
@@ -1142,7 +1140,7 @@ class Chunk(_ChunkBase):
 
         if len(axes) != self.n:
             raise ValueError(
-                f"You have {len(axes)} axes " f"but you only provide {self.n} texts."
+                f"You have {len(axes)} axes but you only provide {self.n} texts."
             )
 
         texts = self.reindex_by_chunk(self.texts)
@@ -1274,7 +1272,7 @@ class FixedChunk(_ChunkBase):
 
         if len(axes) != self.n:
             raise ValueError(
-                f"You have {len(axes)} axes " f"but you only provide {self.n} texts."
+                f"You have {len(axes)} axes but you only provide {self.n} texts."
             )
 
         self._render(

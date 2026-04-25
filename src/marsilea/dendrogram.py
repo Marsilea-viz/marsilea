@@ -1,3 +1,4 @@
+import warnings
 import numpy as np
 from itertools import cycle
 from matplotlib.collections import LineCollection
@@ -5,6 +6,40 @@ from matplotlib.colors import is_color_like
 from matplotlib.lines import Line2D
 from scipy.cluster.hierarchy import linkage as scipy_linkage, dendrogram
 from typing import List, Sequence
+
+from .exceptions import PerformanceWarning
+
+_FASTCLUSTER_THRESHOLD = 10_000  # total elements; matches seaborn
+
+
+def _compute_linkage(data, method, metric):
+    """Compute hierarchical clustering linkage.
+
+    Uses fastcluster if installed (``pip install marsilea[fast]``), which is
+    always faster than scipy. Falls back to scipy and emits a
+    :class:`PerformanceWarning` when data exceeds *_FASTCLUSTER_THRESHOLD*
+    total elements.
+    """
+    try:
+        import fastcluster
+
+        euclidean_methods = ("centroid", "median", "ward")
+        use_vector = method == "single" or (
+            metric == "euclidean" and method in euclidean_methods
+        )
+        if use_vector:
+            return fastcluster.linkage_vector(data, method=method, metric=metric)
+        return fastcluster.linkage(data, method=method, metric=metric)
+    except ImportError:
+        if np.prod(data.shape) >= _FASTCLUSTER_THRESHOLD:
+            warnings.warn(
+                f"Clustering large array ({np.prod(data.shape)} elements) with scipy. "
+                "Install `fastcluster` for better performance: "
+                "pip install marsilea[fast]",
+                PerformanceWarning,
+                stacklevel=4,
+            )
+        return scipy_linkage(data, method=method, metric=metric)
 
 
 class _DendrogramBase:
@@ -38,7 +73,7 @@ class _DendrogramBase:
             if linkage is not None:
                 self.Z = linkage
             else:
-                self.Z = scipy_linkage(data, method=method, metric=metric)
+                self.Z = _compute_linkage(data, method=method, metric=metric)
             self._plot_data = dendrogram(self.Z, no_plot=True)
 
             self.x_coords = np.asarray(self._plot_data["icoord"]) / 5
@@ -110,7 +145,7 @@ class _DendrogramBase:
         if y_end is not None:
             if y_end < self.ylim[1]:
                 raise ValueError(
-                    f"{y_end} is lower than " f"current ylim at {self.ylim[1]}"
+                    f"{y_end} is lower than current ylim at {self.ylim[1]}"
                 )
             self._render_ylim = (0, y_end)
 

@@ -22,3 +22,4 @@ from .heatmap import Heatmap, SizedHeatmap, CatHeatmap
 from .layers import Piece, Layers
 from .layout import CrossLayout, CompositeCrossLayout, StackCrossLayout
 from .upset import UpsetData, Upset
+from .exceptions import PerformanceWarning

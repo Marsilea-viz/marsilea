@@ -720,10 +720,7 @@ class Upset(WhiteBoard):
     def _check_side(self, side, chart_name, allow):
         options = allow[self.orient]
         if side not in options:
-            msg = (
-                f"{chart_name} cannot be placed at '{side}', "
-                f"try {' ,'.join(options)}"
-            )
+            msg = f"{chart_name} cannot be placed at '{side}', try {' ,'.join(options)}"
             raise ValueError(msg)
 
     def add_intersections(self, side, pad=0.1, size=1.0):

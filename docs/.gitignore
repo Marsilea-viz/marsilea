@@ -2,6 +2,7 @@ api/APIs
 source/examples/
 source/how_to/
 source/tutorial/*.png
+source/api/APIs
 sg_execution_times.rst
 how_to/*.png
 how_to/*.pdf

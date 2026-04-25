@@ -238,6 +238,7 @@ class RenderPlan:
     _group_params: List[Dict[str, Any]] = None
     _plan_label: RenderPlanLabel = None
     _split_regroup: Sequence[float] = None
+    _registered: bool = False
 
     def __repr__(self):
         side_str = f"side='{self.side}'"
@@ -247,7 +248,7 @@ class RenderPlan:
             chunks = [side_str, zorder_str]
         else:
             chunks = [f"name='{self.name}'", side_str, zorder_str]
-        return f"{self.__class__.__name__}" f"({', '.join(chunks)})"
+        return f"{self.__class__.__name__}({', '.join(chunks)})"
 
     def set(self, **kwargs):
         for k, v in kwargs.items():

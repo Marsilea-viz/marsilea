@@ -15,7 +15,9 @@ from platformdirs import user_cache_dir
 from .base import RenderPlan
 
 
-def _cache_remote(url, cache=True):
+def _cache_remote(url, cache=True, max_retries=3):
+    import time
+
     try:
         import requests
     except ImportError:
@@ -29,8 +31,14 @@ def _cache_remote(url, cache=True):
 
     dest = data_dir / fname
     if not (cache and dest.exists()):
-        r = requests.get(url, headers={"User-Agent": "Mozilla/5.0"})
-        r.raise_for_status()
+        for attempt in range(max_retries):
+            r = requests.get(url, headers={"User-Agent": "Mozilla/5.0"})
+            if r.status_code == 429 and attempt < max_retries - 1:
+                wait = 2 ** (attempt + 1)
+                time.sleep(wait)
+                continue
+            r.raise_for_status()
+            break
         with open(dest, "wb") as f:
             f.write(r.content)
 
@@ -75,7 +83,8 @@ class Image(RenderPlan):
         ...     pad=0.1,
         ... )
         >>> c.add_right(
-        ...     ma.plotter.Labels(["Python", "Rust", "JavaScript"], fontsize=20), pad=0.1
+        ...     ma.plotter.Labels(["Python", "Rust", "JavaScript"], fontsize=20),
+        ...     pad=0.1,
         ... )
         >>> c.render()
 

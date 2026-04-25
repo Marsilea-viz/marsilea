@@ -54,10 +54,7 @@ class GenomicData:
 
     def __repr__(self):
         ntrack, nsample = self.shape
-        return (
-            f"{ntrack} Tracks, {nsample} Samples with "
-            f"{len(self.events)} Alterations"
-        )
+        return f"{ntrack} Tracks, {nsample} Samples with {len(self.events)} Alterations"
 
     def __init__(
         self,
