@@ -141,7 +141,9 @@ class Arc(StatsBase):
         >>> colors = ["C0", "C1", "C2", "C3", "C4", "C5", "C6"]
         >>> labels = ["A", "B", "C", "D", "E", "F", "G"]
         >>> h = ma.Heatmap(np.random.rand(10, 10))
-        >>> h.add_top(Arc(anchors, links, weights=weights, colors=colors, labels=labels))
+        >>> h.add_top(
+        ...     Arc(anchors, links, weights=weights, colors=colors, labels=labels)
+        ... )
         >>> h.render()
 
 

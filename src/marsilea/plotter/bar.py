@@ -371,8 +371,7 @@ class StackBar(_BarBase):
             if isinstance(colors, Mapping):
                 if item_names is None:
                     raise ValueError(
-                        "Please provide the name of each item "
-                        "before assigning color."
+                        "Please provide the name of each item before assigning color."
                     )
                 bar_colors = [colors[name] for name in item_names]
             else:

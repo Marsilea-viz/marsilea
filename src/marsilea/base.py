@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import warnings
+import copy
 from copy import deepcopy
 from numbers import Number
 from typing import List, Dict
@@ -19,6 +19,46 @@ from .exceptions import SplitTwice, DuplicatePlotter
 from .layout import CrossLayout, CompositeCrossLayout, StackCrossLayout
 from .plotter import RenderPlan, Title, SizedMesh
 from .utils import pairwise, batched, get_plot_name, _check_side
+
+
+def _copy_board(board):
+    """Shallow-copy a board but deep-copy layout and plan metadata.
+
+    Data arrays held by RenderPlan._data are large numpy arrays;
+    we keep references to them instead of copying.  Everything
+    that controls axes geometry and legend state is deep-copied so
+    the copy is independent of the original.
+    """
+    new = copy.copy(board)
+    new.layout = deepcopy(board.layout)
+    new._legend_grid_kws = deepcopy(board._legend_grid_kws)
+    new._legend_draw_kws = deepcopy(board._legend_draw_kws)
+    new._user_legends = dict(board._user_legends)
+    new._draw_legend = board._draw_legend
+
+    # WhiteBoard-specific attributes (not present on StackBoard/CompositeBoard)
+    if hasattr(board, "_legend_switch"):
+        new._legend_switch = dict(board._legend_switch)
+    if hasattr(board, "_col_plan"):
+        new._col_plan = list(board._col_plan)
+    if hasattr(board, "_row_plan"):
+        new._row_plan = list(board._row_plan)
+    if hasattr(board, "_layer_plan"):
+        new._layer_plan = list(board._layer_plan)
+
+    # StackBoard/CompositeBoard: deep-copy their nested board lists
+    if hasattr(board, "_board_list"):
+        new._board_list = list(board._board_list)
+
+    # ClusterBoard-specific attributes
+    if hasattr(board, "_deform"):
+        new._deform = deepcopy(board._deform)
+    if hasattr(board, "_row_den"):
+        new._row_den = list(board._row_den)
+    if hasattr(board, "_col_den"):
+        new._col_den = list(board._col_den)
+
+    return new
 
 
 def reorder_index(arr, order=None):
@@ -154,6 +194,7 @@ class LegendMaker:
             stack_spacing=stack_spacing,
             box_padding=box_padding,
         )
+        return self
 
     def remove_legends(self):
         self._draw_legend = False
@@ -339,7 +380,7 @@ class WhiteBoard(LegendMaker):
             If True, the legend will be included when calling :meth:`~marsilea.base.LegendMaker.add_legends`
 
         """
-        if plot.name is not None:
+        if plot._registered:
             raise DuplicatePlotter(plot)
         plot_name = get_plot_name(name, side, plot.__class__.__name__)
         self._legend_switch[plot_name] = legend
@@ -360,8 +401,10 @@ class WhiteBoard(LegendMaker):
             plan = self._row_plan
         plot.set(name=plot_name, size=size)
         plot.set_side(side)
+        plot._registered = True
 
         plan.append(plot)
+        return self
 
     def add_left(self, plot: RenderPlan, name=None, size=None, pad=0.0, legend=True):
         """Add a plotter to the left-side of main canvas
@@ -380,7 +423,7 @@ class WhiteBoard(LegendMaker):
             If True, the legend will be included when calling :meth:`~marsilea.base.LegendMaker.add_legends`
 
         """
-        self.add_plot("left", plot, name, size, pad, legend)
+        return self.add_plot("left", plot, name, size, pad, legend)
 
     def add_right(self, plot: RenderPlan, name=None, size=None, pad=0.0, legend=True):
         """Add a plotter to the right-side of main canvas
@@ -399,7 +442,7 @@ class WhiteBoard(LegendMaker):
             If True, the legend will be included when calling :meth:`~marsilea.base.LegendMaker.add_legends`
 
         """
-        self.add_plot("right", plot, name, size, pad, legend)
+        return self.add_plot("right", plot, name, size, pad, legend)
 
     def add_top(self, plot: RenderPlan, name=None, size=None, pad=0.0, legend=True):
         """Add a plotter to the top-side of main canvas
@@ -418,7 +461,7 @@ class WhiteBoard(LegendMaker):
             If True, the legend will be included when calling :meth:`~marsilea.base.LegendMaker.add_legends`
 
         """
-        self.add_plot("top", plot, name, size, pad, legend)
+        return self.add_plot("top", plot, name, size, pad, legend)
 
     def add_bottom(self, plot: RenderPlan, name=None, size=None, pad=0.0, legend=True):
         """Add a plotter to the bottom-side of main canvas
@@ -437,7 +480,7 @@ class WhiteBoard(LegendMaker):
             If True, the legend will be included when calling :meth:`~marsilea.base.LegendMaker.add_legends`
 
         """
-        self.add_plot("bottom", plot, name, size, pad, legend)
+        return self.add_plot("bottom", plot, name, size, pad, legend)
 
     def _render_plan(self):
         try:
@@ -476,7 +519,7 @@ class WhiteBoard(LegendMaker):
         name = get_plot_name(name, side="main", chart=plot_type)
         self._legend_switch[name] = legend
         if not plot.render_main:
-            msg = f"{plot_type} " f"cannot be rendered as another layer."
+            msg = f"{plot_type} cannot be rendered as another layer."
             raise TypeError(msg)
         if zorder is not None:
             plot.zorder = zorder
@@ -494,6 +537,7 @@ class WhiteBoard(LegendMaker):
                 # if we have more plot in the future
                 # that will change canvas size
                 self._main_size_updatable = False
+        return self
 
     def _get_layers_zorder(self):
         return sorted(self._layer_plan, key=lambda p: p.zorder)
@@ -510,6 +554,7 @@ class WhiteBoard(LegendMaker):
 
         """
         self.layout.add_pad(side, size)
+        return self
 
     def add_canvas(self, side, name, size, pad=0.0):
         """Add an axes to the main canvas
@@ -527,6 +572,7 @@ class WhiteBoard(LegendMaker):
 
         """
         self.layout.add_ax(side, name, size, pad=pad)
+        return self
 
     def add_title(self, top=None, bottom=None, left=None, right=None, pad=0, **props):
         """A shortcut to add title to the main canvas
@@ -559,6 +605,8 @@ class WhiteBoard(LegendMaker):
         if bottom is not None:
             self.add_plot("bottom", Title(bottom, **props), pad=pad)
 
+        return self
+
     def get_ax(self, name):
         """Get a specific axes by name when available
 
@@ -573,6 +621,20 @@ class WhiteBoard(LegendMaker):
     def get_main_ax(self):
         """Return the main axes"""
         return self.layout.get_main_ax()
+
+    def get_plot_names(self) -> List[str]:
+        """Return the names of all registered plotters in order
+
+        Useful for passing to :meth:`~marsilea.base.LegendMaker.add_legends`
+        to control legend ordering.
+
+        Returns
+        -------
+        list of str
+            Names of all plotters: layers first, then col (top/bottom) and row (left/right) plans.
+
+        """
+        return [p.name for p in self._layer_plan + self._col_plan + self._row_plan]
 
     def _extra_legends(self):
         """If there are legends that cannot get from RenderPlan
@@ -636,6 +698,8 @@ class WhiteBoard(LegendMaker):
 
         Returns
         -------
+        self : :class:`~marsilea.base.WhiteBoard`
+            The current instance
 
         """
         if figure is None:
@@ -649,6 +713,7 @@ class WhiteBoard(LegendMaker):
         # render other plots
         self._render_plan()
         self._render_legend()
+        return self
 
     def save(self, fname, **kwargs):
         """Save the figure to a file
@@ -669,6 +734,7 @@ class WhiteBoard(LegendMaker):
         save_options = dict(bbox_inches="tight")
         save_options.update(kwargs)
         self.figure.savefig(fname, **save_options)
+        return self
 
     def set_margin(self, margin: float | tuple[float, float, float, float]):
         """Set margin of the main canvas
@@ -680,6 +746,7 @@ class WhiteBoard(LegendMaker):
 
         """
         self.layout.set_margin(margin)
+        return self
 
 
 class ZeroWidth(WhiteBoard):
@@ -691,7 +758,7 @@ class ZeroWidth(WhiteBoard):
     Parameters
     ----------
     height : float
-        The
+        The height of the canvas in inches
     name : str
     margin : float
 
@@ -757,8 +824,8 @@ class CompositeBoard(LegendMaker):
         super().__init__()
 
     def new_board(self, board):
-        board = deepcopy(board)
-        if not self.keep_legends & isinstance(board, LegendMaker):
+        board = _copy_board(board)
+        if not self.keep_legends and isinstance(board, LegendMaker):
             board.remove_legends()
         return board
 
@@ -796,14 +863,11 @@ class CompositeBoard(LegendMaker):
         self._render_legend()
 
     def save(self, fname, **kwargs):
-        if self.figure is not None:
-            save_options = dict(bbox_inches="tight")
-            save_options.update(kwargs)
-            self.figure.savefig(fname, **save_options)
-        else:
-            warnings.warn(
-                "Figure does not exist, " "please render it before saving as file."
-            )
+        if self.figure is None:
+            self.render()
+        save_options = dict(bbox_inches="tight")
+        save_options.update(kwargs)
+        self.figure.savefig(fname, **save_options)
 
     def get_legends(self):
         legends = {}
@@ -860,8 +924,8 @@ class StackBoard(LegendMaker):
             board._freeze_flex_plots(figure)
 
     def new_board(self, board):
-        board = deepcopy(board)
-        if not self.keep_legends & isinstance(board, LegendMaker):
+        board = _copy_board(board)
+        if not self.keep_legends and isinstance(board, LegendMaker):
             board.remove_legends()
         return board
 
@@ -877,16 +941,15 @@ class StackBoard(LegendMaker):
             board.render(figure=self.figure)
 
         self._render_legend()
+        return self
 
     def save(self, fname, **kwargs):
-        if self.figure is not None:
-            save_options = dict(bbox_inches="tight")
-            save_options.update(kwargs)
-            self.figure.savefig(fname, **save_options)
-        else:
-            warnings.warn(
-                "Figure does not exist, " "please render it before saving as file."
-            )
+        if self.figure is None:
+            self.render()
+        save_options = dict(bbox_inches="tight")
+        save_options.update(kwargs)
+        self.figure.savefig(fname, **save_options)
+        return self
 
     def get_legends(self):
         legends = {}
@@ -1141,6 +1204,7 @@ class ClusterBoard(WhiteBoard):
                 get_meta_center=get_meta_center,
                 rasterized=rasterized,
             )
+        return self
 
     def group_rows(self, group, order=None, spacing=0.01):
         """Group rows into chunks
@@ -1183,6 +1247,7 @@ class ClusterBoard(WhiteBoard):
 
         breakpoints = get_breakpoints(labels[reindex])
         deform.set_split_row(breakpoints=breakpoints, order=order)
+        return self
 
     def group_cols(self, group, order=None, spacing=0.01):
         """Group columns into chunks
@@ -1225,6 +1290,7 @@ class ClusterBoard(WhiteBoard):
 
         breakpoints = get_breakpoints(labels[reindex])
         deform.set_split_col(breakpoints=breakpoints, order=order)
+        return self
 
     def cut_rows(self, cut, spacing=0.01):
         """Cut the main canvas by rows
@@ -1257,6 +1323,7 @@ class ClusterBoard(WhiteBoard):
         deform = self.get_deform()
         deform.hspace = spacing
         deform.set_split_row(breakpoints=cut)
+        return self
 
     def cut_cols(self, cut, spacing=0.01):
         """Cut the main canvas by columns
@@ -1289,6 +1356,7 @@ class ClusterBoard(WhiteBoard):
         deform = self.get_deform()
         deform.wspace = spacing
         deform.set_split_col(breakpoints=cut)
+        return self
 
     def _setup_axes(self):
         deform = self.get_deform()
@@ -1376,7 +1444,7 @@ class ClusterBoard(WhiteBoard):
                 plan.set_deform(deform)
                 plan.render(main_ax)
         except Exception as e:
-            raise Exception(f"An error occur during rending of {plan}") from e
+            raise Exception(f"An error occurred during rendering of {plan}") from e
 
     def get_deform(self):
         """Return the deformation object of the cluster data"""
@@ -1434,6 +1502,7 @@ class ClusterBoard(WhiteBoard):
         # add row and col dendrogram
         self._render_dendrogram()
         self._render_legend()
+        return self
 
 
 class ZeroWidthCluster(ClusterBoard):

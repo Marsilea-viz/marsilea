@@ -42,3 +42,7 @@ class AppendLayoutError(Exception):
 
 class DataError(Exception):
     pass
+
+
+class PerformanceWarning(UserWarning):
+    pass
