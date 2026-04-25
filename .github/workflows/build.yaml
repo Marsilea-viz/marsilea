@@ -4,13 +4,13 @@ on:
   push:
     paths:
       - '.github/**'
-      - 'marsilea/**'
+      - 'src/**'
       - 'tests/**'
       - 'pyproject.toml'
   pull_request:
     paths:
       - '.github/**'
-      - 'marsilea/**'
+      - 'src/**'
       - 'tests/**'
       - 'pyproject.toml'
 
@@ -32,8 +32,8 @@ jobs:
          cache-dependency-glob: "uv.lock"
       - name: Install project
         run: uv sync --dev
-      - name: Tests
-        run: uv run task test
+      - name: Run tests
+        run: uv run pytest tests/ -v --tb=short
 
   pypi_publish:
     runs-on: ubuntu-latest
