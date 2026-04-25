@@ -11,8 +11,16 @@ target_folders = [
     root / "source" / "how_to",
 ]
 
+# Sphinx-gallery generates these files at the source root level
+target_files = [
+    root / "source" / "sg_execution_times.rst",
+]
+
 
 if __name__ == "__main__":
     for folder in target_folders:
         if folder.exists():
             shutil.rmtree(folder)
+    for fpath in target_files:
+        if fpath.exists():
+            fpath.unlink()
