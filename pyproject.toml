@@ -31,6 +31,9 @@ dependencies = [
     "platformdirs",
 ]
 
+[project.optional-dependencies]
+fast = ["fastcluster"]
+
 [tool.hatch.version]
 source = "uv-dynamic-versioning"
 
@@ -91,7 +94,7 @@ dev = [
     "sphinx-copybutton",
     "sphinx_gallery",
     "mpl_fontkit",
-    "pre-commit",
+    "prek",
     "taskipy",
     "emoji>=2.14.1",
     "notebook>=7.3.3",
