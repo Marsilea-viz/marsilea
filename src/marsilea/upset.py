@@ -365,8 +365,12 @@ class UpsetData:
 
     def intersection(self, sets_name):
         """Return the items that are shared in different sets"""
-        expr = "&".join([f"(`{s}`==1)" for s in sets_name])
-        return self._binary_table.query(expr).index.tolist()
+        if len(sets_name) == 0:
+            # Degree-0 subset: items that belong to no set
+            mask = ~self._binary_table.any(axis=1)
+        else:
+            mask = self._binary_table[list(sets_name)].all(axis=1)
+        return self._binary_table.loc[mask].index.tolist()
 
     def intersection_count(self):
         """The item has occurred in how many sets"""

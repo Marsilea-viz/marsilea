@@ -1,3 +1,4 @@
+import pandas as pd
 import pytest
 from marsilea.upset import UpsetData, Upset
 
@@ -99,6 +100,50 @@ def test_has_item(upset_data):
 def test_intersection(upset_data):
     shared = upset_data.intersection(["A", "B"])
     assert 3 in shared and 4 in shared
+
+
+def test_intersection_empty_returns_degree0():
+    # Bug 1 (#84): item4 belongs to no set -> intersection([]) must return it
+    data = pd.DataFrame(
+        {"A": [True, False], "B": [False, False]},
+        index=["item1", "item4"],
+    )
+    upset_data = UpsetData(data=data)
+    assert upset_data.intersection([]) == ["item4"]
+
+
+def test_intersection_special_char_columns():
+    # Bug 2 (#84): column names with special chars broke query() backtick parsing
+    col = "Set (NºA.1, integración)"
+    data = pd.DataFrame(
+        {
+            col: [True, True, False],
+            "Set B": [True, False, True],
+        },
+        index=["item1", "item2", "item3"],
+    )
+    upset_data = UpsetData(data=data)
+    shared = upset_data.intersection([col, "Set B"])
+    assert shared == ["item1"]
+
+
+def test_add_items_attr_special_chars_and_empty():
+    # End-to-end repro from #84: must not raise ValueError/KeyError
+    data = pd.DataFrame(
+        {
+            "Set (NºA.1, integración)": [True, True, False, False],
+            "Set B": [True, False, True, False],
+            "Set C": [False, True, True, False],
+        },
+        index=["item1", "item2", "item3", "item4"],
+    )
+    items_attrs = pd.DataFrame(
+        {"group": ["X", "X", "Y", "Y"]},
+        index=["item1", "item2", "item3", "item4"],
+    )
+    upset_data = UpsetData(data=data, items_attrs=items_attrs)
+    upset = Upset(data=upset_data)
+    upset.add_items_attr(side="top", attr_name="group", plot="bar")
 
 
 def test_sets_size(upset_data):
