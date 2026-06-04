@@ -247,6 +247,19 @@ class UpsetData:
         self._sets_table = _get_sets_table(self._binary_table)
         return self
 
+    def copy(self) -> UpsetData:
+        """Return a deep copy so callers' data is never mutated in place."""
+        new = self.__class__.__new__(self.__class__)
+        new._binary_table = self._binary_table.copy(deep=True)
+        new._sets_table = self._sets_table.copy(deep=True)
+        new._sets_attrs = (
+            None if self._sets_attrs is None else self._sets_attrs.copy(deep=True)
+        )
+        new._items_attrs = (
+            None if self._items_attrs is None else self._items_attrs.copy(deep=True)
+        )
+        return new
+
     @classmethod
     def from_sets(
         cls,
@@ -410,7 +423,12 @@ class UpsetData:
         return self._items_attrs
 
     def get_items_attr(self, attr):
-        """Return the attribute of items in the order of plotting
+        """Return the attribute of items per exclusive subset, in plot order
+
+        Each entry aligns 1:1 with :meth:`sets_table` index (post-filter and
+        post-sort). Items are grouped by their exact membership pattern
+        (exclusive), matching the cardinality of each subset, via a single
+        groupby pass.
 
         Parameters
         ----------
@@ -423,14 +441,18 @@ class UpsetData:
 
         """
         items_attrs = self._items_attrs
-        sets_names = np.asarray(self.sets_names)
+        bt = self._binary_table
+        # One pass; keys are tuples (multi-set) or scalars (single-set), built
+        # from bt.columns which is reordered in lockstep with the index levels.
+        groups = bt.groupby(list(bt.columns), observed=True).groups
 
         data_collector = []
-
-        for ix, row in self.sets_table().iterrows():
-            s = sets_names[np.array(ix).astype(bool)]
-            items = self.intersection(s)
-            attr_data = items_attrs.loc[items][attr]
+        for key in self.sets_table().index:
+            items = groups.get(key)  # None if the pattern was filtered out
+            if items is None:
+                attr_data = items_attrs[attr].iloc[0:0]
+            else:
+                attr_data = items_attrs.loc[items, attr]
             data_collector.append(attr_data)
         return data_collector
 
@@ -524,8 +546,8 @@ class Upset(WhiteBoard):
         size_scale=0.3,
         size_aspect=1.0,
     ):
-        # The modification happens inplace
-        upset_data = data
+        # Operate on a deep copy so the caller's UpsetData is never mutated.
+        upset_data = data.copy()
         upset_data.filter(
             min_degree=min_degree,
             max_degree=max_degree,
@@ -766,6 +788,26 @@ class Upset(WhiteBoard):
     def get_data(self):
         return self.data
 
+    @property
+    def subset_order(self):
+        """Per-subset membership patterns in plot order.
+
+        Order subset-axis data like this, then pass an aligned plotter instance
+        to :meth:`add_items_attr` or the inherited ``add_top``/``add_bottom``
+        (``orient='h'``) / ``add_left``/``add_right`` (``orient='v'``).
+        """
+        return self.sets_table.index
+
+    @property
+    def sets_order(self):
+        """Set names in plot order.
+
+        Use ``series.reindex(upset.sets_order)`` to align set-axis data before
+        passing a plotter instance to :meth:`add_sets_attr` or the inherited
+        side methods.
+        """
+        return self.sets_size.index
+
     _attr_plotter = {
         "bar": Bar,
         "box": Box,
@@ -783,20 +825,57 @@ class Upset(WhiteBoard):
         """Update the global upset plot for attr plotter"""
         cls._attr_plotter.update(attr_plotter)
 
+    def _resolve_attr_plotter(self, plot):
+        """Resolve `plot` to a plotter class.
+
+        Accepts a registry string or a plotter class (returns the class), or a
+        plotter instance (returns None to signal the caller supplied its own
+        data and the instance should be added as-is).
+        """
+        from .plotter.base import RenderPlan
+
+        if isinstance(plot, str):
+            try:
+                return self._attr_plotter[plot]
+            except KeyError:
+                raise ValueError(
+                    f"Unknown plot '{plot}', choose from "
+                    f"{list(self._attr_plotter)} or pass a plotter class/instance."
+                )
+        if isinstance(plot, type):
+            return plot
+        if isinstance(plot, RenderPlan):
+            return None
+        raise TypeError("`plot` must be a str, a plotter class, or a plotter instance.")
+
     def add_sets_attr(
-        self, side, attr_name, plot, name=None, pad=0.1, size=None, plot_kws=None
+        self,
+        side,
+        attr_name=None,
+        plot="bar",
+        name=None,
+        pad=0.1,
+        size=None,
+        plot_kws=None,
     ):
         """Add a plot for the sets attribute
 
+        The sets attribute aligns to the sets axis (same axis as the sets size).
+
         Parameters
         ----------
         side : str
-            The side to add the plot, can be 'left', 'right', 'top', 'bottom'
+            The side to add the plot. For ``orient='h'`` use 'left'/'right',
+            for ``orient='v'`` use 'top'/'bottom'.
         attr_name : str
-            The name of the attribute
-        plot : str
-            The type of plot, can be 'bar', 'box', 'boxen', 'violin', 'point',
-            'strip', 'swarm', 'stack_bar', 'number'
+            The name of the attribute (column in ``sets_attrs``). Ignored when
+            ``plot`` is a plotter instance.
+        plot : str, plotter class or plotter instance, default: 'bar'
+            The type of plot. A string is looked up in the registry
+            ('bar', 'box', 'boxen', 'violin', 'point', 'strip', 'swarm',
+            'stack_bar', 'number'); a plotter class is instantiated with the
+            attribute data; a plotter instance is added as-is (you supply data
+            ordered like :attr:`sets_order`).
         name : str, optional
             The name of the plot
         pad : float, optional
@@ -807,28 +886,55 @@ class Upset(WhiteBoard):
             The keyword arguments for the plot
 
         """
-        data = self.data.sets_attrs
-        attr = data[attr_name]
-        plot = self._attr_plotter[plot]
+        self._check_side(
+            side, "Sets attr", dict(h=["left", "right"], v=["top", "bottom"])
+        )
+        plot_cls = self._resolve_attr_plotter(plot)
+        if plot_cls is None:
+            # An instance: the caller supplied its own (already ordered) data.
+            self.add_plot(side, plot, name=name, pad=pad, size=size)
+            return self
+
+        sets_attrs = self.data.sets_attrs
+        if sets_attrs is None:
+            raise ValueError("No sets_attrs available on the UpsetData.")
         kws = {"label": attr_name}
         if plot_kws is not None:
             kws.update(plot_kws)
-        self.add_plot(side, plot(attr, **plot_kws), name=name, pad=pad, size=size)
+        self.add_plot(
+            side, plot_cls(sets_attrs[attr_name], **kws), name=name, pad=pad, size=size
+        )
+        return self
 
     def add_items_attr(
-        self, side, attr_name, plot, name=None, pad=0.1, size=None, plot_kws=None
+        self,
+        side,
+        attr_name=None,
+        plot="bar",
+        name=None,
+        pad=0.1,
+        size=None,
+        plot_kws=None,
     ):
         """Add a plot for the items attribute
+
+        The items attribute aligns to the subset axis (same axis as the
+        intersection bars).
 
         Parameters
         ----------
         side : str
-            The side to add the plot, can be 'left', 'right', 'top', 'bottom'
+            The side to add the plot. For ``orient='h'`` use 'top'/'bottom',
+            for ``orient='v'`` use 'left'/'right'.
         attr_name : str
-            The name of the attribute
-        plot : str
-            The type of plot, can be 'bar', 'box', 'boxen', 'violin', 'point',
-            'strip', 'swarm', 'stack_bar', 'number'
+            The name of the attribute (column in ``items_attrs``). Ignored when
+            ``plot`` is a plotter instance.
+        plot : str, plotter class or plotter instance, default: 'bar'
+            The type of plot. A string is looked up in the registry
+            ('bar', 'box', 'boxen', 'violin', 'point', 'strip', 'swarm',
+            'stack_bar', 'number'); a plotter class is instantiated with the
+            per-subset attribute data; a plotter instance is added as-is (you
+            supply data ordered like :attr:`subset_order`).
         name : str, optional
             The name of the plot
         pad : float, optional
@@ -839,23 +945,31 @@ class Upset(WhiteBoard):
             The keyword arguments for the plot
 
         """
+        self._check_side(
+            side, "Items attr", dict(h=["top", "bottom"], v=["left", "right"])
+        )
+        plot_cls = self._resolve_attr_plotter(plot)
+        if plot_cls is None:
+            # An instance: the caller supplied its own (already ordered) data.
+            self.add_plot(side, plot, name=name, pad=pad, size=size)
+            return self
 
         data_collector = self.data.get_items_attr(attr_name)
 
-        construct = pd.DataFrame(data_collector).T
-
-        if plot == StackBar:
+        if plot_cls is StackBar:
             collect = [Counter(col) for col in data_collector]
             construct = pd.DataFrame(collect).T
             construct = (
                 (construct.loc[~pd.isnull(construct.index)]).fillna(0).astype(int)
             )
+        else:
+            construct = pd.DataFrame(data_collector).T
 
-        plot = self._attr_plotter[plot]
         kws = {"label": attr_name}
         if plot_kws is not None:
             kws.update(plot_kws)
-        self.add_plot(side, plot(construct, **kws), name=name, pad=pad, size=size)
+        self.add_plot(side, plot_cls(construct, **kws), name=name, pad=pad, size=size)
+        return self
 
     def _render_matrix(self, ax):
         ax.set_axis_off()
