@@ -1,5 +1,7 @@
+import numpy as np
 import pandas as pd
 import pytest
+from marsilea.plotter import Bar, Numbers
 from marsilea.upset import UpsetData, Upset
 
 
@@ -176,3 +178,124 @@ def test_upset_render_vertical(three_sets):
     data = UpsetData.from_sets(three_sets, sets_names=["A", "B", "C"])
     u = Upset(data, orient="v")
     u.render()
+
+
+# --- add_items_attr / add_sets_attr ---
+
+
+def _abc_with_degree0():
+    # i4 belongs to no set (degree-0)
+    data = pd.DataFrame(
+        {
+            "A": [1, 1, 0, 0],
+            "B": [1, 0, 1, 0],
+            "C": [0, 1, 1, 0],
+        },
+        index=["i1", "i2", "i3", "i4"],
+    )
+    items_attrs = pd.DataFrame(
+        {"group": ["X", "X", "Y", "Y"]},
+        index=["i1", "i2", "i3", "i4"],
+    )
+    return UpsetData(data=data, items_attrs=items_attrs)
+
+
+def test_add_items_attr_stack_bar_degree0():
+    # Bug #86: stack_bar branch was dead (string vs class) and crashed on degree-0
+    upset = Upset(data=_abc_with_degree0())
+    upset.add_items_attr("top", "group", "stack_bar")
+    upset.render()
+
+
+def test_add_items_attr_plotter_class():
+    # plot may be a plotter class, not only a registry string
+    upset = Upset(data=_abc_with_degree0())
+    upset.add_items_attr("top", "group", Bar)
+    upset.render()
+
+
+def test_add_items_attr_plotter_instance():
+    # plot may be a fully-built instance, aligned to subset_order by the caller
+    upset = Upset(data=_abc_with_degree0())
+    arr = np.arange(len(upset.subset_order))
+    upset.add_items_attr("top", plot=Numbers(arr))
+    upset.render()
+
+
+def test_add_sets_attr_default_kws(three_sets):
+    # add_sets_attr used to pass **plot_kws (None) -> TypeError; label never set
+    sets_attrs = pd.DataFrame({"score": [1.0, 2.0, 3.0]}, index=["A", "B", "C"])
+    data = UpsetData.from_sets(
+        three_sets, sets_names=["A", "B", "C"], sets_attrs=sets_attrs
+    )
+    upset = Upset(data)
+    upset.add_sets_attr("left", "score", "bar")
+    upset.render()
+
+
+def test_add_sets_attr_no_attrs_raises(upset_data):
+    upset = Upset(upset_data)
+    with pytest.raises(ValueError):
+        upset.add_sets_attr("left", "missing", "bar")
+
+
+def test_get_items_attr_exclusive_matches_cardinality():
+    # Item-attr collectors must use EXCLUSIVE subsets so counts match the bars.
+    data = pd.DataFrame(
+        {
+            "A": [1, 1, 1, 1, 0, 0],
+            "B": [1, 1, 0, 0, 1, 0],
+            "C": [1, 0, 0, 0, 0, 1],
+        },
+        index=["i1", "i2", "i3", "i4", "i5", "i6"],
+    )
+    items_attrs = pd.DataFrame(
+        {"group": ["X", "X", "Y", "Y", "X", "Y"]},
+        index=["i1", "i2", "i3", "i4", "i5", "i6"],
+    )
+    d = UpsetData(data=data, items_attrs=items_attrs)
+    collectors = d.get_items_attr("group")
+    cardinality = d.sets_table()["cardinality"]
+    # "A only" exclusive == {i3, i4} (2); old inclusive path would have given 4
+    assert [len(c) for c in collectors] == list(cardinality)
+    assert sum(len(c) for c in collectors) == len(d.items)
+
+
+def test_get_items_attr_single_set():
+    # Single set -> scalar (not tuple) group keys / index entries
+    data = pd.DataFrame({"A": [1, 0, 1]}, index=["i1", "i2", "i3"])
+    items_attrs = pd.DataFrame({"g": ["X", "Y", "X"]}, index=["i1", "i2", "i3"])
+    d = UpsetData(data=data, items_attrs=items_attrs)
+    collectors = d.get_items_attr("g")
+    assert sum(len(c) for c in collectors) == 3
+
+
+# --- ordering accessors ---
+
+
+def test_order_accessors(upset_data):
+    u = Upset(upset_data)
+    assert list(u.sets_order) == list(u.sets_size.index)
+    assert list(u.subset_order) == list(u.sets_table.index)
+
+
+def test_add_top_instance_extra_plot(three_sets):
+    # Heatmap-style: hand-built plotter instance via inherited add_top
+    data = UpsetData.from_sets(three_sets, sets_names=["A", "B", "C"])
+    u = Upset(data)
+    arr = np.arange(len(u.subset_order))
+    u.add_top(Numbers(arr))
+    u.render()
+
+
+# --- no in-place mutation ---
+
+
+def test_no_inplace_mutation(three_sets):
+    data = UpsetData.from_sets(three_sets, sets_names=["A", "B", "C"])
+    before_len = len(data.sets_table())
+    before_cols = list(data.binary_table().columns)
+    # min_degree=2 filters and sort_sets reorders -- on a copy, not the input
+    Upset(data, min_degree=2, sort_sets="ascending")
+    assert len(data.sets_table()) == before_len
+    assert list(data.binary_table().columns) == before_cols
