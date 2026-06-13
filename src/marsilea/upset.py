@@ -498,6 +498,15 @@ class Upset(WhiteBoard):
         Whether or which side to add the sets size.
     add_labels : bool, str, default: True
         Whether or which side to add the label.
+    intersection_kws : dict, optional
+        Keyword arguments passed to the intersection size
+        :class:`~marsilea.plotter.Numbers` plotter.
+    sets_size_kws : dict, optional
+        Keyword arguments passed to the sets size
+        :class:`~marsilea.plotter.Numbers` plotter.
+    sets_label_kws : dict, optional
+        Keyword arguments passed to the sets label
+        :class:`~marsilea.plotter.Labels` plotter.
     width : float
     height : float
     size_scale : float
@@ -541,6 +550,9 @@ class Upset(WhiteBoard):
         add_intersections=True,
         add_sets_size=True,
         add_labels=True,
+        intersection_kws=None,
+        sets_size_kws=None,
+        sets_label_kws=None,
         width=None,
         height=None,
         size_scale=0.3,
@@ -612,19 +624,21 @@ class Upset(WhiteBoard):
                 side = add_intersections
             else:
                 side = "top" if orient == "h" else "right"
-            self.add_intersections(side)
+            self.add_intersections(side, **(intersection_kws or {}))
         if add_labels:
             if isinstance(add_labels, str):
                 side = add_labels
             else:
                 side = "right" if orient == "h" else "bottom"
-            self.add_sets_label(side)
+            self.add_sets_label(side, **(sets_label_kws or {}))
         if add_sets_size:
             if isinstance(add_sets_size, str):
                 side = add_sets_size
             else:
                 side = "left" if orient == "h" else "top"
-            self.add_sets_size(side, color=self.sets_color)
+            sets_size_options = dict(color=self.sets_color)
+            sets_size_options.update(sets_size_kws or {})
+            self.add_sets_size(side, **sets_size_options)
 
     def highlight_subsets(
         self,
@@ -749,15 +763,18 @@ class Upset(WhiteBoard):
             msg = f"{chart_name} cannot be placed at '{side}', try {' ,'.join(options)}"
             raise ValueError(msg)
 
-    def add_intersections(self, side, pad=0.1, size=1.0):
+    def add_intersections(self, side, pad=0.1, size=1.0, **props):
         self._add_intersections = True
         self._check_side(
             side, "Intersections", dict(h=["top", "bottom"], v=["left", "right"])
         )
         data = self.data.cardinality()
-        self._intersection_bar = Numbers(data, color=self.color)
+        options = dict(color=self.color)
+        options.update(props)
+        self._intersection_bar = Numbers(data, **options)
         self._intersection_bar_side = side
         self.add_plot(side, self._intersection_bar, size=size, pad=pad)
+        return self
 
     def add_sets_size(self, side, pad=0.1, size=1.0, **props):
         self._check_side(
@@ -768,6 +785,7 @@ class Upset(WhiteBoard):
         options.update(props)
         self._sets_size_bar = Numbers(data, **options)
         self.add_plot(side, self._sets_size_bar, size=size, pad=pad)
+        return self
 
     def add_sets_label(self, side, pad=0.1, size=None, **props):
         self._check_side(
@@ -775,6 +793,7 @@ class Upset(WhiteBoard):
         )
         data = self.data.sets_names
         self.add_plot(side, Labels(data, **props), pad=pad, size=size)
+        return self
 
     def get_intersection_ax(self):
         return self.get_ax("Intersections")

@@ -74,6 +74,17 @@ You may change the positions of components:
     ...            add_sets_size="right")
     >>> us.render()
 
+The default component plotters can also be customized:
+
+.. plot::
+    :context: close-figs
+
+    >>> us = Upset(upset_data, min_cardinality=15,
+    ...            intersection_kws=dict(width=.5, fmt="{x:.0f}"),
+    ...            sets_size_kws=dict(show_value=False),
+    ...            sets_label_kws=dict(align="center"))
+    >>> us.render()
+
 For finer control, you can add components manually:
 
 .. plot::
@@ -83,6 +94,7 @@ For finer control, you can add components manually:
     ...            add_sets_size=False)
     >>> us.add_sets_label(side="left", pad=0, align="center")
     >>> us.add_sets_size(side="left", pad=0)
+    >>> us.add_intersections(side="top", pad=0, fmt="{x:.0f}")
     >>> us.render()
 
 
@@ -122,4 +134,3 @@ UpSet plots not only showcase intersections but also display the distribution of
         >>> us.add_items_attr("bottom", "Revenue (Millions)", "strip", pad=.2, plot_kws=dict(size=1, color="#24936E"))
         >>> us.add_title(bottom="Revenue (Millions)")
         >>> us.render()
-

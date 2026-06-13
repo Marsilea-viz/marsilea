@@ -180,6 +180,58 @@ def test_upset_render_vertical(three_sets):
     u.render()
 
 
+# --- component customization ---
+
+
+def test_add_intersections_props(three_sets):
+    data = UpsetData.from_sets(three_sets, sets_names=["A", "B", "C"])
+    u = Upset(data, add_intersections=False)
+    result = u.add_intersections(
+        "top",
+        width=0.5,
+        show_value=False,
+        label="Intersection size",
+        fmt="{x:.0f}",
+        props={"fontsize": 6},
+        edgecolor="black",
+    )
+    assert result is u
+    assert u._intersection_bar.width == 0.5
+    assert u._intersection_bar.show_value is False
+    assert u._intersection_bar.label == "Intersection size"
+    assert u._intersection_bar.fmt == "{x:.0f}"
+    assert u._intersection_bar.props == {"fontsize": 6}
+    assert u._intersection_bar.options["edgecolor"] == "black"
+    u.render()
+
+
+def test_constructor_component_kws(three_sets):
+    data = UpsetData.from_sets(three_sets, sets_names=["A", "B", "C"])
+    u = Upset(
+        data,
+        intersection_kws={"width": 0.4, "show_value": False},
+        sets_size_kws={"width": 0.6, "label": "Set size"},
+        sets_label_kws={"align": "center", "fontsize": 7},
+    )
+    assert u._intersection_bar.width == 0.4
+    assert u._intersection_bar.show_value is False
+    assert u._sets_size_bar.width == 0.6
+    assert u._sets_size_bar.label == "Set size"
+    labels = next(plan for plan in u._row_plan if plan.__class__.__name__ == "Labels")
+    assert labels.align == "center"
+    assert labels._user_params["fontsize"] == 7
+    u.render()
+
+
+def test_constructor_intersection_kws_vertical(three_sets):
+    data = UpsetData.from_sets(three_sets, sets_names=["A", "B", "C"])
+    u = Upset(data, orient="v", intersection_kws={"fmt": "%d", "value_pad": 4})
+    assert u._intersection_bar_side == "right"
+    assert u._intersection_bar.fmt == "%d"
+    assert u._intersection_bar.value_pad == 4
+    u.render()
+
+
 # --- add_items_attr / add_sets_attr ---
 
 
