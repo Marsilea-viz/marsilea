@@ -72,6 +72,8 @@ plot_pre_code = (
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
 exclude_patterns = ["Thumbs.db", ".DS_Store"]
+# ``sphinx_gallery_conf`` intentionally contains a callable image scraper.
+suppress_warnings = ["config.cache"]
 
 html_theme = "pydata_sphinx_theme"
 html_static_path = ["_static"]

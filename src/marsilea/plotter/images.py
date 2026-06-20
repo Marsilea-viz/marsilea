@@ -74,9 +74,9 @@ class Image(RenderPlan):
         >>> c.add_right(
         ...     ma.plotter.Image(
         ...         [
-        ...             "https://www.iconfinder.com/icons/4375050/download/png/512",
-        ...             "https://www.iconfinder.com/icons/8666426/download/png/512",
-        ...             "https://www.iconfinder.com/icons/652581/download/png/512",
+        ...             "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/Python-logo-notext.svg/250px-Python-logo-notext.svg.png",
+        ...             "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d5/Rust_programming_language_black_logo.svg/250px-Rust_programming_language_black_logo.svg.png",
+        ...             "https://upload.wikimedia.org/wikipedia/commons/thumb/6/6a/JavaScript-logo.png/250px-JavaScript-logo.png",
         ...         ],
         ...         align="right",
         ...     ),
