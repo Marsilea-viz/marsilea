@@ -37,6 +37,19 @@ conda install -c conda-forge marsilea
 mamba install -c conda-forge marsilea
 ```
 
+## Claude skill
+
+```shell
+/plugin marketplace add Marsilea-viz/marsilea-skill
+/plugin install marsilea@marsilea-marketplace
+```
+
+Once installed, the skill activates automatically whenever you ask Claude for a
+composable visualization. Marsilea itself still needs to be installed in your
+Python environment (see above). See the
+[marsilea-skill](https://github.com/Marsilea-viz/marsilea-skill) repository for
+details.
+
 ## What is Composable Visualization?
 
 <p align="center">
