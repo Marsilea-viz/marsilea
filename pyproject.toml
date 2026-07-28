@@ -68,6 +68,11 @@ include = [
 [tool.ruff.format]
 docstring-code-format = true
 
+[tool.ruff.lint]
+# Ruff's historic default rule set, made explicit so a ruff upgrade cannot
+# silently widen it (0.16.0 grew the default from 59 rules to 413).
+select = ["E4", "E7", "E9", "F"]
+
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]
 "docs/*" = ["E402", "E731"]
