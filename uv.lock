@@ -2304,16 +2304,16 @@ wheels = [
 
 [[package]]
 name = "legendkit"
-version = "0.3.4"
+version = "0.5.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "matplotlib", version = "3.7.5", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.9'" },
     { name = "matplotlib", version = "3.9.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.9.*'" },
     { name = "matplotlib", version = "3.10.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/ba/5d/32c32b2c5fc9079936cf25d355257bcf2c4db1fe56cfece029c937ec091d/legendkit-0.3.4.tar.gz", hash = "sha256:38d3e2628cdfad1dc07656c79e2b83bd43631e02359fbeea9be12e450c5d3b87", size = 1090667, upload-time = "2024-04-01T05:39:46.377Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/18/88/56cf752f690dcaa9d5224e77a9641e47eba9dde87ff7ba291e40dc7a7930/legendkit-0.5.0.tar.gz", hash = "sha256:2d413e234d7208d8658f66dbdbb18a814bdcaab18ec90d32fde209b9658b10d5", size = 28684, upload-time = "2026-06-13T14:54:08.489Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/dd/3b/09999dafa8c3d838fbb2005d4bad79a59e2f0af3a545b066246ffe374ed0/legendkit-0.3.4-py3-none-any.whl", hash = "sha256:b0b25735abf9c558ce50caafbc1e22d90354fc6b60a7c15271e0d7d8353e009b", size = 21947, upload-time = "2024-04-01T05:39:44.533Z" },
+    { url = "https://files.pythonhosted.org/packages/74/be/dc99b431346b2d2372bbe3ea7272c2b8957dd46b6ccebd0426d66dbfc9a8/legendkit-0.5.0-py3-none-any.whl", hash = "sha256:0a72fc4514e9aa33fb5c2057d897783685fe970bcf62407bf2e4ceedd52f9936", size = 35225, upload-time = "2026-06-13T14:54:07.123Z" },
 ]
 
 [[package]]
@@ -2511,7 +2511,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "fastcluster", marker = "extra == 'fast'" },
-    { name = "legendkit" },
+    { name = "legendkit", specifier = ">=0.4.1" },
     { name = "matplotlib", specifier = ">=3.6" },
     { name = "numpy" },
     { name = "pandas", extras = ["parquet"] },
