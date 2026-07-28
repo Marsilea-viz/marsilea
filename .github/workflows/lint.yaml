@@ -5,6 +5,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: chartboost/ruff-action@v1
+      - uses: astral-sh/ruff-action@v3
         with:
+          # Pinned: an unpinned ruff drifts to whatever is latest at run time.
+          version: "0.15.22"
           src: "./src"
