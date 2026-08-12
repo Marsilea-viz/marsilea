@@ -1,11 +1,77 @@
-from typing import Mapping
+from dataclasses import dataclass, field
+from typing import Any, Mapping
 
 import numpy as np
 
 from .dendrogram import Dendrogram, GroupDendrogram
 from .utils import pairwise
 
+_ROW, _COL = 0, 1
 
+
+@dataclass
+class _AxisState:
+    """Everything Deformation tracks about one axis."""
+
+    n: int
+    is_split: bool = False
+    is_cluster: bool = False
+    clustered: bool = False
+    reindex: Any = None
+    breakpoints: Any = None
+    split_order: Any = None
+    dendrogram: Any = None
+    linkage: Any = None  # User supplied linkage
+    meta_linkage: Any = None
+    use_meta: bool = True
+    reorder_index: Any = None
+    chunk_index: Any = None
+    cluster_kws: dict = field(default_factory=dict)
+    ratios_cache: Any = None
+
+
+class _AxisAttr:
+    """Forward ``Deformation.<row|col>_<name>`` to its per-axis state."""
+
+    __slots__ = ("axis", "field")
+
+    def __init__(self, axis, field):
+        self.axis = axis
+        self.field = field
+
+    def __get__(self, obj, owner=None):
+        if obj is None:
+            return self
+        return getattr(obj._axes[self.axis], self.field)
+
+    def __set__(self, obj, value):
+        setattr(obj._axes[self.axis], self.field, value)
+
+
+def _forward_axis_attrs(cls):
+    """Keep the public row_*/col_* names while the state lives per axis."""
+    for template, attr in [
+        ("is_{}_split", "is_split"),
+        ("is_{}_cluster", "is_cluster"),
+        ("_{}_clustered", "clustered"),
+        ("data_{}_reindex", "reindex"),
+        ("{}_breakpoints", "breakpoints"),
+        ("{}_split_order", "split_order"),
+        ("{}_dendrogram", "dendrogram"),
+        ("{}_linkage", "linkage"),
+        ("{}_meta_linkage", "meta_linkage"),
+        ("_use_{}_meta", "use_meta"),
+        ("{}_reorder_index", "reorder_index"),
+        ("{}_chunk_index", "chunk_index"),
+        ("{}_cluster_kws", "cluster_kws"),
+        ("_{}_ratios_cache", "ratios_cache"),
+    ]:
+        setattr(cls, template.format("row"), _AxisAttr(_ROW, attr))
+        setattr(cls, template.format("col"), _AxisAttr(_COL, attr))
+    return cls
+
+
+@_forward_axis_attrs
 class Deformation:
     """A helper class to handle data
 
@@ -16,51 +82,24 @@ class Deformation:
 
     """
 
-    is_row_split = False
-    is_col_split = False
-    is_row_cluster = False
-    is_col_cluster = False
-    _row_clustered = False
-    _col_clustered = False
-
-    data_row_reindex = None
-    data_col_reindex = None
-
-    row_breakpoints = None
-    col_breakpoints = None
-    row_split_order = None
-    col_split_order = None
-
-    row_dendrogram = None
-    col_dendrogram = None
-    row_linkage = None  # User supplied linkage
-    col_linkage = None
-
-    row_reorder_index = None
-    col_reorder_index = None
-
-    row_chunk_index = None
-    col_chunk_index = None
-    _use_col_meta = True
-    _use_row_meta = True
-
-    # just for storage
-    wspace = 0
-    hspace = 0
-
-    row_cluster_kws = {}
-    col_cluster_kws = {}
-
-    data = None
-    _nrow = None
-    _ncol = None
-
     def __init__(self, data):
+        self._axes = (_AxisState(0), _AxisState(0))
+        # just for storage
+        self.wspace = 0
+        self.hspace = 0
         self.set_data(data)
+
+    @property
+    def _nrow(self):
+        return self._axes[_ROW].n
+
+    @property
+    def _ncol(self):
+        return self._axes[_COL].n
 
     def set_data(self, data):
         self.data = data
-        self._nrow, self._ncol = data.shape
+        self._axes[_ROW].n, self._axes[_COL].n = data.shape
         self._col_clustered = False
         self._row_clustered = False
 
@@ -135,9 +174,6 @@ class Deformation:
                 order = np.arange(len(breakpoints) + 1)
             self.col_split_order = order
             self._col_ratios_cache = None
-
-    _row_ratios_cache = None
-    _col_ratios_cache = None
 
     @property
     def row_ratios(self):
