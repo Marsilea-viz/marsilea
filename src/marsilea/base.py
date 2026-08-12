@@ -15,9 +15,11 @@ from matplotlib.figure import Figure
 
 from ._deform import Deformation
 from .dendrogram import Dendrogram
-from .exceptions import SplitTwice, DuplicatePlotter
+from .exceptions import SplitTwice, DuplicatePlotter, LayerConflict
 from .layout import CrossLayout, CompositeCrossLayout, StackCrossLayout
 from .plotter import RenderPlan, Title, SizedMesh
+from .plotter._seaborn import _SeabornBase
+from .plotter.mesh import MeshBase
 from .utils import pairwise, batched, get_plot_name, _check_side
 
 
@@ -521,6 +523,7 @@ class WhiteBoard(LegendMaker):
         if not plot.render_main:
             msg = f"{plot_type} cannot be rendered as another layer."
             raise TypeError(msg)
+        self._check_layer_conflict(plot)
         if zorder is not None:
             plot.zorder = zorder
         plot.set(name=name)
@@ -538,6 +541,29 @@ class WhiteBoard(LegendMaker):
                 # that will change canvas size
                 self._main_size_updatable = False
         return self
+
+    def _check_layer_conflict(self, plot):
+        """Reject layers whose axes conventions cannot coexist.
+
+        A seaborn plot places categories at ``0 .. n - 1`` and scales the other
+        axis to the data values; a mesh draws cells over ``0 .. n`` on both.
+        Sharing the same Axes leaves the categories half a cell off and
+        overwrites the mesh's limits, so refuse the combination rather than
+        render a figure that is silently wrong.
+        """
+        if isinstance(plot, _SeabornBase):
+            clashes_with, adding_seaborn = MeshBase, True
+        elif isinstance(plot, MeshBase):
+            clashes_with, adding_seaborn = _SeabornBase, False
+        else:
+            return
+        for existing in self._layer_plan:
+            if isinstance(existing, clashes_with):
+                # report the same way round however the two were added
+                seaborn_plot, mesh_plot = (
+                    (plot, existing) if adding_seaborn else (existing, plot)
+                )
+                raise LayerConflict(seaborn_plot, mesh_plot)
 
     def _get_layers_zorder(self):
         return sorted(self._layer_plan, key=lambda p: p.zorder)
