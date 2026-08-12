@@ -103,25 +103,23 @@ class Deformation:
         self._col_clustered = False
         self._row_clustered = False
 
-    def set_data_row_reindex(self, reindex):
-        if len(reindex) != self._nrow:
+    def _set_reindex(self, axis, reindex):
+        state = self._axes[axis]
+        if len(reindex) != state.n:
             msg = (
                 f"Length of reindex ({len(reindex)}) should match "
-                f"data row with {self._nrow} elements"
+                f"data {'row' if axis == _ROW else 'col'} with "
+                f"{state.n} elements"
             )
             raise ValueError(msg)
-        self.data_row_reindex = reindex
-        self._row_clustered = False
+        state.reindex = reindex
+        state.clustered = False
+
+    def set_data_row_reindex(self, reindex):
+        self._set_reindex(_ROW, reindex)
 
     def set_data_col_reindex(self, reindex):
-        if len(reindex) != self._ncol:
-            msg = (
-                f"Length of reindex ({len(reindex)}) should match "
-                f"data col with {self._ncol} elements"
-            )
-            raise ValueError(msg)
-        self.data_col_reindex = reindex
-        self._col_clustered = False
+        self._set_reindex(_COL, reindex)
 
     def set_cluster(
         self,
@@ -132,22 +130,17 @@ class Deformation:
         meta_linkage=None,
         **kwargs,
     ):
-        if col is not None:
-            self.is_col_cluster = col
-            self.col_cluster_kws = kwargs
-            self._col_clustered = False
-            self._col_ratios_cache = None
-            self._use_col_meta = use_meta
-            self.col_linkage = linkage
-            self.col_meta_linkage = meta_linkage
-        if row is not None:
-            self.is_row_cluster = row
-            self.row_cluster_kws = kwargs
-            self._row_clustered = False
-            self._row_ratios_cache = None
-            self._use_row_meta = use_meta
-            self.row_linkage = linkage
-            self.row_meta_linkage = meta_linkage
+        for axis, cluster in ((_COL, col), (_ROW, row)):
+            if cluster is None:
+                continue
+            state = self._axes[axis]
+            state.is_cluster = cluster
+            state.cluster_kws = kwargs
+            state.clustered = False
+            state.ratios_cache = None
+            state.use_meta = use_meta
+            state.linkage = linkage
+            state.meta_linkage = meta_linkage
 
     def get_data(self):
         data = self.data
@@ -157,57 +150,54 @@ class Deformation:
             data = data[:, self.data_col_reindex]
         return data
 
+    def _set_split(self, axis, breakpoints=None, order=None):
+        if breakpoints is None:
+            return
+        state = self._axes[axis]
+        state.is_split = True
+        state.breakpoints = [0, *np.sort(np.asarray(breakpoints)), state.n]
+        if order is None:
+            order = np.arange(len(breakpoints) + 1)
+        state.split_order = order
+        state.ratios_cache = None
+
     def set_split_row(self, breakpoints=None, order=None):
-        if breakpoints is not None:
-            self.is_row_split = True
-            self.row_breakpoints = [0, *np.sort(np.asarray(breakpoints)), self._nrow]
-            if order is None:
-                order = np.arange(len(breakpoints) + 1)
-            self.row_split_order = order
-            self._row_ratios_cache = None
+        self._set_split(_ROW, breakpoints, order)
 
     def set_split_col(self, breakpoints=None, order=None):
-        if breakpoints is not None:
-            self.is_col_split = True
-            self.col_breakpoints = [0, *np.sort(np.asarray(breakpoints)), self._ncol]
-            if order is None:
-                order = np.arange(len(breakpoints) + 1)
-            self.col_split_order = order
-            self._col_ratios_cache = None
+        self._set_split(_COL, breakpoints, order)
+
+    def _ratios(self, axis):
+        state = self._axes[axis]
+        if state.ratios_cache is not None:
+            return state.ratios_cache
+        self._run_cluster()
+        if state.breakpoints is None:
+            return None
+        ratios = np.array([ix2 - ix1 for ix1, ix2 in pairwise(state.breakpoints)])
+        if state.chunk_index is not None:
+            ratios = ratios[state.chunk_index]
+        state.ratios_cache = ratios
+        return ratios
 
     @property
     def row_ratios(self):
-        if self._row_ratios_cache is not None:
-            return self._row_ratios_cache
-        self._run_cluster()
-        if self.row_breakpoints is None:
-            return None
-        ratios = np.array([ix2 - ix1 for ix1, ix2 in pairwise(self.row_breakpoints)])
-        if self.row_chunk_index is not None:
-            ratios = ratios[self.row_chunk_index]
-        self._row_ratios_cache = ratios
-        return ratios
+        return self._ratios(_ROW)
 
     @property
     def col_ratios(self):
-        if self._col_ratios_cache is not None:
-            return self._col_ratios_cache
-        self._run_cluster()
-        if self.col_breakpoints is None:
-            return None
-        ratios = np.array([ix2 - ix1 for ix1, ix2 in pairwise(self.col_breakpoints)])
-        if self.col_chunk_index is not None:
-            ratios = ratios[self.col_chunk_index]
-        self._col_ratios_cache = ratios
-        return ratios
+        return self._ratios(_COL)
+
+    def _set_chunk_order(self, axis, order):
+        state = self._axes[axis]
+        state.chunk_index = order
+        state.ratios_cache = None
 
     def set_row_chunk_order(self, order):
-        self.row_chunk_index = order
-        self._row_ratios_cache = None
+        self._set_chunk_order(_ROW, order)
 
     def set_col_chunk_order(self, order):
-        self.col_chunk_index = order
-        self._col_ratios_cache = None
+        self._set_chunk_order(_COL, order)
 
     def split_by_row(self, data: np.ndarray):
         if not self.is_row_split:
@@ -243,68 +233,56 @@ class Deformation:
         "with keys as group names and values as linkage"
     )
 
-    def cluster_row(self):
-        row_data = self.split_by_row(self.get_data())
-        if self.is_row_split:
-            if not (
-                isinstance(self.row_linkage, Mapping) or (self.row_linkage is None)
-            ):
+    def _cluster(self, axis):
+        """Cluster one axis, chunk by chunk when it is split.
+
+        Columns are clustered as observations, so each chunk is transposed
+        before it reaches the dendrogram.
+        """
+        state = self._axes[axis]
+        splitter = self.split_by_row if axis == _ROW else self.split_by_col
+        data = splitter(self.get_data())
+        # rows are already observations; columns become observations transposed
+        observations = (
+            (lambda chunk: chunk) if axis == _ROW else (lambda chunk: chunk.T)
+        )
+
+        if state.is_split:
+            if not (isinstance(state.linkage, Mapping) or (state.linkage is None)):
                 raise TypeError(self._linkage_check_msg)
             dens = []
-            for chunk, k in zip(row_data, self.row_split_order):
+            for chunk, k in zip(data, state.split_order):
                 linkage = None
-                if self.row_linkage is not None:
-                    linkage = self.row_linkage.get(k)
+                if state.linkage is not None:
+                    linkage = state.linkage.get(k)
                     if linkage is None:
                         raise KeyError(f"Linkage for group {k} is not specified")
                 dens.append(
-                    Dendrogram(chunk, linkage=linkage, key=k, **self.row_cluster_kws)
+                    Dendrogram(
+                        observations(chunk),
+                        linkage=linkage,
+                        key=k,
+                        **state.cluster_kws,
+                    )
                 )
-
-            dg = GroupDendrogram(
-                dens, linkage=self.row_meta_linkage, **self.row_cluster_kws
-            )
-            if self._use_row_meta:
-                self.row_chunk_index = dg.reorder_index
+            dg = GroupDendrogram(dens, linkage=state.meta_linkage, **state.cluster_kws)
+            if state.use_meta:
+                state.chunk_index = dg.reorder_index
             else:
-                self.row_chunk_index = np.arange(len(dens))
-            self.row_reorder_index = [d.reorder_index for d in dens]
-        else:
-            dg = Dendrogram(row_data, linkage=self.row_linkage, **self.row_cluster_kws)
-            self.row_reorder_index = dg.reorder_index
-        self.row_dendrogram = dg
-
-    def cluster_col(self):
-        col_data = self.split_by_col(self.get_data())
-        if self.is_col_split:
-            if not (
-                isinstance(self.col_linkage, Mapping) or (self.col_linkage is None)
-            ):
-                raise TypeError(self._linkage_check_msg)
-            dens = []
-            for chunk, k in zip(col_data, self.col_split_order):
-                linkage = None
-                if self.col_linkage is not None:
-                    linkage = self.col_linkage.get(k)
-                    if linkage is None:
-                        raise KeyError(f"Linkage for group {k} is not specified")
-                dens.append(
-                    Dendrogram(chunk.T, linkage=linkage, key=k, **self.col_cluster_kws)
-                )
-            dg = GroupDendrogram(
-                dens, linkage=self.col_meta_linkage, **self.col_cluster_kws
-            )
-            if self._use_col_meta:
-                self.col_chunk_index = dg.reorder_index
-            else:
-                self.col_chunk_index = np.arange(len(dens))
-            self.col_reorder_index = [d.reorder_index for d in dens]
+                state.chunk_index = np.arange(len(dens))
+            state.reorder_index = [d.reorder_index for d in dens]
         else:
             dg = Dendrogram(
-                col_data.T, linkage=self.col_linkage, **self.col_cluster_kws
+                observations(data), linkage=state.linkage, **state.cluster_kws
             )
-            self.col_reorder_index = dg.reorder_index
-        self.col_dendrogram = dg
+            state.reorder_index = dg.reorder_index
+        state.dendrogram = dg
+
+    def cluster_row(self):
+        self._cluster(_ROW)
+
+    def cluster_col(self):
+        self._cluster(_COL)
 
     def _run_cluster(self):
         """Calculation of dendrogram is expensive,
@@ -434,28 +412,31 @@ class Deformation:
         trans_data = self.reorder_by_col(trans_data, split="1d")
         return trans_data
 
-    def get_row_dendrogram(self):
+    def _get_dendrogram(self, axis):
         # Update the cluster result
         self._run_cluster()
-        return self.row_dendrogram
+        return self._axes[axis].dendrogram
+
+    def get_row_dendrogram(self):
+        return self._get_dendrogram(_ROW)
 
     def get_col_dendrogram(self):
-        self._run_cluster()
-        return self.col_dendrogram
+        return self._get_dendrogram(_COL)
+
+    def _get_linkage(self, axis):
+        state = self._axes[axis]
+        if state.dendrogram is None:
+            return None
+        if state.is_split:
+            # a single-element chunk has no linkage, its Z is None
+            return {x.key: x.Z for x in state.dendrogram.orig_dens}
+        return state.dendrogram.Z
 
     def get_row_linkage(self):
-        if self.row_dendrogram is not None:
-            if self.is_row_split:
-                return {x.key: x.Z for x in self.row_dendrogram.orig_dens}
-            else:
-                return self.row_dendrogram.Z
+        return self._get_linkage(_ROW)
 
     def get_col_linkage(self):
-        if self.col_dendrogram is not None:
-            if self.is_col_split:
-                return {x.key: x.Z for x in self.col_dendrogram.orig_dens}
-            else:
-                return self.col_dendrogram.Z
+        return self._get_linkage(_COL)
 
     @property
     def is_split(self):
