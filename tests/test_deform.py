@@ -299,3 +299,14 @@ def test_deepcopy_is_independent():
     assert not original.is_row_split
     assert isinstance(original.transform_row(np.arange(N)), np.ndarray)
     assert len(clone.transform_row(np.arange(N))) == 2
+
+
+def test_chunk_order_moves_data_and_ratios_together():
+    """set_*_chunk_order used to reorder the axis widths but not the data."""
+    deform = Deformation(np.arange(N * M, dtype=float).reshape(N, M))
+    deform.set_split_row([3])
+    deform.set_row_chunk_order([1, 0])
+
+    chunks = deform.transform_row(np.arange(N))
+    assert [c.tolist() for c in chunks] == [[3, 4, 5, 6, 7], [0, 1, 2]]
+    assert deform.row_ratios.tolist() == [len(c) for c in chunks]

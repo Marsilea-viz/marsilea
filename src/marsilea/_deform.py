@@ -1,3 +1,4 @@
+import warnings
 from dataclasses import dataclass, field
 from typing import Any, Mapping
 
@@ -7,6 +8,18 @@ from .dendrogram import Dendrogram, GroupDendrogram
 from .utils import pairwise
 
 _ROW, _COL = 0, 1
+
+
+@dataclass(frozen=True)
+class _Plan:
+    """One axis resolved into where every element ends up.
+
+    ``index`` is a flat permutation of the axis and ``bounds`` marks the chunk
+    boundaries within it, so deforming anything is a take followed by slices.
+    """
+
+    index: np.ndarray
+    bounds: np.ndarray
 
 
 @dataclass
@@ -27,7 +40,11 @@ class _AxisState:
     reorder_index: Any = None
     chunk_index: Any = None
     cluster_kws: dict = field(default_factory=dict)
-    ratios_cache: Any = None
+    plan: Any = None
+
+    def invalidate(self):
+        self.clustered = False
+        self.plan = None
 
 
 class _AxisAttr:
@@ -64,7 +81,6 @@ def _forward_axis_attrs(cls):
         ("{}_reorder_index", "reorder_index"),
         ("{}_chunk_index", "chunk_index"),
         ("{}_cluster_kws", "cluster_kws"),
-        ("_{}_ratios_cache", "ratios_cache"),
     ]:
         setattr(cls, template.format("row"), _AxisAttr(_ROW, attr))
         setattr(cls, template.format("col"), _AxisAttr(_COL, attr))
@@ -100,8 +116,8 @@ class Deformation:
     def set_data(self, data):
         self.data = data
         self._axes[_ROW].n, self._axes[_COL].n = data.shape
-        self._col_clustered = False
-        self._row_clustered = False
+        for state in self._axes:
+            state.invalidate()
 
     def _set_reindex(self, axis, reindex):
         state = self._axes[axis]
@@ -113,7 +129,7 @@ class Deformation:
             )
             raise ValueError(msg)
         state.reindex = reindex
-        state.clustered = False
+        state.invalidate()
 
     def set_data_row_reindex(self, reindex):
         self._set_reindex(_ROW, reindex)
@@ -136,11 +152,10 @@ class Deformation:
             state = self._axes[axis]
             state.is_cluster = cluster
             state.cluster_kws = kwargs
-            state.clustered = False
-            state.ratios_cache = None
             state.use_meta = use_meta
             state.linkage = linkage
             state.meta_linkage = meta_linkage
+            state.invalidate()
 
     def get_data(self):
         data = self.data
@@ -159,7 +174,7 @@ class Deformation:
         if order is None:
             order = np.arange(len(breakpoints) + 1)
         state.split_order = order
-        state.ratios_cache = None
+        state.plan = None
 
     def set_split_row(self, breakpoints=None, order=None):
         self._set_split(_ROW, breakpoints, order)
@@ -168,17 +183,11 @@ class Deformation:
         self._set_split(_COL, breakpoints, order)
 
     def _ratios(self, axis):
-        state = self._axes[axis]
-        if state.ratios_cache is not None:
-            return state.ratios_cache
-        self._run_cluster()
-        if state.breakpoints is None:
+        """Chunk sizes, in drawing order, for splitting the axes."""
+        if self._axes[axis].breakpoints is None:
+            self._run_cluster()
             return None
-        ratios = np.array([ix2 - ix1 for ix1, ix2 in pairwise(state.breakpoints)])
-        if state.chunk_index is not None:
-            ratios = ratios[state.chunk_index]
-        state.ratios_cache = ratios
-        return ratios
+        return np.diff(self._get_plan(axis).bounds)
 
     @property
     def row_ratios(self):
@@ -191,7 +200,7 @@ class Deformation:
     def _set_chunk_order(self, axis, order):
         state = self._axes[axis]
         state.chunk_index = order
-        state.ratios_cache = None
+        state.plan = None
 
     def set_row_chunk_order(self, order):
         self._set_chunk_order(_ROW, order)
@@ -199,33 +208,15 @@ class Deformation:
     def set_col_chunk_order(self, order):
         self._set_chunk_order(_COL, order)
 
-    def split_by_row(self, data: np.ndarray):
-        if not self.is_row_split:
+    def _split_chunks(self, axis, data):
+        """Cut data at the breakpoints, still in the original order."""
+        state = self._axes[axis]
+        if not state.is_split:
             return data
-        return [data[ix1:ix2] for ix1, ix2 in pairwise(self.row_breakpoints)]
-
-    def split_by_col(self, data: np.ndarray):
-        if not self.is_col_split:
-            return data
-        if data.ndim == 1:
-            return [data[ix1:ix2] for ix1, ix2 in pairwise(self.col_breakpoints)]
-        else:
-            return [data[:, ix1:ix2] for ix1, ix2 in pairwise(self.col_breakpoints)]
-
-    def split_cross(self, data: np.ndarray):
-        if self.is_col_split & self.is_row_split:
-            split_data = []
-            for ix1, ix2 in pairwise(self.row_breakpoints):
-                row = []
-                for iy1, iy2 in pairwise(self.col_breakpoints):
-                    row.append(data[ix1:ix2, iy1:iy2])
-                split_data.append(row)
-            return split_data
-        if self.is_row_split:
-            return self.split_by_row(data)
-        if self.is_col_split:
-            return self.split_by_col(data)
-        return data
+        if axis == _ROW:
+            return [data[ix1:ix2] for ix1, ix2 in pairwise(state.breakpoints)]
+        # ... keeps this working for 1d column data too
+        return [data[..., ix1:ix2] for ix1, ix2 in pairwise(state.breakpoints)]
 
     _linkage_check_msg = (
         "If you want to specific linkage when splitting, "
@@ -240,8 +231,7 @@ class Deformation:
         before it reaches the dendrogram.
         """
         state = self._axes[axis]
-        splitter = self.split_by_row if axis == _ROW else self.split_by_col
-        data = splitter(self.get_data())
+        data = self._split_chunks(axis, self.get_data())
         # rows are already observations; columns become observations transposed
         observations = (
             (lambda chunk: chunk) if axis == _ROW else (lambda chunk: chunk.T)
@@ -294,9 +284,153 @@ class Deformation:
             self.cluster_col()
             self._col_clustered = True
 
-    def reorder_by_row(self, data, split="2d"):
+    def _get_plan(self, axis) -> _Plan:
+        """Resolve one axis into where every element ends up.
+
+        Grouping, splitting, the leaf order within each chunk and the order of
+        the chunks themselves all compose into a single permutation. This is
+        the only place that decides layout.
+        """
+        state = self._axes[axis]
+        if state.plan is not None:
+            return state.plan
         self._run_cluster()
-        # no cluster, return immediately
+
+        index = (
+            np.arange(state.n) if state.reindex is None else np.asarray(state.reindex)
+        )
+        if not state.is_split:
+            if state.is_cluster:
+                index = index[state.reorder_index]
+            state.plan = _Plan(index, np.array([0, state.n]))
+            return state.plan
+
+        chunks = [index[ix1:ix2] for ix1, ix2 in pairwise(state.breakpoints)]
+        if state.is_cluster:
+            chunks = [c[np.asarray(o)] for c, o in zip(chunks, state.reorder_index)]
+        if state.chunk_index is not None:
+            chunks = [chunks[ix] for ix in state.chunk_index]
+        state.plan = _Plan(
+            np.concatenate(chunks),
+            np.concatenate([[0], np.cumsum([len(c) for c in chunks])]),
+        )
+        return state.plan
+
+    def _apply(self, axis, data):
+        """Deform data whose last axis indexes this one."""
+        state = self._axes[axis]
+        if data.shape[-1] != state.n:
+            msg = (
+                f"Data has {data.shape[-1]} elements on the "
+                f"{'row' if axis == _ROW else 'column'} axis, "
+                f"expected {state.n}"
+            )
+            raise ValueError(msg)
+        plan = self._get_plan(axis)
+        deformed = np.take(data, plan.index, axis=-1)
+        if not state.is_split:
+            return deformed
+        return [deformed[..., ix1:ix2] for ix1, ix2 in pairwise(plan.bounds)]
+
+    def transform(self, data: np.ndarray):
+        """data must be 2d array with the same shape as cluster data"""
+        if not data.shape == (self._nrow, self._ncol):
+            msg = (
+                f"The shape of input data {data.shape} does not align with"
+                f" the shape of cluster data {(self._nrow, self._ncol)}"
+            )
+            raise ValueError(msg)
+        rows, cols = self._get_plan(_ROW), self._get_plan(_COL)
+        deformed = data[np.ix_(rows.index, cols.index)]
+        if not self.is_split:
+            return deformed
+        # a 2d split is handed back flattened, one row of blocks at a time
+        return [
+            deformed[ix1:ix2, iy1:iy2]
+            for ix1, ix2 in pairwise(rows.bounds)
+            for iy1, iy2 in pairwise(cols.bounds)
+        ]
+
+    def transform_row(self, data: np.ndarray):
+        """Deform data whose last axis indexes rows."""
+        return self._apply(_ROW, data)
+
+    def transform_col(self, data: np.ndarray):
+        """Deform data whose last axis indexes columns."""
+        return self._apply(_COL, data)
+
+    def _get_dendrogram(self, axis):
+        # Update the cluster result
+        self._run_cluster()
+        return self._axes[axis].dendrogram
+
+    def get_row_dendrogram(self):
+        return self._get_dendrogram(_ROW)
+
+    def get_col_dendrogram(self):
+        return self._get_dendrogram(_COL)
+
+    def _get_linkage(self, axis):
+        state = self._axes[axis]
+        if state.dendrogram is None:
+            return None
+        if state.is_split:
+            # a single-element chunk has no linkage, its Z is None
+            return {x.key: x.Z for x in state.dendrogram.orig_dens}
+        return state.dendrogram.Z
+
+    def get_row_linkage(self):
+        return self._get_linkage(_ROW)
+
+    def get_col_linkage(self):
+        return self._get_linkage(_COL)
+
+    @property
+    def is_split(self):
+        return self.is_row_split | self.is_col_split
+
+    @property
+    def is_cluster(self):
+        return self.is_row_cluster | self.is_col_cluster
+
+    # --- deprecated, remove in the next minor ---
+    #
+    # Internal steps that autodoc exposed. Nothing in marsilea calls them and
+    # the reorder_* pair only accepts the intermediate structure that the old
+    # transform() built, so they are kept working rather than kept tidy.
+
+    def _deprecated(self, name, instead):
+        warnings.warn(
+            f"Deformation.{name} is an internal helper and will be removed, "
+            f"use {instead} instead",
+            DeprecationWarning,
+            stacklevel=3,
+        )
+
+    def split_by_row(self, data: np.ndarray):
+        self._deprecated("split_by_row", "transform_row")
+        return self._split_chunks(_ROW, data)
+
+    def split_by_col(self, data: np.ndarray):
+        self._deprecated("split_by_col", "transform_col")
+        return self._split_chunks(_COL, data)
+
+    def split_cross(self, data: np.ndarray):
+        self._deprecated("split_cross", "transform")
+        if self.is_col_split & self.is_row_split:
+            return [
+                [data[ix1:ix2, iy1:iy2] for iy1, iy2 in pairwise(self.col_breakpoints)]
+                for ix1, ix2 in pairwise(self.row_breakpoints)
+            ]
+        if self.is_row_split:
+            return self._split_chunks(_ROW, data)
+        if self.is_col_split:
+            return self._split_chunks(_COL, data)
+        return data
+
+    def reorder_by_row(self, data, split="2d"):
+        self._deprecated("reorder_by_row", "transform_row")
+        self._run_cluster()
         if not self.is_row_cluster:
             return data
 
@@ -317,8 +451,8 @@ class Deformation:
             return data[self.row_reorder_index]
 
     def reorder_by_col(self, data, split="2d"):
+        self._deprecated("reorder_by_col", "transform_col")
         self._run_cluster()
-        # no cluster, return immediately
         if not self.is_col_cluster:
             return data
 
@@ -356,92 +490,3 @@ class Deformation:
                     return data[:, self.col_reorder_index]
                 else:
                     return data[self.col_reorder_index]
-
-    def transform(self, data: np.ndarray):
-        """data must be 2d array with the same shape as cluster data"""
-        if not data.shape == (self._nrow, self._ncol):
-            msg = (
-                f"The shape of input data {data.shape} does not align with"
-                f" the shape of cluster data {(self._nrow, self._ncol)}"
-            )
-            raise ValueError(msg)
-        if self.data_row_reindex is not None:
-            data = data[self.data_row_reindex]
-        if self.data_col_reindex is not None:
-            data = data[:, self.data_col_reindex]
-        trans_data = self.split_cross(data)
-        trans_data = self.reorder_by_row(trans_data, split="2d")
-        trans_data = self.reorder_by_col(trans_data, split="2d")
-        flatten_data = []
-        if self.is_row_split & self.is_col_split:
-            for chunk in trans_data:
-                flatten_data += chunk
-            return flatten_data
-        return trans_data
-
-    def transform_row(self, data: np.ndarray):
-        data = data.T
-        if data.ndim == 1:
-            assert len(data) == self._nrow
-        else:
-            assert data.shape[0] == self._nrow
-
-        if self.data_row_reindex is not None:
-            data = data[self.data_row_reindex]
-
-        trans_data = self.split_by_row(data)
-        trans_data = self.reorder_by_row(trans_data, split="1d")
-        if isinstance(trans_data, np.ndarray):
-            return trans_data.T
-        else:
-            return [d.T for d in trans_data]
-
-    def transform_col(self, data: np.ndarray):
-        if data.ndim == 1:
-            assert len(data) == self._ncol
-        else:
-            assert data.shape[1] == self._ncol
-
-        if self.data_col_reindex is not None:
-            if data.ndim == 2:
-                data = data[:, self.data_col_reindex]
-            else:
-                data = data[self.data_col_reindex]
-
-        trans_data = self.split_by_col(data)
-        trans_data = self.reorder_by_col(trans_data, split="1d")
-        return trans_data
-
-    def _get_dendrogram(self, axis):
-        # Update the cluster result
-        self._run_cluster()
-        return self._axes[axis].dendrogram
-
-    def get_row_dendrogram(self):
-        return self._get_dendrogram(_ROW)
-
-    def get_col_dendrogram(self):
-        return self._get_dendrogram(_COL)
-
-    def _get_linkage(self, axis):
-        state = self._axes[axis]
-        if state.dendrogram is None:
-            return None
-        if state.is_split:
-            # a single-element chunk has no linkage, its Z is None
-            return {x.key: x.Z for x in state.dendrogram.orig_dens}
-        return state.dendrogram.Z
-
-    def get_row_linkage(self):
-        return self._get_linkage(_ROW)
-
-    def get_col_linkage(self):
-        return self._get_linkage(_COL)
-
-    @property
-    def is_split(self):
-        return self.is_row_split | self.is_col_split
-
-    @property
-    def is_cluster(self):
-        return self.is_row_cluster | self.is_col_cluster
