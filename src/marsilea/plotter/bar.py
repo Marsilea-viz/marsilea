@@ -402,7 +402,9 @@ class StackBar(_BarBase):
     def get_legends(self):
         if self.labels is not None:
             return CatLegend(
-                colors=self.bar_colors, labels=self.labels, **self._legend_kws
+                colors=self.bar_colors[: len(self.labels)],
+                labels=self.labels,
+                **self._legend_kws,
             )
 
     def render_ax(self, spec):
