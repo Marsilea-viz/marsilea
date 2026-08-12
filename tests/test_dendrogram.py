@@ -193,3 +193,166 @@ def test_linkage_readable_with_a_singleton_group():
     linkages = board.get_row_linkage()
     assert set(linkages) == {"a", "b"}
     assert linkages["b"] is None
+
+
+# --- Height scaling ---
+
+
+@pytest.fixture
+def uneven_groups():
+    """Three groups whose rows cluster at very different tightness."""
+
+    def build():
+        rng = np.random.default_rng(0)
+        return [
+            Dendrogram(rng.standard_normal((n, 4)) * s, method="average")
+            for n, s in [(5, 0.02), (14, 3.0), (6, 1.0)]
+        ]
+
+    return build
+
+
+def test_shared_scale_keeps_the_ratio_of_real_distances(uneven_groups):
+    """A group that clusters tightly should draw short, not full height."""
+    gd = GroupDendrogram(uneven_groups(), method="average")
+    fig, ax = plt.subplots()
+    gd.draw(ax, height_scale="shared")
+
+    tallest = max(d.max_height for d in gd.dens)
+    for den in gd.dens:
+        assert den.render_root[1] / gd.divider == pytest.approx(
+            den.max_height / tallest
+        )
+
+
+def test_minmax_scale_pins_every_apex(uneven_groups):
+    """The contrast case: the legacy scale erases that spread."""
+    gd = GroupDendrogram(uneven_groups(), method="average")
+    fig, ax = plt.subplots()
+    gd.draw(ax, height_scale="minmax")
+    assert [d.render_root[1] for d in gd.dens] == pytest.approx([1.2, 1.2, 1.2])
+
+
+@pytest.mark.parametrize("meta_ratio", [0.1, 0.2, 0.5])
+@pytest.mark.parametrize("scale", ["group", "shared"])
+def test_meta_ratio_is_exact(uneven_groups, scale, meta_ratio):
+    """Drawn meta height over drawn base height must be meta_ratio."""
+    gd = GroupDendrogram(uneven_groups(), method="average")
+    fig, ax = plt.subplots()
+    gd.draw(ax, height_scale=scale, meta_ratio=meta_ratio)
+
+    span = gd._render_y_coords.max() - gd.divider
+    assert span / gd.divider == pytest.approx(meta_ratio)
+    # meta leaves sit on the divider, with no dead gap below them
+    assert gd._render_y_coords.min() == pytest.approx(gd.divider)
+
+
+@pytest.mark.parametrize("transform", [None, "sqrt", "log", "rank"])
+@pytest.mark.parametrize("scale", ["group", "shared"])
+def test_transforms_never_reorder_merges(scale, transform):
+    """A transform may bend the heights but must not swap any two merges."""
+    data = np.random.default_rng(1).standard_normal((30, 5))
+    den = Dendrogram(data, method="ward")
+    raw = den.y_coords[den.y_coords > 0]
+
+    fig, ax = plt.subplots()
+    den.draw(ax, height_scale=scale, height_transform=transform)
+    drawn = den._render_y_coords[den.y_coords > 0]
+
+    assert np.array_equal(np.argsort(np.argsort(raw)), np.argsort(np.argsort(drawn)))
+
+
+def test_transform_lifts_a_bottom_heavy_tree():
+    """The point of the transform: ward bunches merges near the leaves."""
+    data = np.random.default_rng(1).standard_normal((60, 5))
+    den = Dendrogram(data, method="ward")
+
+    def below_half(transform):
+        fig, ax = plt.subplots()
+        den.draw(ax, height_scale="group", height_transform=transform)
+        drawn = den._render_y_coords[den.y_coords > 0]
+        return np.mean(drawn < 0.5 * drawn.max())
+
+    assert below_half(None) > 0.8
+    assert below_half("sqrt") < below_half(None)
+    assert below_half("rank") == pytest.approx(0.5, abs=0.05)
+
+
+def test_raw_heights_survive_scaling(uneven_groups):
+    """y_coords stays in the metric's units, so rescaling is repeatable."""
+    dens = uneven_groups()
+    den = dens[1]
+    before = den.y_coords.copy()
+
+    fig, ax = plt.subplots()
+    GroupDendrogram(dens, method="average").draw(ax, height_scale="shared")
+    assert np.array_equal(den.y_coords, before)
+    assert den.max_height == pytest.approx(before.max())
+
+
+def test_singleton_group_draws_as_a_stub_under_a_shared_scale():
+    """One row never merges, so its height is honestly zero."""
+    rng = np.random.default_rng(4)
+    dens = [
+        Dendrogram(rng.standard_normal((5, 4))),
+        Dendrogram(rng.standard_normal((1, 4))),
+    ]
+    fig, ax = plt.subplots()
+    GroupDendrogram(dens).draw(ax, height_scale="shared")
+
+    singleton = dens[1]
+    assert singleton.max_height == 0.0
+    assert np.all(singleton._render_y_coords == 0.0)
+
+
+def test_height_transform_needs_a_real_scale(uneven_groups):
+    gd = GroupDendrogram(uneven_groups(), method="average")
+    fig, ax = plt.subplots()
+    with pytest.raises(ValueError, match="height_transform needs height_scale"):
+        gd.draw(ax, height_transform="sqrt")
+
+
+@pytest.mark.parametrize(
+    "kwargs,match",
+    [
+        ({"height_scale": "nope"}, "Unknown height_scale"),
+        ({"height_scale": "shared", "height_transform": "nope"}, "Unknown height_"),
+    ],
+)
+def test_height_options_are_validated(uneven_groups, kwargs, match):
+    gd = GroupDendrogram(uneven_groups(), method="average")
+    fig, ax = plt.subplots()
+    with pytest.raises(ValueError, match=match):
+        gd.draw(ax, **kwargs)
+
+
+def test_height_scale_reaches_a_plain_dendrogram():
+    """The standalone case is distorted by minmax too, so it takes the knob."""
+    board_data = np.random.default_rng(6).standard_normal((12, 5))
+    den = Dendrogram(board_data, method="ward")
+
+    fig, ax = plt.subplots()
+    den.draw(ax, height_scale="minmax")
+    assert den._render_y_coords[den.y_coords > 0].min() == pytest.approx(0.2)
+
+    fig, ax = plt.subplots()
+    den.draw(ax, height_scale="group")
+    drawn = den._render_y_coords[den.y_coords > 0]
+    assert drawn.min() == pytest.approx(
+        den.y_coords[den.y_coords > 0].min() / den.max_height
+    )
+    assert drawn.max() == pytest.approx(1.0)
+
+
+@pytest.mark.parametrize("scale", ["minmax", "group", "shared"])
+def test_add_dendrogram_passes_the_height_options_through(scale):
+    import marsilea as ma
+
+    rng = np.random.default_rng(8)
+    board = ma.Heatmap(rng.standard_normal((20, 6)))
+    board.group_rows(["a"] * 6 + ["b"] * 8 + ["c"] * 6)
+    board.add_dendrogram("left", height_scale=scale, method="ward")
+    board.render()
+
+    gd = board.get_deform().get_row_dendrogram()
+    assert gd.divider == pytest.approx(1.323 if scale == "minmax" else 1.0)
