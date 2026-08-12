@@ -181,21 +181,31 @@ def test_seaborn_wrappers(rng, PlotClass):
     "PlotClass", [mp.Bar, mp.Box, mp.Boxen, mp.Violin, mp.Point, mp.Strip, mp.Swarm]
 )
 @pytest.mark.parametrize("side", ["top", "bottom", "left", "right"])
-def test_seaborn_cat_axis_stays_aligned(rng, PlotClass, side):
+@pytest.mark.parametrize("native_scale", [False, True])
+def test_seaborn_cat_axis_stays_aligned(rng, PlotClass, side, native_scale):
     """The categorical axis must span one unit per category, even after an autoscale.
 
     Seaborn leaves autoscaling on for the categorical axis, so anything that
     triggers a rescale (an overlay, ``ax.margins``, a shared axis) used to move
-    the plot out of alignment with the rest of the canvas.
+    the plot out of alignment with the rest of the canvas. Under
+    ``native_scale`` seaborn skips its adjustment entirely, so the span and the
+    direction both have to come from us.
     """
-    n_cat = 6 if side in ("top", "bottom") else 8
+    is_horizontal = side in ("left", "right")
+    n_cat = 8 if is_horizontal else 6
     h = ma.Heatmap(rng.standard_normal((8, 6)))
-    h.add_plot(side, PlotClass(rng.standard_normal((20, n_cat))), name="p")
+    h.add_plot(
+        side,
+        PlotClass(rng.standard_normal((20, n_cat)), native_scale=native_scale),
+        name="p",
+    )
     h.render()
 
     ax = h.get_ax("p")
     ax.scatter([0], [0])  # an overlay requests an autoscale on the next draw
     h.figure.canvas.draw()
 
-    lo, hi = ax.get_xlim() if side in ("top", "bottom") else ax.get_ylim()
+    lo, hi = ax.get_ylim() if is_horizontal else ax.get_xlim()
     assert abs(hi - lo) == pytest.approx(n_cat)
+    # a horizontal plot runs top-to-bottom, like the rows of the main canvas
+    assert (lo > hi) == is_horizontal

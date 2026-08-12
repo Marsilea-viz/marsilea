@@ -147,7 +147,10 @@ class _SeabornBase(StatsBase):
         if orient == "v":
             ax.set_xlim(-0.5, n - 0.5)
         else:
-            # flank plots keep seaborn's inverted categorical axis
+            # A horizontal plot runs top-to-bottom, like the rows of the main
+            # canvas, so the categorical axis is inverted. Set it rather than
+            # inherit it: seaborn skips its own adjustment under native_scale,
+            # which would leave the categories upside down.
             ax.set_ylim(n - 0.5, -0.5)
 
 
