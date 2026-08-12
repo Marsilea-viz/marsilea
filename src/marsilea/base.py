@@ -1036,6 +1036,8 @@ class ClusterBoard(WhiteBoard):
         colors=None,
         divider_style="--",
         meta_ratio=0.2,
+        height_scale=None,
+        height_transform=None,
         show=True,
         name=None,
         size=0.5,
@@ -1084,7 +1086,27 @@ class ClusterBoard(WhiteBoard):
         meta_color : color
             The color of the meta dendrogram
         meta_ratio : float
-            The size of meta dendrogram relative to the base dendrogram
+            The size of meta dendrogram relative to the base dendrogram.
+            Exact when `height_scale` is not the default "minmax".
+        height_scale : {"minmax", "group", "shared"}, default: "minmax"
+            What the merge heights are measured against.
+
+            - "minmax" stretches each group's own range over the full height,
+              so every group's dendrogram ends up the same height no matter
+              how tightly its rows actually cluster.
+            - "group" scales each group by its own tallest merge, keeping the
+              proportions inside a group honest.
+            - "shared" scales every group by the tallest merge anywhere, so
+              heights can be compared between groups and a tight group draws
+              genuinely short. Use this when the meta dendrogram looks
+              unbalanced against dense base dendrograms.
+        height_transform : {None, "sqrt", "log", "rank"} or callable
+            Bend the heights without reordering them, to spread out merges
+            that bunch up near the leaves. Worth reaching for with
+            ``method="ward"``, which is strongly bottom-heavy, and best left
+            alone with the default "single". A callable takes and returns an
+            array in [0, 1]. Requires `height_scale` other than "minmax", and
+            gives up readable distances in exchange for legibility.
         linewidth : float
             The linewidth for every dendrogram and divide line
         colors : color, array of color
@@ -1174,6 +1196,8 @@ class ClusterBoard(WhiteBoard):
             colors=colors,
             divider_style=divider_style,
             meta_ratio=meta_ratio,
+            height_scale=height_scale,
+            height_transform=height_transform,
             rasterized=rasterized,
         )
 
@@ -1413,6 +1437,8 @@ class ClusterBoard(WhiteBoard):
                         color=color,
                         linewidth=den["linewidth"],
                         rasterized=den["rasterized"],
+                        height_scale=den["height_scale"],
+                        height_transform=den["height_transform"],
                     )
                 else:
                     den_obj.draw(
@@ -1428,6 +1454,8 @@ class ClusterBoard(WhiteBoard):
                         divide_style=den["divider_style"],
                         meta_ratio=den["meta_ratio"],
                         rasterized=den["rasterized"],
+                        height_scale=den["height_scale"],
+                        height_transform=den["height_transform"],
                     )
 
     def _render_plan(self):
@@ -1455,7 +1483,8 @@ class ClusterBoard(WhiteBoard):
 
         If the canvas is not split, the linkage matrix will be returned;
         otherwise, a dictionary of linkage matrix will be returned, the key is either
-        index or the name of each chunk.
+        index or the name of each chunk. A chunk with a single row has nothing
+        to merge and maps to None.
 
         """
         return self._deform.get_row_linkage()
@@ -1465,7 +1494,8 @@ class ClusterBoard(WhiteBoard):
 
         If the canvas is not split, the linkage matrix will be returned;
         otherwise, a dictionary of linkage matrix will be returned, the key is either
-        index or the name of each chunk.
+        index or the name of each chunk. A chunk with a single column has nothing
+        to merge and maps to None.
 
         """
         return self._deform.get_col_linkage()
