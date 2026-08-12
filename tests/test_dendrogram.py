@@ -155,7 +155,6 @@ def test_base_roots_stay_inside_their_own_slot(group_den):
 # --- Degenerate inputs ---
 
 
-@pytest.mark.xfail(reason="interval == 0 divides by zero -> NaN ylim", strict=True)
 def test_equal_merge_heights_do_not_produce_nan():
     """All merge heights equal makes the min-max interval zero."""
     data = np.array([[0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [1.0, 1.0]])

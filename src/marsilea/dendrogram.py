@@ -83,16 +83,18 @@ class _DendrogramBase:
             if len(self.y_coords) == 1:
                 self.y_coords = np.array([[0.0, 0.75, 0.75, 0.0]])
             else:
-                ycoords = np.unique(self.y_coords)
-                ycoords = ycoords[np.nonzero(ycoords)]
-                y_min, y_max = np.min(ycoords), np.max(ycoords)
+                # leaf feet sit at 0 and must stay there; only merge heights
+                # are normalized, into [0.2, 1.2]
+                merges = self.y_coords != 0
+                heights = self.y_coords[merges]
+                y_min, y_max = heights.min(), heights.max()
                 interval = y_max - y_min
-                for i, j in zip(*np.nonzero(self.y_coords)):
-                    if self.y_coords[i, j] != 0.0:
-                        v = self.y_coords[i, j]
-                        self.y_coords[i, j] = (v - y_min) / interval + 0.2
-                    # self.y_coords[i, j] -= offset
-            # self.y_coords[np.nonzero(self.y_coords)] - offset
+                if interval == 0:
+                    # every merge happened at the same distance, so there is no
+                    # spread to normalize against
+                    self.y_coords[merges] = 1.2
+                else:
+                    self.y_coords[merges] = (heights - y_min) / interval + 0.2
 
         self._render_x_coords = self.x_coords
         self._render_y_coords = self.y_coords
