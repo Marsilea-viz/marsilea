@@ -1,3 +1,4 @@
+import sys
 import warnings
 import numpy as np
 from itertools import cycle
@@ -42,6 +43,28 @@ def _compute_linkage(data, method, metric):
         return scipy_linkage(data, method=method, metric=metric)
 
 
+def _dendrogram_layout(Z):
+    """Get the drawing coordinates for a linkage matrix.
+
+    scipy walks the tree recursively, one frame per level, so a tall tree
+    overruns the interpreter's recursion limit. Single linkage chains, which
+    makes the depth grow with the leaf count: the default limit of 1000 is
+    already exhausted around 2500 leaves. Measured depth is ~0.65 frames per
+    leaf, so allow triple that and put the limit back afterwards.
+    """
+    # ponytail: raising the limit is enough for the tree sizes this library
+    # plots. Build icoord/dcoord iteratively if one ever outgrows the stack.
+    needed = 2 * len(Z) + 1000
+    limit = sys.getrecursionlimit()
+    if needed <= limit:
+        return dendrogram(Z, no_plot=True)
+    sys.setrecursionlimit(needed)
+    try:
+        return dendrogram(Z, no_plot=True)
+    finally:
+        sys.setrecursionlimit(limit)
+
+
 class _DendrogramBase:
     is_singleton = False
 
@@ -76,7 +99,7 @@ class _DendrogramBase:
                 self.Z = linkage
             else:
                 self.Z = _compute_linkage(data, method=method, metric=metric)
-            self._plot_data = dendrogram(self.Z, no_plot=True)
+            self._plot_data = _dendrogram_layout(self.Z)
 
             self.x_coords = np.asarray(self._plot_data["icoord"]) / 5
             self.y_coords = np.asarray(self._plot_data["dcoord"])

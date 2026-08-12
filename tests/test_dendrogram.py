@@ -176,7 +176,6 @@ def test_identical_group_centroids_can_be_drawn():
     GroupDendrogram(dens).draw(ax)
 
 
-@pytest.mark.xfail(reason="scipy's dendrogram() recurses per tree level", strict=True)
 def test_large_dendrogram_does_not_blow_the_stack():
     """Single linkage chains, so tree depth grows with the leaf count."""
     data = np.random.default_rng(3).standard_normal((3000, 10))
