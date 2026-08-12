@@ -184,7 +184,6 @@ def test_large_dendrogram_does_not_blow_the_stack():
     assert Dendrogram(data).n_leaves == 3000
 
 
-@pytest.mark.xfail(reason="singleton groups never set .Z", strict=True)
 def test_linkage_readable_with_a_singleton_group():
     import marsilea as ma
 

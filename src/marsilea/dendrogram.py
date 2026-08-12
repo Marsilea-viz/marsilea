@@ -69,6 +69,8 @@ class _DendrogramBase:
             self.y_coords = np.array([[0.0, 0.75, 0.75, 0.0]])
             self._reorder_index = np.array([0])
             self.is_singleton = True
+            # a single observation never merges, so there is no linkage
+            self.Z = None
         else:
             if linkage is not None:
                 self.Z = linkage

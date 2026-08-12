@@ -1455,7 +1455,8 @@ class ClusterBoard(WhiteBoard):
 
         If the canvas is not split, the linkage matrix will be returned;
         otherwise, a dictionary of linkage matrix will be returned, the key is either
-        index or the name of each chunk.
+        index or the name of each chunk. A chunk with a single row has nothing
+        to merge and maps to None.
 
         """
         return self._deform.get_row_linkage()
@@ -1465,7 +1466,8 @@ class ClusterBoard(WhiteBoard):
 
         If the canvas is not split, the linkage matrix will be returned;
         otherwise, a dictionary of linkage matrix will be returned, the key is either
-        index or the name of each chunk.
+        index or the name of each chunk. A chunk with a single column has nothing
+        to merge and maps to None.
 
         """
         return self._deform.get_col_linkage()
