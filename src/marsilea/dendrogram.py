@@ -5,7 +5,7 @@ from matplotlib.collections import LineCollection
 from matplotlib.colors import is_color_like
 from matplotlib.lines import Line2D
 from scipy.cluster.hierarchy import linkage as scipy_linkage, dendrogram
-from typing import List, Sequence
+from typing import List
 
 from .exceptions import PerformanceWarning
 
@@ -341,13 +341,11 @@ class GroupDendrogram(_DendrogramBase):
 
         den_xlim = 0
         ylim = 0
-        x_coords = []
         for den in self.dens:
             den_xlim += den.xrange
             dylim = den.yrange
             if dylim > ylim:
                 ylim = dylim
-            x_coords.append(den.root[0])
         self.den_xlim = den_xlim
         self.den_ylim = ylim
         self.divider = ylim * 1.05
@@ -409,65 +407,46 @@ class GroupDendrogram(_DendrogramBase):
 
         if spacing is None:
             spacing = [0 for _ in range(self.n - 1)]
-        elif not isinstance(spacing, Sequence):
+        elif np.ndim(spacing) == 0:
             spacing = [spacing for _ in range(self.n - 1)]
 
-        render_xlim = self.den_xlim / (1 - np.sum(spacing))
-        skeleton = np.sort(np.unique(self.x_coords[self.y_coords == 0]))
-        ranger = [(skeleton[i], skeleton[i + 1]) for i in range(len(skeleton) - 1)]
+        # mirrors layout._split, so the dendrogram lands on its data chunks
+        canvas_size = 1 - np.sum(spacing)
+        if canvas_size <= 0:
+            raise ValueError(
+                f"Spacing {np.sum(spacing)} leaves no room for the dendrograms, "
+                f"the total must be less than 1"
+            )
+        render_xlim = self.den_xlim / canvas_size
+
+        # scipy puts leaf i at icoord 5 + 10i, which __init__ divided by 5.
+        # Take the leaf positions from that rather than looking for zeros in y:
+        # a merge at height zero (two groups sharing a centroid) is not a leaf.
+        skeleton = 1.0 + 2.0 * np.arange(self.n_leaves)
 
         draw_dens = self.dens if add_meta else self.orig_dens
 
         if add_base:
             x_start = 0
             for i, den in enumerate(draw_dens):
-                if x_start != 0:
-                    den.set_lim(x_start=x_start, y_end=self.divider)
-                else:
-                    den.set_lim(y_end=self.divider)
+                den.set_lim(x_start=x_start, y_end=self.divider)
                 if i != self.n - 1:
                     x_start = x_start + den.xrange + spacing[i] * render_xlim
-            # get render x
-            # orient ?
+            # a meta leaf attaches to the apex of its base dendrogram
             skeleton_x = [den.render_root[0] for den in draw_dens]
-
         else:
+            # with no base to attach to, a meta leaf sits at its chunk centre
             xstart = 0
             skeleton_x = []
             for i, den in enumerate(draw_dens):
-                if i == 0:
-                    xstart += den.xrange / 2
-                else:
-                    xstart += den.xrange / 2 + spacing[i - 1] * render_xlim
-                skeleton_x.append(xstart)
-                xstart += den.xrange / 2
+                if i > 0:
+                    xstart += spacing[i - 1] * render_xlim
+                skeleton_x.append(xstart + den.xrange / 2)
+                xstart += den.xrange
 
-        mapper = dict(zip(skeleton, skeleton_x))
-        x_coords = np.sort(np.unique(self.x_coords.flatten()))
-
-        real_x = {}
-
-        ranger_ix = 0
-        for xc in x_coords:
-            render_coord = mapper.get(xc, None)
-            if render_coord is None:
-                while True:
-                    lower, upper = ranger[ranger_ix]
-                    real_up, real_low = mapper[upper], mapper[lower]
-                    if (xc > lower) & (xc < upper):
-                        ratio = (xc - lower) / (upper - lower)
-                        real_length = (real_up - real_low) * ratio
-                        render_coord = real_low + real_length
-                        real_x[xc] = render_coord
-                        break
-                    else:
-                        ranger_ix += 1
-            else:
-                real_x[xc] = render_coord
-
-        self._render_x_coords = np.asarray(
-            [real_x[i] for i in self.x_coords.flatten()]
-        ).reshape(self.x_coords.shape)
+        # leaves land on their skeleton position, internal nodes interpolate
+        # between the two they sit above
+        self._render_x_coords = np.interp(self.x_coords, skeleton, skeleton_x)
         if add_base:
             if add_meta:
                 norm_y_coords = self.y_coords  # / np.max(self.y_coords)
@@ -489,7 +468,7 @@ class GroupDendrogram(_DendrogramBase):
             )
 
         if divide & add_base & add_meta:
-            xmin = np.min(draw_dens[0].x_coords)
+            xmin = np.min(draw_dens[0]._render_x_coords)
             xmax = np.max(draw_dens[-1]._render_x_coords)
             if orient in ["top", "bottom"]:
                 ax.hlines(

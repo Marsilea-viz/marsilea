@@ -163,7 +163,6 @@ def test_equal_merge_heights_do_not_produce_nan():
     assert np.isfinite(den.max_dependent_coord)
 
 
-@pytest.mark.xfail(reason="zero-height merge breaks the y==0 leaf mask", strict=True)
 def test_identical_group_centroids_can_be_drawn():
     """Two groups with the same centroid merge at height zero."""
     rng = np.random.default_rng(7)
