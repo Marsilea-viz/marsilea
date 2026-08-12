@@ -175,3 +175,27 @@ def test_seaborn_wrappers(rng, PlotClass):
     cb.add_layer(mp.ColorMesh(data))
     cb.add_top(PlotClass(side_data))
     cb.render()
+
+
+@pytest.mark.parametrize(
+    "PlotClass", [mp.Bar, mp.Box, mp.Boxen, mp.Violin, mp.Point, mp.Strip, mp.Swarm]
+)
+@pytest.mark.parametrize("side", ["top", "bottom", "left", "right"])
+def test_seaborn_cat_axis_stays_aligned(rng, PlotClass, side):
+    """The categorical axis must span one unit per category, even after an autoscale.
+
+    Seaborn leaves autoscaling on for the categorical axis, so anything that
+    triggers a rescale (an overlay, ``ax.margins``, a shared axis) used to move
+    the plot out of alignment with the rest of the canvas.
+    """
+    n_cat = 6 if side in ("top", "bottom") else 8
+    h = ma.Heatmap(rng.standard_normal((8, 6)))
+    h.add_plot(side, PlotClass(rng.standard_normal((20, n_cat))), name="p")
+    h.render()
+
+    ax = h.get_ax("p")
+    ax.scatter([0], [0])  # an overlay requests an autoscale on the next draw
+    h.figure.canvas.draw()
+
+    lo, hi = ax.get_xlim() if side in ("top", "bottom") else ax.get_ylim()
+    assert abs(hi - lo) == pytest.approx(n_cat)

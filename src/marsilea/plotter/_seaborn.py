@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 import seaborn
 from legendkit import CatLegend
@@ -129,6 +130,25 @@ class _SeabornBase(StatsBase):
         leg = ax.get_legend()
         if leg is not None:
             leg.remove()
+        self._align_cat_axis(ax, data, orient)
+
+    def _align_cat_axis(self, ax, data, orient):
+        """Pin the categorical axis so the plot stays aligned with other plots.
+
+        Seaborn infers the categorical span from the tick count instead of the data,
+        and sets the limits with ``auto=None``, which leaves matplotlib autoscaling
+        enabled. Any later autoscale then snaps the axis to the artists' extent plus
+        margins, breaking the alignment. Take the span from the data instead;
+        ``set_xlim``/``set_ylim`` also turn autoscaling off.
+        """
+        # data is (n_observations, n_categories), one array per hue level
+        first = data[0] if self.hue is not None else data
+        n = np.asarray(first).shape[1]
+        if orient == "v":
+            ax.set_xlim(-0.5, n - 0.5)
+        else:
+            # flank plots keep seaborn's inverted categorical axis
+            ax.set_ylim(n - 0.5, -0.5)
 
 
 def _seaborn_doc(obj: _SeabornBase):
