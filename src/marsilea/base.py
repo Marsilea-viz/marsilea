@@ -547,19 +547,23 @@ class WhiteBoard(LegendMaker):
 
         A seaborn plot places categories at ``0 .. n - 1`` and scales the other
         axis to the data values; a mesh draws cells over ``0 .. n`` on both.
-        Sharing one axes leaves the categories half a cell off and overwrites
-        the mesh's value axis, so refuse the combination rather than render a
-        figure that is silently wrong.
+        Sharing the same Axes leaves the categories half a cell off and
+        overwrites the mesh's limits, so refuse the combination rather than
+        render a figure that is silently wrong.
         """
         if isinstance(plot, _SeabornBase):
-            clashes_with = MeshBase
+            clashes_with, adding_seaborn = MeshBase, True
         elif isinstance(plot, MeshBase):
-            clashes_with = _SeabornBase
+            clashes_with, adding_seaborn = _SeabornBase, False
         else:
             return
         for existing in self._layer_plan:
             if isinstance(existing, clashes_with):
-                raise LayerConflict(plot, existing)
+                # report the same way round however the two were added
+                seaborn_plot, mesh_plot = (
+                    (plot, existing) if adding_seaborn else (existing, plot)
+                )
+                raise LayerConflict(seaborn_plot, mesh_plot)
 
     def _get_layers_zorder(self):
         return sorted(self._layer_plan, key=lambda p: p.zorder)

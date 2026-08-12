@@ -32,20 +32,21 @@ class SplitConflict(Exception):
 
 
 class LayerConflict(Exception):
-    def __init__(self, plot, existing):
-        self.plot = plot
-        self.existing = existing
+    def __init__(self, seaborn_plot, mesh_plot):
+        self.seaborn_plot = seaborn_plot
+        self.mesh_plot = mesh_plot
 
     def __str__(self):
-        name = self.plot.__class__.__name__
-        other = self.existing.__class__.__name__
+        name = self.seaborn_plot.__class__.__name__
+        mesh = self.mesh_plot.__class__.__name__
         return (
-            f"`{name}` and `{other}` cannot share the main canvas. "
-            f"A seaborn plot scales its axes to the data values, a mesh to the "
-            f"grid of cells, so the categories end up offset by half a cell and "
-            f"the mesh loses its value axis. "
-            f"Add `{name}` to a side instead, with `add_top`, `add_bottom`, "
-            f"`add_left` or `add_right`, or give it a main canvas of its own."
+            f"`{name}` and `{mesh}` cannot share the main canvas. "
+            f"`{name}` scales the Axes to the data values while `{mesh}` draws "
+            f"a grid of cells, so whichever renders last leaves the other "
+            f"misplaced: the categories shift by half a cell, and the cell grid "
+            f"loses the axis it is drawn on. "
+            f"Move `{name}` to a side with `add_top`, `add_bottom`, `add_left` "
+            f"or `add_right`, or give it a main canvas of its own."
         )
 
 

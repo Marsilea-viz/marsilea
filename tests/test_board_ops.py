@@ -53,8 +53,8 @@ def obs_2d():
 
 def test_layer_seaborn_over_mesh_rejected(data_2d, obs_2d):
     # The mesh draws cells over 0..n, the seaborn plot puts categories at
-    # 0..n-1 and rescales the other axis to the values, so one axes cannot
-    # carry both.
+    # 0..n-1 and rescales the other axis to the values, so the same Axes
+    # cannot carry both.
     h = ma.Heatmap(data_2d)
     with pytest.raises(LayerConflict):
         h.add_layer(mp.Strip(obs_2d))
@@ -65,6 +65,22 @@ def test_layer_mesh_over_seaborn_rejected(data_2d, obs_2d):
     cb.add_layer(mp.Strip(obs_2d))
     with pytest.raises(LayerConflict):
         cb.add_layer(mp.ColorMesh(data_2d))
+
+
+def test_layer_conflict_message_is_order_independent(data_2d, obs_2d):
+    # Whichever way round the two were added, the advice is to move the
+    # seaborn plot: a mesh is what the main canvas is normally for.
+    h = ma.Heatmap(data_2d)
+    with pytest.raises(LayerConflict) as seaborn_second:
+        h.add_layer(mp.Strip(obs_2d))
+
+    cb = ma.ClusterBoard(data_2d)
+    cb.add_layer(mp.Strip(obs_2d))
+    with pytest.raises(LayerConflict) as mesh_second:
+        cb.add_layer(mp.ColorMesh(data_2d))
+
+    assert str(seaborn_second.value) == str(mesh_second.value)
+    assert "Move `Strip`" in str(mesh_second.value)
 
 
 def test_layer_seaborn_alone_on_main_canvas(data_2d, obs_2d):
@@ -85,7 +101,8 @@ def test_layer_seaborn_alone_on_main_canvas(data_2d, obs_2d):
 
 
 def test_layer_two_seaborn_plots(data_2d, obs_2d):
-    # Box + Strip on one axes is a normal seaborn idiom and must keep working.
+    # Box + Strip on the same Axes is a normal seaborn idiom and must keep
+    # working.
     cb = ma.ClusterBoard(data_2d, width=4, height=3)
     cb.add_layer(mp.Box(obs_2d))
     cb.add_layer(mp.Strip(obs_2d))
