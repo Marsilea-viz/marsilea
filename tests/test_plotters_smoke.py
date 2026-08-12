@@ -56,6 +56,16 @@ def test_stackbar(data_2d, rng):
     h.render()
 
 
+def test_stackbar_legend_default_palette(data_2d, rng):
+    # The default palette is 16 colors regardless of item count; the legend must
+    # trim it to the labels or legendkit rejects the length mismatch.
+    stack_data = pd.DataFrame(rng.random((3, 6)), index=["cat_a", "cat_b", "cat_c"])
+    h = ma.Heatmap(data_2d)
+    h.add_top(mp.StackBar(stack_data))
+    h.add_legends()
+    h.render()
+
+
 # --- CenterBar ---
 
 

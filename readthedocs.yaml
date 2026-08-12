@@ -6,6 +6,14 @@ build:
   tools:
     python: "3.12"
   jobs:
+    # RTD checks out a shallow clone with no tags, so uv-dynamic-versioning
+    # cannot derive the version and falls back to 0.0.0. Fetch the tags so the
+    # docs report the real release.
+    # Both are kept non-fatal: --unshallow errors on an already-complete
+    # checkout, and a missing tag only costs an accurate version, not the build.
+    post_checkout:
+      - git fetch --unshallow || true
+      - git fetch --tags || true
     post_install:
       - pip install uv
       - UV_PROJECT_ENVIRONMENT=$READTHEDOCS_VIRTUALENV_PATH uv sync --link-mode=copy
