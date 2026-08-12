@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 import marsilea as ma
 import marsilea.plotter as mp
-from marsilea.exceptions import DuplicatePlotter, SplitTwice
+from marsilea.exceptions import DuplicatePlotter, LayerConflict, SplitTwice
 
 
 @pytest.fixture
@@ -40,6 +40,62 @@ def test_whiteboard_add_layer(data_2d):
     wb = ma.WhiteBoard()
     wb.add_layer(mp.ColorMesh(data_2d))
     wb.render()
+
+
+# --- layer conflicts ---
+
+
+@pytest.fixture
+def obs_2d():
+    """Observations per column, for the seaborn wrappers."""
+    return np.random.RandomState(0).randn(20, 8)
+
+
+def test_layer_seaborn_over_mesh_rejected(data_2d, obs_2d):
+    # The mesh draws cells over 0..n, the seaborn plot puts categories at
+    # 0..n-1 and rescales the other axis to the values, so one axes cannot
+    # carry both.
+    h = ma.Heatmap(data_2d)
+    with pytest.raises(LayerConflict):
+        h.add_layer(mp.Strip(obs_2d))
+
+
+def test_layer_mesh_over_seaborn_rejected(data_2d, obs_2d):
+    cb = ma.ClusterBoard(data_2d)
+    cb.add_layer(mp.Strip(obs_2d))
+    with pytest.raises(LayerConflict):
+        cb.add_layer(mp.ColorMesh(data_2d))
+
+
+def test_layer_seaborn_alone_on_main_canvas(data_2d, obs_2d):
+    # A seaborn plot owning the main canvas is fine: it sits on its own axes,
+    # and 0..n-1 lands on the same fractions as a side plot's 0..n.
+    cb = ma.ClusterBoard(data_2d, width=4, height=3)
+    cb.add_layer(mp.Strip(obs_2d))
+    cb.add_top(mp.Colors(list("abcdabcd")), name="ref")
+    cb.render()
+
+    main, ref = cb.get_main_ax(), cb.get_ax("ref")
+
+    def to_px(ax, v):
+        return ax.transData.transform(np.c_[v, np.zeros_like(v)])[:, 0]
+
+    cats = np.arange(8)
+    assert np.abs(to_px(main, cats) - to_px(ref, cats + 0.5)).max() < 0.5
+
+
+def test_layer_two_seaborn_plots(data_2d, obs_2d):
+    # Box + Strip on one axes is a normal seaborn idiom and must keep working.
+    cb = ma.ClusterBoard(data_2d, width=4, height=3)
+    cb.add_layer(mp.Box(obs_2d))
+    cb.add_layer(mp.Strip(obs_2d))
+    cb.render()
+
+
+def test_layer_mesh_over_mesh(data_2d):
+    h = ma.Heatmap(data_2d)
+    h.add_layer(mp.MarkerMesh(data_2d > 0.5))
+    h.render()
 
 
 # --- add_title ---
