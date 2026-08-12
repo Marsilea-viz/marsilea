@@ -356,3 +356,35 @@ def test_add_dendrogram_passes_the_height_options_through(scale):
 
     gd = board.get_deform().get_row_dendrogram()
     assert gd.divider == pytest.approx(1.323 if scale == "minmax" else 1.0)
+
+
+def test_height_scale_applies_without_control_ax():
+    """The height options must not depend on who owns the axes."""
+    data = np.random.default_rng(6).standard_normal((12, 5))
+    den = Dendrogram(data, method="ward")
+
+    fig, ax = plt.subplots()
+    den.draw(ax, control_ax=False, height_scale="group")
+    assert den._render_y_coords.max() == pytest.approx(1.0)
+
+    fig, ax = plt.subplots()
+    den.draw(ax, control_ax=False, height_scale="minmax")
+    assert den._render_y_coords.max() == pytest.approx(1.2)
+
+
+def test_group_scaling_survives_the_base_draw(uneven_groups):
+    """Drawing a base must not undo the scale its group just gave it."""
+    gd = GroupDendrogram(uneven_groups(), method="average")
+    fig, ax = plt.subplots()
+    gd.draw(ax, height_scale="shared")
+
+    tallest = max(d.max_height for d in gd.dens)
+    for den in gd.dens:
+        assert den._render_y_coords.max() == pytest.approx(den.max_height / tallest)
+
+
+def test_wrong_number_of_spacings_is_rejected(uneven_groups):
+    gd = GroupDendrogram(uneven_groups(), method="average")
+    fig, ax = plt.subplots()
+    with pytest.raises(ValueError, match="expected 2, one for each gap"):
+        gd.draw(ax, spacing=[0.01, 0.01, 0.01])

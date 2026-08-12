@@ -52,8 +52,8 @@ def _dendrogram_layout(Z):
     already exhausted around 2500 leaves. Measured depth is ~0.65 frames per
     leaf, so allow triple that and put the limit back afterwards.
     """
-    # ponytail: raising the limit is enough for the tree sizes this library
-    # plots. Build icoord/dcoord iteratively if one ever outgrows the stack.
+    # Raising the limit covers the tree sizes this library plots. If one ever
+    # outgrows the stack, replace this with an iterative icoord/dcoord builder.
     needed = 2 * len(Z) + 1000
     limit = sys.getrecursionlimit()
     if needed <= limit:
@@ -419,12 +419,13 @@ class Dendrogram(_DendrogramBase):
         root_color = color if root_color is None else root_color
         linewidth = 0.7 if linewidth is None else linewidth
 
-        if control_ax:
-            # standing on its own; inside a GroupDendrogram the group has
-            # already scaled us against its other members
+        if height_scale is not None or height_transform is not None:
             self.set_height_scale(
                 _resolve_height_scale(height_scale, self.y_coords, height_transform)
             )
+        # asking for neither leaves the heights alone, which is what a
+        # GroupDendrogram needs: it has already scaled this dendrogram against
+        # its sibling groups before handing it the axes
 
         self._draw_dendrogram(
             ax, orient=orient, color=color, linewidth=linewidth, rasterized=rasterized
@@ -580,6 +581,11 @@ class GroupDendrogram(_DendrogramBase):
             spacing = [0 for _ in range(self.n - 1)]
         elif np.ndim(spacing) == 0:
             spacing = [spacing for _ in range(self.n - 1)]
+        elif len(spacing) != self.n - 1:
+            raise ValueError(
+                f"Got {len(spacing)} spacings for {self.n} dendrograms, "
+                f"expected {self.n - 1}, one for each gap between them"
+            )
 
         # mirrors layout._split, so the dendrogram lands on its data chunks
         canvas_size = 1 - np.sum(spacing)
