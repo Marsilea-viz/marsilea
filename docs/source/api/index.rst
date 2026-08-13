@@ -243,6 +243,16 @@ Seaborn plots
     Strip
     Swarm
 
+Significance annotation on :code:`Bar`, :code:`Box`, :code:`Violin`,
+:code:`Strip` and :code:`Swarm`, with :code:`pip install marsilea[stats]`.
+
+.. autosummary::
+    :toctree: APIs/
+    :template: autosummary.rst
+    :nosignatures:
+
+    Box.annotate_stats
+
 Other plots
 -----------
 

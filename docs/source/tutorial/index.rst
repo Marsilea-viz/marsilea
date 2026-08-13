@@ -161,3 +161,25 @@ Tutorial
             <div class="img-frame">
                 <img style="max-width: 240px; max-height: 240px;" src="../_images/upset-6.png"/>
             </div>
+
+
+.. grid::
+    :gutter: 3
+    :margin: 1
+    :padding: 1
+
+    .. grid-item-card::
+        :shadow: none
+        :class-body: sd-card-center
+        :link: stats_annotation.html
+
+        .. toctree::
+            :maxdepth: 1
+
+            stats_annotation.rst
+
+        .. raw:: html
+
+            <div class="img-frame">
+                <img style="max-width: 240px; max-height: 240px;" src="../_images/stats_annotation-1.png"/>
+            </div>

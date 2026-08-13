@@ -1,3 +1,5 @@
+import warnings
+
 import numpy as np
 import pandas as pd
 import seaborn
@@ -5,8 +7,25 @@ from legendkit import CatLegend
 from seaborn import color_palette
 from typing import Mapping, Sequence
 
+from ._stats_annot import (
+    POSITION_KWS,
+    SUPPORTED_PLOTS,
+    DrawnChunk,
+    StatsConfig,
+    annotate,
+    load_annotator,
+    resolve_pairs,
+)
 from .base import StatsBase
 from ..utils import ECHARTS16
+
+
+def _extract_names(data):
+    """The column labels of the wide input, if it carries any."""
+    if isinstance(data, Mapping):
+        data = next(iter(data.values()), None)
+    columns = getattr(data, "columns", None)
+    return None if columns is None else np.asarray(columns)
 
 
 class _SeabornBase(StatsBase):
@@ -14,6 +33,7 @@ class _SeabornBase(StatsBase):
     datasets = None
     hue = None
     data = None
+    _stats = None
 
     def __init__(
         self,
@@ -28,6 +48,7 @@ class _SeabornBase(StatsBase):
         label_props=None,
         **kwargs,
     ):
+        self._var_names = _extract_names(data)
         if isinstance(data, Mapping):
             datasets = []
             self.hue = []
@@ -131,6 +152,148 @@ class _SeabornBase(StatsBase):
         if leg is not None:
             leg.remove()
         self._align_cat_axis(ax, data, orient)
+
+        if self._stats is not None:
+            names = self._chunk_names
+            self._chunks.append(
+                DrawnChunk(
+                    ax=ax,
+                    pdata=pdata,
+                    x=x,
+                    y=y,
+                    # A per-column palette also sets hue, but on the category
+                    # itself; statannotations only needs the real hue levels.
+                    hue="hue" if self.hue is not None else None,
+                    hue_order=self.hue,
+                    orient=orient,
+                    names=names[spec.current_ix] if self.is_split else names,
+                )
+            )
+
+    def annotate_stats(
+        self, pairs, test="Mann-Whitney", ref=None, pvalues=None, **configure_kws
+    ):
+        """Test pairs of categories and draw the result on the plot.
+
+        Requires `statannotations <https://github.com/trevismd/statannotations>`_,
+        installed with :code:`pip install marsilea[stats]`.
+
+        Categories are named with the columns of the input data; when the input
+        is a plain array they are named by position (0, 1, 2, ...). When the
+        canvas is split, a pair whose two members land in different chunks
+        cannot be drawn, since each chunk is its own axes; those are skipped
+        with a warning.
+
+        Parameters
+        ----------
+        pairs : list of pairs, "hue" or "all"
+            In an explicit list, each side of a pair is a category label,
+            :code:`("A", "B")`, or a :code:`(category, hue_level)` tuple when
+            the data has hue, :code:`(("A", "WT"), ("A", "KO"))`.
+            :code:`"hue"` compares the hue levels inside every category;
+            :code:`"all"` compares the categories with each other.
+        test : str, default: "Mann-Whitney"
+            The statistical test, see
+            :meth:`statannotations.Annotator.Annotator.configure`. Ignored when
+            *pvalues* is given.
+        ref : str, optional
+            Reduce a shorthand to comparisons against one reference: a hue level
+            for :code:`pairs="hue"`, a category label for :code:`pairs="all"`.
+        pvalues : array, optional
+            Skip testing and annotate these p-values instead, one per pair.
+        configure_kws :
+            Passed to :meth:`statannotations.Annotator.Annotator.configure`,
+            e.g. :code:`text_format`, :code:`loc`, :code:`comparisons_correction`
+            (the corrections need :code:`statsmodels`).
+
+        Returns
+        -------
+        self
+
+        Examples
+        --------
+        .. code-block:: python
+
+            >>> import marsilea as ma
+            >>> import marsilea.plotter as mp
+            >>> box = mp.Box({"WT": wt, "KO": ko})  # doctest: +SKIP
+            >>> box.annotate_stats(  # doctest: +SKIP
+            ...     pairs="hue", test="Mann-Whitney", text_format="star"
+            ... )
+            >>> h = ma.Heatmap(data)  # doctest: +SKIP
+            >>> h.add_top(box, size=2)  # doctest: +SKIP
+            >>> h.render()  # doctest: +SKIP
+
+        """
+        if self._seaborn_plot not in SUPPORTED_PLOTS:
+            supported = ", ".join(sorted(SUPPORTED_PLOTS))
+            raise ValueError(
+                f"statannotations cannot annotate {self._seaborn_plot}, "
+                f"only {supported}."
+            )
+        load_annotator()  # fail here rather than at render time
+
+        names = self._var_names
+        if names is not None and len(np.unique(names)) != len(names):
+            raise ValueError(
+                f"{self.__class__.__name__} cannot annotate data with duplicated "
+                "column labels, pairs would be ambiguous."
+            )
+        if (ref is not None) and not isinstance(pairs, str):
+            raise ValueError("ref only applies to pairs='hue' or pairs='all'")
+
+        moved = [k for k in POSITION_KWS if k in self.kws]
+        if moved:
+            warnings.warn(
+                f"statannotations places brackets at seaborn's default category "
+                f"positions and ignores {', '.join(moved)}; the annotation may "
+                f"not line up with the plot.",
+                stacklevel=2,
+            )
+
+        self._stats = StatsConfig(
+            pairs=pairs,
+            ref=ref,
+            test=test,
+            pvalues=pvalues,
+            configure_kws=configure_kws,
+        )
+        return self
+
+    def _deform_names(self):
+        """Chunk and reorder the category labels the same way as the data."""
+        names = self._var_names
+        if names is None:
+            names = np.arange(self.get_data()[0].shape[1])
+        deform_func = self.get_deform_func()
+        return names if deform_func is None else deform_func(names)
+
+    def _draw_stats(self):
+        never_drawn = None
+        for chunk in self._chunks:
+            pairs, dropped = resolve_pairs(self._stats, chunk.names, self.hue)
+            # A pair is only really lost when no chunk could draw it.
+            dropped = set(dropped)
+            never_drawn = dropped if never_drawn is None else never_drawn & dropped
+            if pairs:
+                annotate(chunk, pairs, self._seaborn_plot, self._stats)
+        if never_drawn:
+            warnings.warn(
+                f"{len(never_drawn)} pair(s) span more than one group and cannot "
+                f"be annotated: {sorted(never_drawn, key=str)}",
+                stacklevel=4,
+            )
+
+    def render(self, axes):
+        self._chunks = []
+        if self._stats is not None:
+            self._chunk_names = self._deform_names()
+        super().render(axes)
+        if self._stats is not None:
+            self._draw_stats()
+            if self.is_split:
+                # Brackets grew the value axis; unify the chunks again.
+                self.align_lim(axes)
 
     def _align_cat_axis(self, ax, data, orient):
         """Pin the categorical axis so the plot stays aligned with other plots.
@@ -262,12 +425,30 @@ def _seaborn_doc(obj: _SeabornBase):
         >>> cb.cut_rows([3, 7])
         >>> cb.add_left(anno)
         >>> cb.render()
-        
+
+    """
+
+    # Not executed: statannotations is an optional extra, and the docs must
+    # build without it.
+    stats_doc = f"""
+    Significance can be tested and drawn on the plot with
+    :meth:`annotate_stats`, which needs :code:`pip install marsilea[stats]`
+
+    .. code-block:: python
+
+        >>> plot = {cls_name}({hue_data}, {kws})
+        >>> plot.annotate_stats(pairs='hue', text_format='star')
+        >>> h = ma.Heatmap(data)
+        >>> h.add_right(plot)
+        >>> h.render()
+
     """
     if cls_name == "Count":
         obj.__doc__ = base_doc
     else:
         obj.__doc__ = base_doc + extend_examples
+        if obj._seaborn_plot in SUPPORTED_PLOTS:
+            obj.__doc__ += stats_doc
     return obj
 
 

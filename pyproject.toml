@@ -33,6 +33,7 @@ dependencies = [
 
 [project.optional-dependencies]
 fast = ["fastcluster"]
+stats = ["statannotations>=0.7", "statsmodels"]
 
 [tool.hatch.version]
 source = "uv-dynamic-versioning"
@@ -92,6 +93,8 @@ dev = [
     "ruff",
     "pytest",
     "scikit-learn",
+    "statannotations>=0.7",
+    "statsmodels",
     "sphinx",
     "numpydoc",
     "sphinx_design",
