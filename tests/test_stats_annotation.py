@@ -9,6 +9,7 @@ import warnings
 import numpy as np
 import pandas as pd
 import pytest
+from matplotlib.patches import PathPatch
 
 import marsilea as ma
 import marsilea.plotter as mp
@@ -161,20 +162,66 @@ def test_annotate_every_supported_plot(rng, wide, PlotClass):
     assert len(_side_axes(h, plot)[0].texts) == 12
 
 
-@pytest.mark.parametrize("side", ["top", "bottom", "left", "right"])
-def test_annotate_on_every_side(rng, side):
-    n_cat = 8 if side in ("left", "right") else 12
+def _annotated_board(side, orient, pairs, n_cat=6):
+    """A ``n_cat``-column canvas with an annotated Box on one side."""
+    rng = np.random.default_rng(0)
     cols = [f"c{i}" for i in range(n_cat)]
     data = {
         k: pd.DataFrame(rng.normal(shift, 1, (30, n_cat)), columns=cols)
         for k, shift in [("WT", 0), ("KO", 2)]
     }
-    plot = mp.Box(data)
-    plot.annotate_stats(pairs="hue", text_format="star")
-    h = ma.Heatmap(rng.standard_normal((8, 12)))
+    plot = mp.Box(data, orient=orient)
+    plot.annotate_stats(pairs=pairs, text_format="star")
+    h = ma.Heatmap(rng.standard_normal((n_cat, n_cat)), width=2, height=2)
     h.add_plot(side, plot, size=2, name="p")
     h.render()
-    assert len(h.get_ax("p").texts) == n_cat
+    h.figure.canvas.draw()
+    return h, data
+
+
+@pytest.mark.parametrize("side", ["top", "bottom", "left", "right"])
+@pytest.mark.parametrize("orient", ["v", "h"])
+def test_labels_land_beyond_the_data_on_every_side(side, orient):
+    """Whichever way the value axis runs, the label sits past the data.
+
+    Only a horizontal plot on the left has that axis inverted, but assert it
+    everywhere so a change to the orientation handling cannot quietly put
+    labels back on top of the plot.
+    """
+    h, data = _annotated_board(side, orient, pairs="hue")
+    ax = h.get_ax("p")
+    value_axis = 0 if orient == "h" else 1
+    to_data = ax.transData.inverted()
+
+    assert len(ax.texts) == 6
+    for text in ax.texts:
+        category = int(round(text.xy[1 - value_axis]))
+        span = to_data.transform(text.get_window_extent().get_points())[:, value_axis]
+        reach = max(d.iloc[:, category].max() for d in data.values())
+        assert min(span) > reach
+        lo, hi = sorted(ax.get_xlim() if orient == "h" else ax.get_ylim())
+        assert lo <= min(span) and max(span) <= hi
+
+
+@pytest.mark.parametrize("side", ["top", "bottom", "left", "right"])
+@pytest.mark.parametrize("orient", ["v", "h"])
+def test_brackets_land_on_the_category_they_name(side, orient):
+    """The categorical axis is inverted for horizontal plots; positions must hold."""
+    h, _ = _annotated_board(side, orient, pairs=[(("c4", "WT"), ("c4", "KO"))])
+    ax = h.get_ax("p")
+
+    (text,) = ax.texts
+    category_axis = 1 if orient == "h" else 0
+    assert text.xy[category_axis] == pytest.approx(4, abs=0.5)
+
+    # seaborn dodges c4's two boxes around position 4; the bracket spans them
+    boxes = [
+        p.get_path().vertices[:, category_axis]
+        for p in ax.patches
+        if isinstance(p, PathPatch)
+    ]
+    around_c4 = [v for v in boxes if abs((v.min() + v.max()) / 2 - 4) < 0.5]
+    assert len(around_c4) == 2
 
 
 def test_annotation_keeps_split_chunks_aligned(rng, wide):
