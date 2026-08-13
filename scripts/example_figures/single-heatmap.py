@@ -3,6 +3,7 @@ Visualizing Single-cell RNA-seq Data
 ====================================
 
 """
+
 # %%
 import matplotlib as mpl
 import matplotlib.pyplot as plt

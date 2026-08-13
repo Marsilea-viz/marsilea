@@ -4,7 +4,7 @@ from components.initialize import init_page
 
 init_page("Manual")
 
-IMG_ROOT = "https://raw.githubusercontent.com/" "Marsilea-viz/marsilea/main/app/img"
+IMG_ROOT = "https://raw.githubusercontent.com/Marsilea-viz/marsilea/main/app/img"
 
 st.header("Manual")
 

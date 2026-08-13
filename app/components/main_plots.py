@@ -7,7 +7,7 @@ from marsilea import ClusterBoard
 from marsilea.plotter import ColorMesh, SizedMesh, MarkerMesh
 from .cmap_selector import ColormapSelector
 
-IMG_ROOT = "https://raw.githubusercontent.com/" "Marsilea-viz/marsilea/main/app/img/"
+IMG_ROOT = "https://raw.githubusercontent.com/Marsilea-viz/marsilea/main/app/img/"
 
 
 class MainPlotter:

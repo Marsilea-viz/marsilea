@@ -39,11 +39,7 @@ def test_markermesh():
 
 def test_layersmesh_one_layer():
     one_layer = np.random.choice([1, 2, 3], (3, 5))
-    pieces = {
-        1: ma.layers.Rect(),
-        2: ma.layers.FracRect(),
-        3: ma.layers.FrameRect()
-    }
+    pieces = {1: ma.layers.Rect(), 2: ma.layers.FracRect(), 3: ma.layers.FrameRect()}
     h = ma.layers.Layers(data=one_layer, pieces=pieces)
     h.render()
 
@@ -60,4 +56,3 @@ def test_layersmesh_multiple_layer():
     ]
     h = ma.layers.Layers(layers=[d1, d2, d3], pieces=pieces)
     h.render()
-

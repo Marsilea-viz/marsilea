@@ -55,7 +55,7 @@ def tools(name, img, page, size=150):
 with t1:
     tools(
         "Simple Heatmap",
-        "https://marsilea.readthedocs.io/en/latest/" "_images/concatenation-1.png",
+        "https://marsilea.readthedocs.io/en/latest/_images/concatenation-1.png",
         page="/Simple_Heatmap",
         size=130,
     )

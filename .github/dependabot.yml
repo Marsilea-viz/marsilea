@@ -1,0 +1,9 @@
+# setup-uv and ruff-action no longer publish moving major tags, so their pins in
+# .github/workflows/ are frozen until something bumps them. That something is
+# this. Actions only -- uv.lock is already handled by the uv-lock pre-commit hook.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

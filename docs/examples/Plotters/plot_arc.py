@@ -6,7 +6,6 @@ Arc
 
 """
 
-
 # %%
 from marsilea.plotter import Arc
 

@@ -100,7 +100,8 @@ def _load_sc_multiomics(cache=True):
         [
             "sc-multiomics/sc-multiomics.npz",
             "sc-multiomics/sc-multiomics-interaction.csv",
-        ]
+        ],
+        cache=cache,
     )
 
     dataset = np.load(stack, allow_pickle=True)

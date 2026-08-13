@@ -13,34 +13,52 @@ from matplotlib.transforms import Bbox
 from platformdirs import user_cache_dir
 
 from .base import RenderPlan
+from .._version import version
 
 
-def _cache_remote(url, cache=True, max_retries=3):
-    import time
+def image_cache_path(url):
+    """Where a remote image is cached once downloaded.
 
-    try:
-        import requests
-    except ImportError:
-        raise ImportError("Required requests, try `pip install requests`.")
+    Public so that the docs build can pre-seed the cache with vendored copies
+    instead of hitting the network on every build.
+    """
     data_dir = Path(user_cache_dir(appname="Marsilea"))
     data_dir.mkdir(exist_ok=True, parents=True)
 
     hasher = sha256()
     hasher.update(url.encode("utf-8"))
-    fname = hasher.hexdigest()
+    return data_dir / hasher.hexdigest()
 
-    dest = data_dir / fname
+
+def _cache_remote(url, cache=True, max_retries=3):
+    import time
+    from urllib.error import HTTPError
+    from urllib.request import Request, urlopen
+
+    dest = image_cache_path(url)
     if not (cache and dest.exists()):
+        # Wikimedia throttles generic browser user agents from datacenter IPs.
+        # Identify ourselves as their policy asks.
+        # https://foundation.wikimedia.org/wiki/Policy:User-Agent_policy
+        req = Request(
+            url,
+            headers={
+                "User-Agent": f"Marsilea/{version} "
+                "(https://github.com/Marsilea-viz/marsilea)"
+            },
+        )
         for attempt in range(max_retries):
-            r = requests.get(url, headers={"User-Agent": "Mozilla/5.0"})
-            if r.status_code == 429 and attempt < max_retries - 1:
-                wait = 2 ** (attempt + 1)
-                time.sleep(wait)
-                continue
-            r.raise_for_status()
-            break
+            try:
+                with urlopen(req, timeout=30) as r:
+                    content = r.read()
+                break
+            except HTTPError as e:
+                if e.code == 429 and attempt < max_retries - 1:
+                    time.sleep(2 ** (attempt + 1))
+                    continue
+                raise
         with open(dest, "wb") as f:
-            f.write(r.content)
+            f.write(content)
 
     return dest
 

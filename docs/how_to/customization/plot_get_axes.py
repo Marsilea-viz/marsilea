@@ -6,7 +6,6 @@ This example shows how to access the axes object in Marsilea.
 
 """
 
-
 # %%
 import numpy as np
 import marsilea as ma
