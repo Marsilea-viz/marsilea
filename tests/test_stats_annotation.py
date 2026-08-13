@@ -196,8 +196,7 @@ def test_annotation_keeps_split_chunks_aligned(rng, wide):
     assert all(t.xy[1] <= top for ax in axes for t in ax.texts)
 
 
-def test_annotation_follows_the_inverted_axis_of_a_left_plot(rng, wide):
-    """A left plot has its value axis inverted; brackets belong outside the data."""
+def _horizontal_board(rng, side):
     cols = [f"c{i}" for i in range(8)]
     data = {
         k: pd.DataFrame(rng.normal(shift, 1, (30, 8)), columns=cols)
@@ -206,8 +205,14 @@ def test_annotation_follows_the_inverted_axis_of_a_left_plot(rng, wide):
     plot = mp.Box(data, orient="h")
     plot.annotate_stats(pairs="hue", text_format="star")
     h = ma.Heatmap(rng.standard_normal((8, 12)))
-    h.add_left(plot, size=2, name="p")
+    h.add_plot(side, plot, size=2, name="p")
     h.render()
+    return h, data
+
+
+def test_annotation_follows_the_inverted_axis_of_a_left_plot(rng):
+    """A left plot has its value axis inverted; brackets belong outside the data."""
+    h, data = _horizontal_board(rng, "left")
 
     ax = h.get_ax("p")
     assert ax.xaxis_inverted()
@@ -216,6 +221,37 @@ def test_annotation_follows_the_inverted_axis_of_a_left_plot(rng, wide):
     for text in ax.texts:
         category = int(round(text.xy[1]))
         assert text.xy[0] > max(d.iloc[:, category].max() for d in data.values())
+
+
+def _label_spans(h):
+    """Where each label actually sits on the value axis, in data coordinates."""
+    ax = h.get_ax("p")
+    h.figure.canvas.draw()
+    to_data = ax.transData.inverted()
+    return {
+        int(round(t.xy[1])): sorted(
+            to_data.transform(t.get_window_extent().get_points())[:, 0]
+        )
+        for t in ax.texts
+    }
+
+
+def test_labels_sit_outside_the_bracket_on_an_inverted_axis(rng):
+    """The label grows away from the data on both sides.
+
+    statannotations places the label with ``va`` and an offset in points, both
+    in display space, so on a left plot they point back into the plot. Mirrored,
+    a left plot must lay its labels out exactly like a right plot.
+    """
+    left, data = _horizontal_board(np.random.default_rng(0), "left")
+    right, _ = _horizontal_board(np.random.default_rng(0), "right")
+
+    left_spans, right_spans = _label_spans(left), _label_spans(right)
+    assert left_spans.keys() == right_spans.keys()
+    for category, (lo, hi) in left_spans.items():
+        assert (lo, hi) == pytest.approx(right_spans[category])
+        # and neither one overlaps the data it annotates
+        assert lo > max(d.iloc[:, category].max() for d in data.values())
 
 
 def test_pairs_spanning_two_chunks_are_skipped(rng, wide):

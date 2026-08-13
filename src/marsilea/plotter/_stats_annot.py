@@ -179,6 +179,21 @@ def _flip_value_axis(ax, orient):
         ax.set_ylim(*ax.get_ylim()[::-1])
 
 
+def _mirror_labels(texts):
+    """Move each label to the other side of its bracket.
+
+    statannotations anchors the label on the bracket and lets it grow away
+    from the data, using ``va="bottom"`` plus an offset in points -- both in
+    display space, so both point the wrong way once the value axis is
+    inverted and the label lands back on top of the plot. The brackets
+    themselves are in data coordinates and need no such fix.
+    """
+    for text in texts:
+        text.set_va("top" if text.get_va() == "bottom" else "bottom")
+        dx, dy = text.get_position()
+        text.set_position((-dx, -dy))
+
+
 def annotate(chunk: DrawnChunk, pairs: List, plot: str, config: StatsConfig):
     """Run the tests and draw the brackets on one chunk's axes."""
     Annotator = load_annotator()
@@ -190,6 +205,7 @@ def annotate(chunk: DrawnChunk, pairs: List, plot: str, config: StatsConfig):
     flipped = _value_axis_inverted(chunk.ax, chunk.orient)
     if flipped:
         _flip_value_axis(chunk.ax, chunk.orient)
+    drawn_before = len(chunk.ax.texts)
 
     plot_kws = {} if chunk.hue is None else {"dodge": True}
     annotator = Annotator(
@@ -219,3 +235,4 @@ def annotate(chunk: DrawnChunk, pairs: List, plot: str, config: StatsConfig):
 
     if flipped:
         _flip_value_axis(chunk.ax, chunk.orient)
+        _mirror_labels(chunk.ax.texts[drawn_before:])
