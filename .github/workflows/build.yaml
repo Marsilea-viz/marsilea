@@ -7,12 +7,14 @@ on:
       - 'src/**'
       - 'tests/**'
       - 'pyproject.toml'
+      - 'uv.lock'
   pull_request:
     paths:
       - '.github/**'
       - 'src/**'
       - 'tests/**'
       - 'pyproject.toml'
+      - 'uv.lock'
 
 jobs:
   Test:
@@ -20,16 +22,18 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.9', '3.10', '3.11', '3.12', '3.13']
+        python-version: ['3.11', '3.12', '3.13', '3.14']
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
+      # setup-uv stopped publishing moving major tags in v8, so this pin has to
+      # be a full version. Dependabot keeps it current.
       - name: Setup uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v10.0.0
         with:
-         python-version: ${{ matrix.python-version }}
-         enable-cache: true
-         cache-dependency-glob: "uv.lock"
+          python-version: ${{ matrix.python-version }}
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
       - name: Install project
         run: uv sync --dev
       - name: Run tests
@@ -37,14 +41,18 @@ jobs:
 
   pypi_publish:
     runs-on: ubuntu-latest
+    # Never publish a build whose tests failed, and keep the test-PyPI upload off
+    # pull requests, where it has no token and only adds noise.
+    needs: Test
+    if: github.event_name == 'push'
     permissions:
       id-token: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Set up UV
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v10.0.0
         with:
-          python-version: '3.12'
+          python-version: '3.13'
           enable-cache: true
           cache-dependency-glob: "uv.lock"
       - name: Publish to test pypi
@@ -53,7 +61,7 @@ jobs:
           uv publish --publish-url https://test.pypi.org/legacy/ || exit 0
 
       - name: Publish to pypi
-        if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/v')
+        if: startsWith(github.event.ref, 'refs/tags/v')
         run: |
           uv build
           uv publish
