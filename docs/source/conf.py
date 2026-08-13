@@ -13,10 +13,43 @@
 # import os
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
+import json
+import shutil
 from datetime import datetime
+from pathlib import Path
+
+from mpl_fontkit.core import get_font_install_path
 from sphinx_gallery.sorting import FileNameSortKey, ExplicitOrder
 from sphinx_gallery.scrapers import matplotlib_scraper
 import marsilea as ma
+from marsilea.plotter.images import image_cache_path
+
+
+def _seed_asset_caches():
+    """Populate the caches the gallery reads from with vendored copies.
+
+    The gallery renders Wikimedia logos, twemoji and Google Fonts. Fetching
+    those on every Read the Docs build made the build fail with HTTP 429 and
+    tied the rendered output to whatever upstream served that day.
+
+    Cache locations come from the code that reads them (``image_cache_path``,
+    ``get_font_install_path``) so the seed cannot drift out of sync.
+    """
+    assets = Path(__file__).parents[1] / "assets"
+
+    images = assets / "images"
+    for name, url in json.loads((images / "sources.json").read_text()).items():
+        dest = image_cache_path(url)
+        if not dest.exists():
+            shutil.copyfile(images / name, dest)
+
+    fonts = get_font_install_path()
+    for src in (assets / "fonts").iterdir():
+        if not (fonts / src.name).exists():
+            shutil.copyfile(src, fonts / src.name)
+
+
+_seed_asset_caches()
 
 # -- Project information -----------------------------------------------------
 
