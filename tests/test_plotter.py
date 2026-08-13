@@ -4,7 +4,6 @@
 # 2. Data: 2d matrix, 1d array
 # 3. Data type: list, ndarray, pandas dataframe, pandas series, xarray
 # 4. Dendrogram: None, row, column, both
-from functools import cached_property
 
 import numpy as np
 import pandas as pd
@@ -15,7 +14,6 @@ import marsilea.plotter as mp
 
 
 class DataInput:
-
     def __init__(self, row, column):
         self.row = row
         self.column = column
@@ -120,7 +118,9 @@ class TestColors:
             cb.group_cols(data_input.get_data("1d_text_col", "list"))
         cb.render()
 
-    @pytest.mark.parametrize("data_name", ["2d", "2d_1row", "1d_row", "2d_text", "1d_text_row"])
+    @pytest.mark.parametrize(
+        "data_name", ["2d", "2d_1row", "1d_row", "2d_text", "1d_text_row"]
+    )
     @pytest.mark.parametrize("data_type", ["ndarray", "dataframe", "series"])
     def test_add_flank(self, data_name, data_type):
         data = data_input.get_data(data_name, data_type)
@@ -129,7 +129,9 @@ class TestColors:
         cb.add_plot("right", mp.Colors(data.T))
         cb.render()
 
-    @pytest.mark.parametrize("data_name", ["2d", "2d_1col", "1d_col", "2d_text", "1d_text_col"])
+    @pytest.mark.parametrize(
+        "data_name", ["2d", "2d_1col", "1d_col", "2d_text", "1d_text_col"]
+    )
     @pytest.mark.parametrize("data_type", ["ndarray", "dataframe", "series"])
     def test_add_body(self, data_name, data_type):
         data = data_input.get_data(data_name, data_type)
