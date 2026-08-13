@@ -115,10 +115,6 @@ Grouping and clustering
 The annotation is attached to the data, not to a position, so it follows the
 categories wherever grouping and clustering move them.
 
-A group is drawn on its own axes, though, so a pair whose two members end up in
-different groups cannot be bracketed. Those pairs are skipped and a warning
-tells you which ones.
-
 .. plot::
     :context: close-figs
 
@@ -131,6 +127,58 @@ tells you which ones.
     >>> h.add_bottom(mp.Labels(genes))
     >>> h.add_legends()
     >>> h.render()
+
+
+Comparing across groups
+-----------------------
+
+Each group is drawn on its own axes, so a bracket between two groups has to
+span them. Ask for the pair and it is drawn: those brackets are placed in
+figure coordinates, above every within-group bracket they pass over.
+
+.. plot::
+    :context: close-figs
+
+    >>> box = mp.Box({"Control": control, "Treated": treated}, label="Expression")
+    >>> box.annotate_stats(
+    ...     pairs=[
+    ...         (("Gene 1", "Control"), ("Gene 1", "Treated")),
+    ...         (("Gene 1", "Treated"), ("Gene 2", "Treated")),
+    ...         (("Gene 1", "Treated"), ("Gene 5", "Treated")),
+    ...     ],
+    ...     text_format="star",
+    ... )
+    >>> h = ma.Heatmap(treated.values - control.values, label="Difference")
+    >>> h.group_cols(np.where(up, "Up", "Down"), order=["Up", "Down"])
+    >>> h.add_top(box, size=2, pad=0.1)
+    >>> h.add_bottom(mp.Labels(genes))
+    >>> h.render()
+
+:code:`ref` reaches across groups too, so a control category can be compared
+with everything else no matter which group it ended up in. Remember it draws
+one bracket per remaining category, per condition — with a single condition
+that stays readable.
+
+.. plot::
+    :context: close-figs
+
+    >>> box = mp.Box(treated, color="#8FB9AA", label="Expression")
+    >>> box.annotate_stats(pairs="all", ref="Gene 0", text_format="star")
+    >>> h = ma.Heatmap(treated.values - control.values, label="Difference")
+    >>> h.group_cols(np.where(up, "Up", "Down"), order=["Up", "Down"])
+    >>> h.add_top(box, size=2.5, pad=0.1)
+    >>> h.add_bottom(mp.Labels(genes))
+    >>> h.render()
+
+.. note::
+
+    Bare :code:`pairs="all"` stays inside each group — every pair across a
+    9-category split would be 36 brackets. Name the pairs you want, or use
+    :code:`ref`.
+
+    statannotations works one axes at a time, so marsilea draws the spanning
+    brackets itself. It still runs the test through statannotations and formats
+    the result with the same options, so the two kinds of bracket agree.
 
 
 Orientation

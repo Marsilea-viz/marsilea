@@ -9,11 +9,17 @@ import warnings
 import numpy as np
 import pandas as pd
 import pytest
+from matplotlib.lines import Line2D
 from matplotlib.patches import PathPatch
 
 import marsilea as ma
 import marsilea.plotter as mp
-from marsilea.plotter._stats_annot import StatsConfig, resolve_pairs
+from marsilea.plotter._stats_annot import (
+    Endpoint,
+    StatsConfig,
+    plan_pairs,
+    resolve_pairs,
+)
 
 HUE = ["WT", "KO"]
 
@@ -130,6 +136,58 @@ def test_resolve_pairs_accepts_integer_labels():
 def test_resolve_pairs_rejects_unknown_shorthand():
     with pytest.raises(ValueError, match="Unknown pairs"):
         resolve_pairs(StatsConfig(pairs="everything"), ["a"], None)
+
+
+# --- planning across chunks ---
+
+
+def test_plan_splits_within_chunk_from_cross_chunk():
+    config = StatsConfig(
+        pairs=[
+            (("a", "WT"), ("b", "KO")),  # both in chunk 0
+            (("a", "WT"), ("d", "KO")),  # chunk 0 -> chunk 1
+            (("a", "WT"), ("zz", "KO")),  # nowhere
+        ]
+    )
+    per_chunk, cross, unknown = plan_pairs(config, [["a", "b"], ["c", "d"]], HUE)
+
+    assert [plan.pairs for plan in per_chunk] == [[((0, "WT"), (1, "KO"))], []]
+    assert len(cross) == 1
+    assert (cross[0].left.chunk, cross[0].left.position) == (0, 0)
+    assert (cross[0].right.chunk, cross[0].right.position) == (1, 1)
+    assert unknown == [(("a", "WT"), ("zz", "KO"))]
+
+
+def test_plan_gives_each_chunk_only_its_own_pvalues():
+    config = StatsConfig(
+        pairs=[("a", "b"), ("a", "d"), ("c", "d")], pvalues=[0.1, 0.2, 0.3]
+    )
+    per_chunk, cross, _ = plan_pairs(config, [["a", "b"], ["c", "d"]], None)
+
+    assert [plan.pvalues for plan in per_chunk] == [[0.1], [0.3]]
+    assert [pair.pvalue for pair in cross] == [0.2]
+
+
+def test_plan_expands_a_reference_over_every_chunk():
+    """`ref` in one chunk still has something to say about the others."""
+    config = StatsConfig(pairs="all", ref="a")
+    per_chunk, cross, _ = plan_pairs(config, [["a", "b"], ["c", "d"]], None)
+
+    assert [plan.pairs for plan in per_chunk] == [[(0, 1)], []]
+    assert [(p.right.chunk, p.right.position) for p in cross] == [(1, 0), (1, 1)]
+
+
+def test_plan_leaves_a_single_chunk_alone():
+    config = StatsConfig(pairs=[("a", "b")])
+    per_chunk, cross, unknown = plan_pairs(config, [["a", "b"]], None)
+    assert [plan.pairs for plan in per_chunk] == [[(0, 1)]]
+    assert cross == [] and unknown == []
+
+
+def test_endpoint_dodges_like_seaborn():
+    assert Endpoint(0, 3, "WT").coord(HUE) == pytest.approx(2.8)
+    assert Endpoint(0, 3, "KO").coord(HUE) == pytest.approx(3.2)
+    assert Endpoint(0, 3).coord(None) == pytest.approx(3.0)
 
 
 # --- configuration errors, no statannotations needed for the plot check ---
@@ -301,20 +359,136 @@ def test_labels_sit_outside_the_bracket_on_an_inverted_axis(rng):
         assert lo > max(d.iloc[:, category].max() for d in data.values())
 
 
-def test_pairs_spanning_two_chunks_are_skipped(rng, wide):
-    plot = mp.Bar(wide)
-    plot.annotate_stats(
-        pairs=[(("c0", "WT"), ("c0", "KO")), (("c0", "WT"), ("c9", "KO"))],
-        text_format="star",
-    )
-    h = ma.Heatmap(rng.standard_normal((8, 12)))
-    h.cut_cols([4, 8])
-    h.add_top(plot, size=2)
-    with pytest.warns(UserWarning, match="span more than one group"):
-        h.render()
+# --- brackets that span the chunk axes ---
 
+
+def _split_board(pairs, orient="v", side="top", n_cat=12, cuts=(4, 8), **kws):
+    rng = np.random.default_rng(0)
+    cols = [f"c{i}" for i in range(n_cat)]
+    data = {
+        k: pd.DataFrame(rng.normal(shift, 1, (30, n_cat)), columns=cols)
+        for k, shift in [("WT", 0), ("KO", 2)]
+    }
+    plot = mp.Box(data, orient=orient)
+    plot.annotate_stats(pairs=pairs, text_format="star", **kws)
+    h = ma.Heatmap(rng.standard_normal((n_cat, n_cat)), width=3, height=3)
+    (h.cut_rows if side in ("left", "right") else h.cut_cols)(list(cuts))
+    h.add_plot(side, plot, size=2, name="p")
+    h.render()
+    h.figure.canvas.draw()
+    return h, plot, data
+
+
+def _figure_brackets(h):
+    return [a for a in h.figure.artists if isinstance(a, Line2D)]
+
+
+def test_pairs_spanning_two_chunks_are_drawn_across_axes():
+    """statannotations cannot reach across Axes, so marsilea draws these itself."""
+    h, plot, _ = _split_board(
+        [
+            (("c0", "WT"), ("c0", "KO")),  # inside chunk 0
+            (("c0", "WT"), ("c9", "KO")),  # chunk 0 -> chunk 2
+            (("c0", "WT"), ("c5", "KO")),  # chunk 0 -> chunk 1
+        ]
+    )
     axes = _side_axes(h, plot)
+
+    # the within-chunk pair still goes through statannotations, per Axes
     assert [len(ax.texts) for ax in axes] == [1, 0, 0]
+    # the two spanning pairs are figure-level artists instead
+    assert len(_figure_brackets(h)) == 2
+    assert [t.get_text() for t in h.figure.texts] == ["****", "****"]
+
+
+def test_cross_brackets_end_over_the_categories_they_name():
+    """Each end sits on its own chunk's Axes, at that category's dodged position."""
+    h, plot, _ = _split_board([(("c1", "WT"), ("c9", "KO"))])
+    axes = _side_axes(h, plot)
+    (bracket,) = _figure_brackets(h)
+    to_figure = h.figure.transFigure.inverted()
+
+    def figure_x(ax, position):
+        return to_figure.transform(ax.transData.transform((position, 0)))[0]
+
+    # c1 is at position 1 of chunk 0, WT dodges left; c9 at position 1 of
+    # chunk 2, KO dodges right
+    left, right = bracket.get_xdata()[1], bracket.get_xdata()[2]
+    assert left == pytest.approx(figure_x(axes[0], 1 - 0.2), abs=1e-6)
+    assert right == pytest.approx(figure_x(axes[2], 1 + 0.2), abs=1e-6)
+
+
+def test_cross_brackets_clear_the_within_group_ones():
+    """A spanning bracket passes over other chunks, so it has to sit above them."""
+    h, plot, _ = _split_board(
+        [(("c0", "WT"), ("c0", "KO")), (("c0", "WT"), ("c9", "KO"))]
+    )
+    axes = _side_axes(h, plot)
+    to_figure = h.figure.transFigure.inverted()
+
+    within = max(
+        to_figure.transform(t.get_window_extent().get_points())[:, 1].max()
+        for ax in axes
+        for t in ax.texts
+    )
+    (bracket,) = _figure_brackets(h)
+    assert min(bracket.get_ydata()) > within
+    # and all three chunks were grown to make the room, together
+    assert len({ax.get_ylim() for ax in axes}) == 1
+
+
+@pytest.mark.parametrize("side,orient", [("top", "v"), ("left", "h"), ("right", "h")])
+def test_cross_brackets_in_every_orientation(side, orient):
+    h, plot, data = _split_board(
+        [(("c0", "WT"), ("c9", "KO"))], orient=orient, side=side
+    )
+    (bracket,) = _figure_brackets(h)
+    (label,) = h.figure.texts
+    axes = _side_axes(h, plot)
+    value_axis = 0 if orient == "h" else 1
+
+    # the bracket clears the data on the value axis, whichever way it runs
+    reach = max(d.values.max() for d in data.values())
+    to_figure = h.figure.transFigure.inverted()
+    outer = to_figure.transform(
+        axes[0].transData.transform((reach, 0) if orient == "h" else (0, reach))
+    )[value_axis]
+    ends = bracket.get_xdata() if orient == "h" else bracket.get_ydata()
+    inverted = axes[0].xaxis_inverted() if orient == "h" else False
+    assert (min(ends) < outer) if inverted else (min(ends) > outer)
+    assert label.get_rotation() == (270 if orient == "h" else 0)
+
+
+def test_reference_reaches_across_groups():
+    """`ref` names one category; the groups it is not in still get compared."""
+    h, plot, _ = _split_board("all", n_cat=6, cuts=(3,), ref="c0")
+    axes = _side_axes(h, plot)
+    # within chunk 0: c0 vs c1, c0 vs c2, once per hue level
+    assert len(axes[0].texts) == 4
+    # across to chunk 1: c0 vs c3/c4/c5, once per hue level
+    assert len(_figure_brackets(h)) == 6
+
+
+def test_supplied_pvalues_are_split_between_chunks_and_brackets():
+    """Each value must reach the pair it belongs to, wherever that pair landed."""
+    h, plot, _ = _split_board(
+        [
+            (("c0", "WT"), ("c0", "KO")),  # chunk 0
+            (("c0", "WT"), ("c9", "KO")),  # spans chunks
+            (("c5", "WT"), ("c5", "KO")),  # chunk 1
+        ],
+        pvalues=[0.5, 1e-6, 1e-6],
+    )
+    axes = _side_axes(h, plot)
+    assert axes[0].texts[0].get_text() == "ns"
+    assert axes[1].texts[0].get_text() == "****"
+    assert [t.get_text() for t in h.figure.texts] == ["****"]
+
+
+def test_pairs_naming_an_unknown_category_warn():
+    with pytest.warns(UserWarning, match="not in the data"):
+        h, plot, _ = _split_board([(("c0", "WT"), ("nope", "KO"))])
+    assert _figure_brackets(h) == []
 
 
 def test_pairs_are_matched_after_clustering_reorders_columns(rng):

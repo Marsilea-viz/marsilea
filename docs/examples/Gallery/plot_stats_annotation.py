@@ -59,10 +59,10 @@ h.add_legends()
 h.render()
 
 # %%
-# Listing the pairs explicitly annotates only the comparisons you care about.
-# Note that a pair whose two members end up in different groups cannot be
-# bracketed, since each group is drawn on its own axes; those are skipped with
-# a warning.
+# Listing the pairs explicitly annotates only the comparisons you care about,
+# and a pair may span two groups. Each group is drawn on its own axes, so those
+# brackets are placed in figure coordinates, above the within-group ones they
+# pass over.
 
 bar = mp.Bar(
     {"Control": expression, "Treated": treated},
@@ -70,12 +70,16 @@ bar = mp.Bar(
     label="Expression",
 )
 bar.annotate_stats(
-    pairs=[(("Gene 0", "Control"), ("Gene 0", "Treated"))],
+    pairs=[
+        (("Gene 0", "Control"), ("Gene 0", "Treated")),
+        (("Gene 0", "Treated"), ("Gene 4", "Treated")),
+    ],
     test="t-test_ind",
-    text_format="simple",
+    text_format="star",
 )
 
 h = ma.Heatmap(treated.values - expression.values, label="Difference")
+h.group_cols(np.where(effect > 0, "Up", "Down"), order=["Up", "Down"])
 h.add_top(bar, size=2, pad=0.1)
 h.add_bottom(mp.Labels(genes))
 h.add_legends()

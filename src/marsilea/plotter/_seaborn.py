@@ -13,8 +13,10 @@ from ._stats_annot import (
     DrawnChunk,
     StatsConfig,
     annotate,
+    cross_annotations,
+    draw_cross_brackets,
     load_annotator,
-    resolve_pairs,
+    plan_pairs,
 )
 from .base import StatsBase
 from ..utils import ECHARTS16
@@ -180,9 +182,9 @@ class _SeabornBase(StatsBase):
 
         Categories are named with the columns of the input data; when the input
         is a plain array they are named by position (0, 1, 2, ...). When the
-        canvas is split, a pair whose two members land in different chunks
-        cannot be drawn, since each chunk is its own axes; those are skipped
-        with a warning.
+        canvas is split, a pair whose two members land in different groups is
+        bracketed across their axes, above the within-group brackets it passes
+        over.
 
         Parameters
         ----------
@@ -191,7 +193,8 @@ class _SeabornBase(StatsBase):
             :code:`("A", "B")`, or a :code:`(category, hue_level)` tuple when
             the data has hue, :code:`(("A", "WT"), ("A", "KO"))`.
             :code:`"hue"` compares the hue levels inside every category;
-            :code:`"all"` compares the categories with each other.
+            :code:`"all"` compares the categories with each other, staying
+            inside each group when the canvas is split.
         test : str, default: "Mann-Whitney"
             The statistical test, see
             :meth:`statannotations.Annotator.Annotator.configure`. Ignored when
@@ -199,8 +202,10 @@ class _SeabornBase(StatsBase):
         ref : str, optional
             Reduce a shorthand to comparisons against one reference: a hue level
             for :code:`pairs="hue"`, a category label for :code:`pairs="all"`.
+            A category reference reaches into every group, not just its own.
         pvalues : array, optional
-            Skip testing and annotate these p-values instead, one per pair.
+            Skip testing and annotate these p-values instead, one per pair, in
+            the order the pairs were listed. Needs an explicit *pairs* list.
         configure_kws :
             Passed to :meth:`statannotations.Annotator.Annotator.configure`,
             e.g. :code:`text_format`, :code:`loc`, :code:`comparisons_correction`
@@ -241,6 +246,11 @@ class _SeabornBase(StatsBase):
             )
         if (ref is not None) and not isinstance(pairs, str):
             raise ValueError("ref only applies to pairs='hue' or pairs='all'")
+        if (pvalues is not None) and isinstance(pairs, str):
+            raise ValueError(
+                "pvalues needs an explicit list of pairs, so each value has a "
+                "pair to belong to"
+            )
 
         moved = [k for k in POSITION_KWS if k in self.kws]
         if moved:
@@ -268,19 +278,27 @@ class _SeabornBase(StatsBase):
         deform_func = self.get_deform_func()
         return names if deform_func is None else deform_func(names)
 
-    def _draw_stats(self):
-        never_drawn = None
-        for chunk in self._chunks:
-            pairs, dropped = resolve_pairs(self._stats, chunk.names, self.hue)
-            # A pair is only really lost when no chunk could draw it.
-            dropped = set(dropped)
-            never_drawn = dropped if never_drawn is None else never_drawn & dropped
-            if pairs:
-                annotate(chunk, pairs, self._seaborn_plot, self._stats)
-        if never_drawn:
+    def _draw_stats(self, axes):
+        chunk_names = [chunk.names for chunk in self._chunks]
+        per_chunk, cross, unknown = plan_pairs(self._stats, chunk_names, self.hue)
+
+        for chunk, plan in zip(self._chunks, per_chunk):
+            if plan.pairs:
+                annotate(chunk, plan, self._seaborn_plot, self._stats)
+
+        if cross:
+            # A cross-group bracket has to clear every within-group one it
+            # passes over, so unify the chunks before measuring where to put it.
+            self.align_lim(axes)
+            texts = cross_annotations(cross, self._chunks, self._stats)
+            draw_cross_brackets(
+                axes[0].figure, axes, cross, texts, self.get_orient(), self.hue
+            )
+
+        if unknown:
             warnings.warn(
-                f"{len(never_drawn)} pair(s) span more than one group and cannot "
-                f"be annotated: {sorted(never_drawn, key=str)}",
+                f"{len(unknown)} pair(s) name a category that is not in the data "
+                f"and were skipped: {sorted(unknown, key=str)}",
                 stacklevel=4,
             )
 
@@ -290,7 +308,7 @@ class _SeabornBase(StatsBase):
             self._chunk_names = self._deform_names()
         super().render(axes)
         if self._stats is not None:
-            self._draw_stats()
+            self._draw_stats(axes if self.is_split else [axes])
             if self.is_split:
                 # Brackets grew the value axis; unify the chunks again.
                 self.align_lim(axes)
