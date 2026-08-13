@@ -506,7 +506,7 @@ class AnnoLabels(_LabelBase):
     ):
         if not np.ma.isMaskedArray(labels):
             if mark is not None:
-                labels = np.ma.masked_where(~np.in1d(labels, mark), labels)
+                labels = np.ma.masked_where(~np.isin(labels, mark), labels)
             else:
                 raise TypeError(
                     "Must be numpy masked array or "

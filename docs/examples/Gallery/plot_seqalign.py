@@ -2,6 +2,7 @@
 Sequence Alignment Plot
 =======================
 """
+
 from collections import Counter
 import numpy as np
 import pandas as pd
@@ -83,7 +84,7 @@ freq = []
 for _, col in hm.items():
     ix = np.argmax(col)
     max_aa.append(hm.index[ix])
-    freq.append(col[ix])
+    freq.append(col.iloc[ix])
 
 position = []
 mock_ticks = []

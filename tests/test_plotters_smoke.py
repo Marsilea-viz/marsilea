@@ -122,6 +122,17 @@ def test_textmesh(rng):
     wb.render()
 
 
+# --- AnnoLabels ---
+
+
+def test_anno_labels_mark(data_2d, text_1d_row):
+    # The `mark` path is numpy-API sensitive: it broke silently on a numpy bump
+    # and only the docs build caught it.
+    h = ma.Heatmap(data_2d)
+    h.add_right(mp.AnnoLabels(text_1d_row, mark=[text_1d_row[0], text_1d_row[-1]]))
+    h.render()
+
+
 # --- MarkerMesh ---
 
 

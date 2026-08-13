@@ -112,7 +112,7 @@ def inject_css():
 
 
 def init_page(title):
-    IMG_ROOT = "https://raw.githubusercontent.com/" "Marsilea-viz/marsilea/main/app/img"
+    IMG_ROOT = "https://raw.githubusercontent.com/Marsilea-viz/marsilea/main/app/img"
 
     st.set_page_config(
         page_title=title,

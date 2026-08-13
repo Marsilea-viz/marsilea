@@ -21,7 +21,7 @@ ds = DataStorage(key="x-layout-heatmap")
 st.title("X-Layout Visualization Creator")
 
 st.warning(
-    "We are still in beta stage, you may report to us " "if you encounter any bugs",
+    "We are still in beta stage, you may report to us if you encounter any bugs",
     icon="⚠️",
 )
 
@@ -90,7 +90,7 @@ used_datasets = st.multiselect(
     "Select datasets to use",
     options=ds.get_all_names(),
     default=ds.get_all_names(),
-    help=" Unselect the dataset that " "you don't want to use",
+    help=" Unselect the dataset that you don't want to use",
 )
 ds.set_visible_datasets(used_datasets)
 

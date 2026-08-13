@@ -23,7 +23,7 @@ from marsilea.plotter import (
 from marsilea.plotter import RenderPlan
 from .cmap_selector import ColormapSelector
 
-IMG_ROOT = "https://raw.githubusercontent.com/" "Marsilea-viz/marsilea/main/app/img/"
+IMG_ROOT = "https://raw.githubusercontent.com/Marsilea-viz/marsilea/main/app/img/"
 
 
 class PlotAdder:
@@ -88,7 +88,7 @@ class PlotAdder:
             min_value=0.0,
             key=f"{self.plot_key}_pad",
             value=self.init_pad,
-            help="Adjust the space between this plot" " and the adjacent plot.",
+            help="Adjust the space between this plot and the adjacent plot.",
         )
 
     def input_panel(self):
@@ -574,7 +574,7 @@ class ViolinAdder(PlotAdder):
 
     input_help = STATS_INPUT_HELP
     plot_explain = (
-        "Violin plot is a combination of boxplot " "and kernel density estimate."
+        "Violin plot is a combination of boxplot and kernel density estimate."
     )
     example_image = "violin.png"
 
@@ -873,7 +873,7 @@ class Splitter:
                     self.cut = [int(c.strip()) for c in cut.split(",")]
                     self.ready = True
                 except Exception:
-                    st.error("Cannot parse your input into number, " "must be integer")
+                    st.error("Cannot parse your input into number, must be integer")
         else:
             self.dataset_name = st.selectbox(
                 "Which dataset",

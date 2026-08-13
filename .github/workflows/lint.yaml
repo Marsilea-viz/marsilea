@@ -4,9 +4,11 @@ jobs:
   ruff:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/ruff-action@v3
+      - uses: actions/checkout@v7
+      # ruff-action stopped publishing moving major tags in v4, so this pin has
+      # to be a full version. Dependabot keeps it current.
+      - uses: astral-sh/ruff-action@v4.1.0
         with:
           # Pinned: an unpinned ruff drifts to whatever is latest at run time.
-          version: "0.15.22"
+          version: "0.16.2"
           src: "./src"
