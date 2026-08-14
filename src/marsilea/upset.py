@@ -1086,8 +1086,8 @@ class Upset(WhiteBoard):
         # highlight_legend.set_figure(None)
         return {"highlight_subsets": [highlight_legend]}
 
-    def render(self, figure=None, scale=1):
-        super().render(figure=figure, scale=scale)
+    def _draw(self, figure):
+        super()._draw(figure)
         main_ax = self.get_main_ax()
         self._render_matrix(main_ax)
         # apply highlight style to bar

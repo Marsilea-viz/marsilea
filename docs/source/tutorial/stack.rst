@@ -5,9 +5,11 @@ Stack Multiple Cross-layouts
 place multiple cross-layouts. Unlike :class:`CompositeBoard <marsilea.base.CompositeBoard>`,
 it can also stack itself.
 
-.. warning::
-    The :class:`StackBoard <marsilea.base.StackBoard>` is still considered experimental.
-    There might be some issues with the rendering.
+.. note::
+    :meth:`get_ax <marsilea.base.StackBoard.get_ax>` and
+    :meth:`get_main_ax <marsilea.base.StackBoard.get_main_ax>` only reach the boards
+    stacked directly in a :class:`StackBoard <marsilea.base.StackBoard>`, not the ones
+    inside a nested stack.
 
 Let's create three different heatmaps for demonstration:
 
@@ -87,7 +89,8 @@ We can stack them in different ways, notice that the alignment is relative to th
 Grid of heatmaps?
 -----------------
 
-You can also stack multiple heatmaps in a grid layout. For example, let's stack
+A :class:`StackBoard <marsilea.base.StackBoard>` can stack other stacks, so a row of
+heatmaps stacked vertically gives you a grid:
 
 .. plot::
     :context: close-figs
