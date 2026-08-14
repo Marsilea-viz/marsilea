@@ -54,7 +54,9 @@ class MeshBase(RenderPlan):
             self.norm = TwoSlopeNorm(center, vmin=vmin, vmax=vmax)
 
     def set_legends(self, **kwargs):
-        self._legend_kws.update(kwargs)
+        # rebind: `_legend_kws` is a class-level default on MeshBase, so
+        # updating in place leaks kwargs into every other mesh plotter
+        self._legend_kws = {**self._legend_kws, **kwargs}
 
 
 class ColorMesh(MeshBase):

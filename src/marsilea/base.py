@@ -515,6 +515,8 @@ class WhiteBoard(LegendMaker):
             If True, the legend will be included when calling :meth:`~marsilea.base.LegendMaker.add_legends`
 
         """
+        if plot._registered:
+            raise DuplicatePlotter(plot)
         if name is None:
             name = plot.name
         plot_type = plot.__class__.__name__
@@ -528,6 +530,7 @@ class WhiteBoard(LegendMaker):
             plot.zorder = zorder
         plot.set(name=name)
         plot.set_side("main")
+        plot._registered = True
         self._layer_plan.append(plot)
 
         # SizedMesh will update the main canvas size

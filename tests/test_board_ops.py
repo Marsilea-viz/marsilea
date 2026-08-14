@@ -182,6 +182,15 @@ def test_duplicate_plotter_raises(data_2d, data_1d_col):
         wb.add_bottom(p)
 
 
+def test_duplicate_layer_plotter_raises(data_2d):
+    # a layer plotter carries per-board state (name, deform), so two boards
+    # cannot share one
+    p = mp.ColorMesh(data_2d)
+    ma.WhiteBoard().add_layer(p)
+    with pytest.raises(DuplicatePlotter):
+        ma.WhiteBoard().add_layer(p)
+
+
 # --- Error: SplitTwice ---
 
 

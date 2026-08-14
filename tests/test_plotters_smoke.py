@@ -5,6 +5,7 @@ import pandas as pd
 import pytest
 import marsilea as ma
 import marsilea.plotter as mp
+from marsilea.plotter.mesh import MeshBase
 
 
 @pytest.fixture
@@ -64,6 +65,20 @@ def test_stackbar_legend_default_palette(data_2d, rng):
     h.add_top(mp.StackBar(stack_data))
     h.add_legends()
     h.render()
+
+
+# --- legend kwargs isolation ---
+
+
+def test_set_legends_does_not_leak_between_plotters(data_2d):
+    # `_legend_kws` starts as a class attribute on MeshBase; set_legends must
+    # not write through to it
+    a = mp.SizedMesh(data_2d)
+    b = mp.MarkerMesh(data_2d > 0.5)
+    a.set_legends(title="A")
+    assert a._legend_kws == {"title": "A"}
+    assert b._legend_kws == {}
+    assert MeshBase._legend_kws == {}
 
 
 # --- CenterBar ---
