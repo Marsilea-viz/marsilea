@@ -23,42 +23,58 @@ from .plotter.mesh import MeshBase
 from .utils import pairwise, batched, get_plot_name, _check_side
 
 
-def _copy_board(board):
+# Attributes whose container must not be shared with the source board,
+# but whose contents are. Plotters are shared on purpose: a render does
+# not mutate them in a way the copy cares about, and copying one would
+# drag in the live matplotlib artists it keeps after a render (a Bar
+# plotter holds its BarContainer). The layout classes solve the same
+# problem one level down with their own __deepcopy__.
+_COPY_SHALLOW = (
+    "_user_legends",
+    "_legend_switch",
+    "_col_plan",
+    "_row_plan",
+    "_layer_plan",
+    "_row_den",
+    "_col_den",
+)
+
+
+def _copy_board(board, layout=None):
     """Shallow-copy a board but deep-copy layout and plan metadata.
 
-    Data arrays held by RenderPlan._data are large numpy arrays;
-    we keep references to them instead of copying.  Everything
-    that controls axes geometry and legend state is deep-copied so
-    the copy is independent of the original.
+    Everything that controls axes geometry and legend state is
+    deep-copied so the copy is independent of the original.
+
+    `layout` is passed when copying the boards held by a group board, so
+    each child is bound to the sub-layout that already lives in the
+    parent's copied layout tree. Deep-copying the tree and the children
+    separately leaves the children pointing at layouts that nothing
+    positions, and they then draw at the wrong place.
     """
     new = copy.copy(board)
-    new.layout = deepcopy(board.layout)
+    new.layout = deepcopy(board.layout) if layout is None else layout
     new._legend_grid_kws = deepcopy(board._legend_grid_kws)
     new._legend_draw_kws = deepcopy(board._legend_draw_kws)
-    new._user_legends = dict(board._user_legends)
-    new._draw_legend = board._draw_legend
+    for attr in _COPY_SHALLOW:
+        if hasattr(board, attr):
+            setattr(new, attr, copy.copy(getattr(board, attr)))
 
-    # WhiteBoard-specific attributes (not present on StackBoard/CompositeBoard)
-    if hasattr(board, "_legend_switch"):
-        new._legend_switch = dict(board._legend_switch)
-    if hasattr(board, "_col_plan"):
-        new._col_plan = list(board._col_plan)
-    if hasattr(board, "_row_plan"):
-        new._row_plan = list(board._row_plan)
-    if hasattr(board, "_layer_plan"):
-        new._layer_plan = list(board._layer_plan)
-
-    # StackBoard/CompositeBoard: deep-copy their nested board lists
-    if hasattr(board, "_board_list"):
-        new._board_list = list(board._board_list)
-
-    # ClusterBoard-specific attributes
+    # ClusterBoard-specific
     if hasattr(board, "_deform"):
         new._deform = deepcopy(board._deform)
-    if hasattr(board, "_row_den"):
-        new._row_den = list(board._row_den)
-    if hasattr(board, "_col_den"):
-        new._col_den = list(board._col_den)
+
+    # StackBoard/CompositeBoard hold other boards
+    if hasattr(board, "_board_list"):
+        sub_layouts = new.layout.layouts
+        if isinstance(sub_layouts, dict):  # CompositeCrossLayout keys by name
+            sub_layouts = list(sub_layouts.values())
+        new._board_list = [
+            _copy_board(child, layout=sub)
+            for child, sub in zip(board._board_list, sub_layouts, strict=True)
+        ]
+        if hasattr(board, "main_board"):
+            new.main_board = new._board_list[0]
 
     return new
 
@@ -733,16 +749,24 @@ class WhiteBoard(LegendMaker):
         """
         if figure is None:
             figure = plt.figure()
-        self.figure = figure
         self._freeze_legend(figure)
         self._freeze_flex_plots(figure)
 
         self.layout.freeze(figure=figure, scale=scale)
 
-        # render other plots
+        self._draw(figure)
+        return self
+
+    def _draw(self, figure):
+        """Draw on the axes of an already frozen layout.
+
+        Split out of :meth:`render` so a group board can freeze the whole
+        layout tree once and then only draw, instead of every child
+        re-freezing its own layout and re-creating its axes.
+        """
+        self.figure = figure
         self._render_plan()
         self._render_legend()
-        return self
 
     def save(self, fname, **kwargs):
         """Save the figure to a file
@@ -813,7 +837,86 @@ class ZeroHeight(WhiteBoard):
         )
 
 
-class CompositeBoard(LegendMaker):
+class _GroupBoard(LegendMaker):
+    """Shared behavior for boards that render a list of other boards.
+
+    A group board owns the whole layout tree: it freezes it once and then
+    asks every board in it to draw, instead of letting each child freeze
+    its own layout again.
+    """
+
+    figure: Figure = None
+    keep_legends: bool = False
+    _board_list: List
+
+    def new_board(self, board):
+        board = _copy_board(board)
+        if not self.keep_legends and isinstance(board, LegendMaker):
+            board.remove_legends()
+        return board
+
+    # To mimic the board API
+    def _freeze_flex_plots(self, figure):
+        for board in self._board_list:
+            board._freeze_flex_plots(figure)
+
+    def _freeze_legend(self, figure):
+        super()._freeze_legend(figure)
+        # With keep_legends=True a board draws its own legend, so its
+        # legend axes must be sized and registered before the tree is
+        # frozen: _draw needs the axes to exist, and the legend is a side
+        # cell, so the stack only leaves room for it if it is there first.
+        for board in self._board_list:
+            board._freeze_legend(figure)
+
+    def remove_legends(self):
+        super().remove_legends()
+        # Keep the boards in step with the layout tree, whose legend
+        # axes we just dropped
+        for board in self._board_list:
+            board.remove_legends()
+
+    def render(self, figure=None, scale=1):
+        if figure is None:
+            figure = plt.figure()
+        self._freeze_legend(figure)
+        self._freeze_flex_plots(figure)
+        self.layout.freeze(figure=figure, scale=scale)
+        self._draw(figure)
+        return self
+
+    def _draw(self, figure):
+        self.figure = figure
+        for board in self._board_list:
+            board._draw(figure)
+        self._render_legend()
+
+    def save(self, fname, **kwargs):
+        if self.figure is None:
+            self.render()
+        save_options = dict(bbox_inches="tight")
+        save_options.update(kwargs)
+        self.figure.savefig(fname, **save_options)
+        return self
+
+    def get_legends(self):
+        legends = {}
+        for m in self._board_list:
+            legends.update(m.get_legends())
+        return legends
+
+    def get_ax(self, board_name, ax_name):
+        return self.layout.get_ax(board_name, ax_name)
+
+    def get_main_ax(self, name):
+        return self.layout.get_main_ax(name)
+
+    def set_margin(self, margin):
+        self.layout.set_margin(margin)
+        return self
+
+
+class CompositeBoard(_GroupBoard):
     """Layout multiple canvas
 
     Parameters
@@ -831,7 +934,6 @@ class CompositeBoard(LegendMaker):
     """
 
     layout: CompositeCrossLayout = None
-    figure: Figure = None
 
     def __init__(
         self,
@@ -851,12 +953,6 @@ class CompositeBoard(LegendMaker):
         self._board_list = [self.main_board]
 
         super().__init__()
-
-    def new_board(self, board):
-        board = _copy_board(board)
-        if not self.keep_legends and isinstance(board, LegendMaker):
-            board.remove_legends()
-        return board
 
     def __add__(self, other):
         """Define behavior that horizontal appends two grid"""
@@ -878,60 +974,44 @@ class CompositeBoard(LegendMaker):
             self.layout.append(side, pad)
         return self
 
-    def render(self, figure=None, scale=1):
-        if figure is None:
-            figure = plt.figure()
-        self._freeze_legend(figure)
-        for board in self._board_list:
-            board._freeze_flex_plots(figure)
-        self.layout.freeze(figure=figure, scale=scale)
-        self.figure = figure
-        for board in self._board_list:
-            board.render(figure=self.figure)
 
-        self._render_legend()
-
-    def save(self, fname, **kwargs):
-        if self.figure is None:
-            self.render()
-        save_options = dict(bbox_inches="tight")
-        save_options.update(kwargs)
-        self.figure.savefig(fname, **save_options)
-
-    def get_legends(self):
-        legends = {}
-        for m in self._board_list:
-            legends.update(m.get_legends())
-        return legends
-
-    def get_ax(self, board_name, ax_name):
-        return self.layout.get_ax(board_name, ax_name)
-
-    def get_main_ax(self, name):
-        return self.layout.get_main_ax(name)
-
-    def set_margin(self, margin):
-        self.layout.set_margin(margin)
-
-
-class StackBoard(LegendMaker):
+class StackBoard(_GroupBoard):
     """Stack multiple boards
 
     Parameters
     ----------
     boards : list of :class:`WhiteBoard`, :class:`StackBoard`
+        The boards to stack, a :class:`StackBoard` may be stacked itself
+    direction : {"horizontal", "vertical"}, default: "horizontal"
+        Stack from left to right, or from top to bottom
+    align : {"center", "top", "bottom", "left", "right"}, default: "center"
+        How to align the boards on the other axis, relative to their
+        main canvas. Only "center", "top" and "bottom" are valid for
+        `direction="horizontal"`, and only "center", "left" and "right"
+        for `direction="vertical"`.
+    spacing : float, default: 0.2
+        The space between two boards in inches
+    margin : float, 4-tuple, default: 0
+        The margin space reserved around the whole canvas in inches
+    keep_legends : bool, default: False
+        Whether to keep the legends in each board.
+        If False, you can group all legends with `.add_legends()`
 
     """
 
+    layout: StackCrossLayout = None
+
     def __init__(
         self,
-        boards: List[WhiteBoard, StackBoard],
+        boards: List[WhiteBoard | StackBoard],
         direction="horizontal",
         align="center",
         spacing=0.2,
         margin=0,
         keep_legends=False,
     ):
+        if len(boards) == 0:
+            raise ValueError("Cannot stack an empty list of boards")
         self.keep_legends = keep_legends
         board_list = []
         layouts = []
@@ -946,54 +1026,6 @@ class StackBoard(LegendMaker):
 
         self._board_list = board_list
         super().__init__()
-
-    # To mimic the board API
-    def _freeze_flex_plots(self, figure):
-        for board in self._board_list:
-            board._freeze_flex_plots(figure)
-
-    def new_board(self, board):
-        board = _copy_board(board)
-        if not self.keep_legends and isinstance(board, LegendMaker):
-            board.remove_legends()
-        return board
-
-    def render(self, figure=None, scale=1):
-        if figure is None:
-            figure = plt.figure()
-        self._freeze_legend(figure)
-        for board in self._board_list:
-            board._freeze_flex_plots(figure)
-        self.layout.freeze(figure=figure, scale=scale)
-        self.figure = figure
-        for board in self._board_list:
-            board.render(figure=self.figure)
-
-        self._render_legend()
-        return self
-
-    def save(self, fname, **kwargs):
-        if self.figure is None:
-            self.render()
-        save_options = dict(bbox_inches="tight")
-        save_options.update(kwargs)
-        self.figure.savefig(fname, **save_options)
-        return self
-
-    def get_legends(self):
-        legends = {}
-        for m in self._board_list:
-            legends.update(m.get_legends())
-        return legends
-
-    def get_ax(self, board_name, ax_name):
-        return self.layout.get_ax(board_name, ax_name)
-
-    def get_main_ax(self, name):
-        return self.layout.get_main_ax(name)
-
-    def set_margin(self, margin):
-        self.layout.set_margin(margin)
 
 
 class ClusterBoard(WhiteBoard):
@@ -1539,29 +1571,19 @@ class ClusterBoard(WhiteBoard):
         """If column dendrogram is added"""
         return len(self._col_den) > 0
 
-    def render(self, figure=None, scale=1):
+    def _freeze_flex_plots(self, figure):
         if self._deform is None:
             raise ValueError("No layer is added to the plot")
-        if figure is None:
-            figure = plt.figure()
-        self.figure = figure
-        self._freeze_legend(figure)
-        self._freeze_flex_plots(figure)
-
-        # Make sure all axes is split
+        super()._freeze_flex_plots(figure)
+        # Make sure all axes is split before the layout is frozen
         self._setup_axes()
-        # Place axes
-        # if refreeze:
-        #     self.figure = self.layout.freeze(figure=figure, scale=scale)
-        # else:
-        #     self.figure = self.layout.figure
-        self.layout.freeze(figure=figure, scale=scale)
-        # render other plots
+
+    def _draw(self, figure):
+        self.figure = figure
         self._render_plan()
         # add row and col dendrogram
         self._render_dendrogram()
         self._render_legend()
-        return self
 
 
 class ZeroWidthCluster(ClusterBoard):

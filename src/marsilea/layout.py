@@ -610,11 +610,10 @@ class CrossLayout(_MarginMixin):
         -------
 
         """
-        # If not composed, update the figsize
+        # If not composed, update the figsize.
+        # When composed, the parent is expected to have pushed its figsize
+        # down with set_figsize before calling freeze.
         if not self.is_composite:
-            self.figsize = np.array(self.get_figure_size())
-        # Fallback: if figsize was not set by parent, compute it
-        if self.figsize is None:
             self.figsize = np.array(self.get_figure_size())
         figsize = self.figsize * scale
         if figure is None:
@@ -719,8 +718,11 @@ class CompositeCrossLayout(_MarginMixin):
     """
 
     figure = None
+    # True when this layout is nested in another one, which then owns the
+    # figure size and tells us where to sit
+    is_composite = False
 
-    def __init__(self, main_layout, margin=0, align_main=True) -> None:
+    def __init__(self, main_layout, margin=0, align_main=True, name=None) -> None:
         self.main_layout = _reset_layout(main_layout)
         self.main_cell_height = self.main_layout.get_main_height()
         self.main_cell_width = self.main_layout.get_main_width()
@@ -734,6 +736,12 @@ class CompositeCrossLayout(_MarginMixin):
         self.layouts = {self.main_layout.main_cell.name: self.main_layout}
         self.set_margin(margin)
         self.align_main = align_main
+        if name is None:
+            name = uuid4().hex
+        self.name = name
+        self.figsize = None
+        # The main canvas anchor, set by a parent layout when nested
+        self.anchor = None
 
     def append(self, side, other):
         _check_side(side)
@@ -839,19 +847,43 @@ class CompositeCrossLayout(_MarginMixin):
         return fig_w, fig_h
 
     def get_main_anchor(self):
+        if self.anchor is not None:
+            return self.anchor
         x = self.get_side_size("left") + self.margin.left
         y = self.get_side_size("bottom") + self.margin.bottom
         return x, y
 
     def set_anchor(self, anchor):
-        self.main_layout.set_anchor(anchor)
+        # Where the main canvas goes; freeze places everything else
+        # relative to it
+        self.anchor = anchor
+
+    # Mimic the CrossLayout API, so this layout can be stacked
+    def set_figsize(self, figsize):
+        self.figsize = figsize
+
+    def get_main_width(self):
+        return self.main_cell_width
+
+    def get_main_height(self):
+        return self.main_cell_height
+
+    def remove_legend_ax(self):
+        self._legend_axes = None
+        for layout in self.layouts.values():
+            layout.remove_legend_ax()
 
     def freeze(self, figure=None, scale=1, _debug=False):
-        figsize = np.asarray(self.get_figure_size()) * scale
+        # If not composed, update the figsize.
+        # When composed, the parent is expected to have pushed its figsize
+        # down with set_figsize before calling freeze.
+        if not self.is_composite:
+            self.figsize = np.asarray(self.get_figure_size())
+        figsize = self.figsize * scale
 
         if figure is None:
             figure = plt.figure(figsize=figsize)
-        else:
+        elif not self.is_composite:
             figure.set_size_inches(figsize)
 
         # To freeze all the layouts
@@ -1050,19 +1082,28 @@ class StackCrossLayout(_MarginMixin):
     def _get_layout_heights(self):
         return [layout.get_bbox_height() for layout in self.layouts]
 
-    def _get_spacing_widths(self):
+    def _spacing_total(self):
         return self.spacing * (len(self.layouts) - 1)
 
-    def _get_spacing_heights(self):
-        return self.spacing * (len(self.layouts) - 1)
+    def _get_center_halves(self, low, high, mains):
+        """Extent on either side of the centerline for `align="center"`.
+
+        Every layout is anchored by its main canvas, so the room needed is
+        measured from the centered main edges, not from the widest bbox.
+        """
+        mains = np.asarray(mains) / 2
+        lows = np.asarray([layout.get_side_size(low) for layout in self.layouts])
+        highs = np.asarray([layout.get_side_size(high) for layout in self.layouts])
+        return np.max(lows + mains), np.max(highs + mains)
 
     def get_bbox_width(self):
         ws = self._get_layout_widths()
         if self.direction == "horizontal":
-            return np.sum(ws) + self._get_spacing_widths()
+            return np.sum(ws) + self._spacing_total()
         else:
             if self.align == "center":
-                return np.max(ws)
+                mains = [layout.get_main_width() for layout in self.layouts]
+                return np.sum(self._get_center_halves("left", "right", mains))
             elif self.align == "left":
                 left_sides = np.asarray(
                     [layout.get_side_size("left") for layout in self.layouts]
@@ -1079,10 +1120,11 @@ class StackCrossLayout(_MarginMixin):
     def get_bbox_height(self):
         hs = self._get_layout_heights()
         if self.direction == "vertical":
-            return np.sum(hs) + self._get_spacing_heights()
+            return np.sum(hs) + self._spacing_total()
         else:
             if self.align == "center":
-                return np.max(hs)
+                mains = [layout.get_main_height() for layout in self.layouts]
+                return np.sum(self._get_center_halves("bottom", "top", mains))
             elif self.align == "top":
                 top_sides = np.asarray(
                     [layout.get_side_size("top") for layout in self.layouts]
@@ -1099,9 +1141,27 @@ class StackCrossLayout(_MarginMixin):
     def get_bbox_size(self):
         return self.get_bbox_width(), self.get_bbox_height()
 
+    def _get_legend_extent(self, sides):
+        """The room the legend axes needs on one of the two figure axes"""
+        if self._legend_axes is None:
+            return 0
+        if self._legend_axes.side not in sides:
+            return 0
+        return self._legend_axes.get_length()
+
     def get_figure_size(self):
-        fig_w = self.get_bbox_width() + self.get_margin_w()
-        fig_h = self.get_bbox_height() + self.get_margin_h()
+        # The legend is placed outside the bbox, so the figure has to grow
+        # for it; get_bbox_size stays the size of the stacked content.
+        fig_w = (
+            self.get_bbox_width()
+            + self.get_margin_w()
+            + self._get_legend_extent({"left", "right"})
+        )
+        fig_h = (
+            self.get_bbox_height()
+            + self.get_margin_h()
+            + self._get_legend_extent({"top", "bottom"})
+        )
         return fig_w, fig_h
 
     def set_figsize(self, figsize):
@@ -1149,9 +1209,17 @@ class StackCrossLayout(_MarginMixin):
             else:
                 return self.layouts[0].get_side_size("top")
 
+    def _get_content_origin(self):
+        """Bottom-left of the stacked content, leaving room for the legend"""
+        return (
+            self.margin.left + self._get_legend_extent({"left"}),
+            self.margin.bottom + self._get_legend_extent({"bottom"}),
+        )
+
     def get_layout_anchors(self):
         """Get the anchor points of all layouts assume the layout is not composite"""
-        base_x, base_y = self.margin.left, self.margin.bottom
+        origin_x, origin_y = self._get_content_origin()
+        base_x, base_y = origin_x, origin_y
         xs, ys = [], []
         if self.direction == "horizontal":
             # x is always the same regardless of the alignment
@@ -1165,20 +1233,18 @@ class StackCrossLayout(_MarginMixin):
                 )
             # only y is different
             if self.align == "bottom":
-                base_y = self.margin.bottom + self._get_layouts_offset("bottom")
+                base_y = origin_y + self._get_layouts_offset("bottom")
                 ys = [base_y for _ in range(len(self.layouts))]
             elif self.align == "top":
                 base_y = (
-                    self.margin.bottom
-                    + self.get_bbox_height()
-                    - self._get_layouts_offset("top")
+                    origin_y + self.get_bbox_height() - self._get_layouts_offset("top")
                 )
                 ys = [base_y - layout.get_main_height() for layout in self.layouts]
             else:
-                center_y = self.margin.bottom + self.get_bbox_height() / 2
-                ys = [
-                    center_y - layout.get_main_height() / 2 for layout in self.layouts
-                ]
+                mains = [layout.get_main_height() for layout in self.layouts]
+                half_bottom, _ = self._get_center_halves("bottom", "top", mains)
+                center_y = origin_y + half_bottom
+                ys = [center_y - main / 2 for main in mains]
         else:
             # y is always the same regardless of the alignment
             for layout in self.layouts[::-1]:
@@ -1191,18 +1257,18 @@ class StackCrossLayout(_MarginMixin):
                 )
             # only x is different
             if self.align == "left":
-                base_x = self.margin.left + self._get_layouts_offset("left")
+                base_x = origin_x + self._get_layouts_offset("left")
                 xs = [base_x for _ in range(len(self.layouts))]
             elif self.align == "right":
                 base_x = (
-                    self.margin.left
-                    + self.get_bbox_width()
-                    - self._get_layouts_offset("right")
+                    origin_x + self.get_bbox_width() - self._get_layouts_offset("right")
                 )
                 xs = [base_x - layout.get_main_width() for layout in self.layouts]
             else:
-                center_x = self.margin.left + self.get_bbox_width() / 2
-                xs = [center_x - layout.get_main_width() / 2 for layout in self.layouts]
+                mains = [layout.get_main_width() for layout in self.layouts]
+                half_left, _ = self._get_center_halves("left", "right", mains)
+                center_x = origin_x + half_left
+                xs = [center_x - main / 2 for main in mains]
             ys = ys[::-1]
 
         return np.array(list(zip(xs, ys)))
@@ -1230,11 +1296,10 @@ class StackCrossLayout(_MarginMixin):
         self._legend_axes.size = size
 
     def freeze(self, figure=None, scale=1, _debug=False):
-        # If not composed, update the figsize
+        # If not composed, update the figsize.
+        # When composed, the parent is expected to have pushed its figsize
+        # down with set_figsize before calling freeze.
         if not self.is_composite:
-            self.figsize = np.array(self.get_figure_size())
-        # Fallback: if figsize was not set by parent, compute it
-        if self.figsize is None:
             self.figsize = np.array(self.get_figure_size())
         figsize = self.figsize * scale
         if figure is None:
@@ -1259,7 +1324,21 @@ class StackCrossLayout(_MarginMixin):
 
         if self._legend_axes is not None:
             bbox_w, bbox_h = self.get_bbox_size()
-            ax, ay = main_anchor
+            # The bottom-left of the stacked content, from the final
+            # anchors: those point at each main canvas, so back out the
+            # side plots to reach the corner of the bbox.
+            ax = np.min(
+                [
+                    x - lo.get_side_size("left")
+                    for (x, _), lo in zip(anchors, self.layouts)
+                ]
+            )
+            ay = np.min(
+                [
+                    y - lo.get_side_size("bottom")
+                    for (_, y), lo in zip(anchors, self.layouts)
+                ]
+            )
 
             side = self._legend_axes.side
             size = self._legend_axes.size

@@ -3,11 +3,16 @@ Stack Multiple Cross-layouts
 
 :class:`StackBoard <marsilea.base.StackBoard>` offers an alternative way to
 place multiple cross-layouts. Unlike :class:`CompositeBoard <marsilea.base.CompositeBoard>`,
-it can also stack itself.
+it can stack itself, and it can stack a
+:class:`CompositeBoard <marsilea.base.CompositeBoard>` too. The reverse does not
+work: a :class:`StackBoard <marsilea.base.StackBoard>` cannot be appended to a
+:class:`CompositeBoard <marsilea.base.CompositeBoard>` with ``+`` or ``/``.
 
-.. warning::
-    The :class:`StackBoard <marsilea.base.StackBoard>` is still considered experimental.
-    There might be some issues with the rendering.
+.. note::
+    :meth:`get_ax <marsilea.base.StackBoard.get_ax>` and
+    :meth:`get_main_ax <marsilea.base.StackBoard.get_main_ax>` only reach the boards
+    stacked directly in a :class:`StackBoard <marsilea.base.StackBoard>`, not the ones
+    inside a nested stack or composite.
 
 Let's create three different heatmaps for demonstration:
 
@@ -87,7 +92,8 @@ We can stack them in different ways, notice that the alignment is relative to th
 Grid of heatmaps?
 -----------------
 
-You can also stack multiple heatmaps in a grid layout. For example, let's stack
+A :class:`StackBoard <marsilea.base.StackBoard>` can stack other stacks, so a row of
+heatmaps stacked vertically gives you a grid:
 
 .. plot::
     :context: close-figs
@@ -101,3 +107,18 @@ You can also stack multiple heatmaps in a grid layout. For example, let's stack
     >>> sb2 = ma.StackBoard([h3, h4], direction="horizontal", align="center")
     >>> final_sb = ma.StackBoard([sb1, sb2], direction="vertical", align="center")
     >>> final_sb.render()
+
+Stacking :class:`CompositeBoard <marsilea.base.CompositeBoard>` works the same way.
+The rows are flush here, since ``+`` leaves no space between the boards it joins,
+whereas a stack separates them by its `spacing`:
+
+.. plot::
+    :context: close-figs
+
+    >>> row1 = ma.Heatmap(data, cmap="Reds", height=1, width=1) + ma.Heatmap(
+    ...     data, cmap="Greens", height=1, width=1
+    ... )
+    >>> row2 = ma.Heatmap(data, cmap="Blues", height=1, width=1) + ma.Heatmap(
+    ...     data, cmap="Purples", height=1, width=1
+    ... )
+    >>> ma.StackBoard([row1, row2], direction="vertical", align="center").render()
