@@ -5,6 +5,7 @@ import pandas as pd
 import pytest
 import marsilea as ma
 import marsilea.plotter as mp
+from marsilea.plotter.mesh import MeshBase
 
 
 @pytest.fixture
@@ -64,6 +65,37 @@ def test_stackbar_legend_default_palette(data_2d, rng):
     h.add_top(mp.StackBar(stack_data))
     h.add_legends()
     h.render()
+
+
+# --- legend kwargs isolation ---
+
+
+def test_set_legends_does_not_leak_between_plotters(data_2d):
+    # `_legend_kws` starts as a class attribute on MeshBase; set_legends must
+    # not write through to it
+    a = mp.SizedMesh(data_2d)
+    b = mp.MarkerMesh(data_2d > 0.5)
+    a.set_legends(title="A")
+    assert a._legend_kws == {"title": "A"}
+    assert b._legend_kws == {}
+    assert MeshBase._legend_kws == {}
+
+
+def test_set_legends_on_stackbar(data_2d, rng):
+    # StackBar holds `_legend_kws` but used to inherit the RenderPlan stub
+    stack_data = pd.DataFrame(rng.random((3, 6)), index=["cat_a", "cat_b", "cat_c"])
+    sb = mp.StackBar(stack_data)
+    sb.set_legends(title="Cats")
+    assert sb._legend_kws == {"title": "Cats", "size": 1}
+    h = ma.Heatmap(data_2d)
+    h.add_top(sb)
+    h.add_legends()
+    h.render()
+
+
+def test_set_legends_unsupported_raises(data_1d):
+    with pytest.raises(NotImplementedError):
+        mp.Numbers(data_1d).set_legends(title="x")
 
 
 # --- CenterBar ---

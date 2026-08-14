@@ -492,8 +492,17 @@ class RenderPlan:
         """
         return None
 
-    def set_legends(self, *args, **kwargs):
-        raise NotImplementedError
+    def set_legends(self, **kwargs):
+        """Update the options passed to the legend built by :meth:`get_legends`.
+
+        Only available on RenderPlan that draws a legend from ``_legend_kws``.
+        """
+        if not hasattr(self, "_legend_kws"):
+            msg = f"{self.__class__.__name__} does not take legend options."
+            raise NotImplementedError(msg)
+        # rebind: `_legend_kws` may be a class-level default (MeshBase), so
+        # updating in place leaks the options into every other instance
+        self._legend_kws = {**self._legend_kws, **kwargs}
 
     def update_main_canvas_size(self):
         pass
