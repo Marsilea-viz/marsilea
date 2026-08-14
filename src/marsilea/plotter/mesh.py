@@ -53,9 +53,6 @@ class MeshBase(RenderPlan):
         if center is not None:
             self.norm = TwoSlopeNorm(center, vmin=vmin, vmax=vmax)
 
-    def set_legends(self, **kwargs):
-        self._legend_kws.update(kwargs)
-
 
 class ColorMesh(MeshBase):
     """Continuous Heatmap

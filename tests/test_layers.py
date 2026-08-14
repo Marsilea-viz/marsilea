@@ -3,7 +3,15 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.artist import Artist
-from marsilea.layers import Rect, FracRect, FrameRect, RightTri, Marker, Layers
+from marsilea.layers import (
+    Rect,
+    FracRect,
+    FrameRect,
+    RightTri,
+    Marker,
+    Layers,
+    LayersMesh,
+)
 import marsilea as ma
 
 
@@ -61,6 +69,20 @@ def test_layers_multi():
     pieces = [Rect("C0"), FracRect("C1")]
     h = Layers(layers=[d1, d2], pieces=pieces)
     h.render()
+
+
+# --- set_legends ---
+
+
+def test_layersmesh_set_legends():
+    # LayersMesh holds `_legend_kws` but used to inherit the RenderPlan stub
+    pieces = {1: Rect("C0"), 2: FracRect("C1"), 3: FrameRect("C2")}
+    mesh = LayersMesh(data=np.array([[1, 2], [3, 1]]), pieces=pieces)
+    mesh.set_legends(title="Pieces", frameon=True)
+    # new options merge into the constructor defaults, they do not replace them
+    assert mesh._legend_kws == dict(
+        frameon=True, handlelength=1, handleheight=1, title="Pieces"
+    )
 
 
 # --- Layers in ClusterBoard with split ---
