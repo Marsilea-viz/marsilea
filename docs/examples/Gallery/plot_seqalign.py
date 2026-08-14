@@ -1,6 +1,9 @@
 """
-Sequence Alignment Plot
-=======================
+Sequence alignment plot in Python (MSA)
+=======================================
+
+Draw a multiple sequence alignment with a sequence logo and a conservation track.
+
 """
 
 from collections import Counter

@@ -1,6 +1,6 @@
 """
-Two Heatmaps
-============
+Two heatmaps side by side in Python
+===================================
 
 This example shows how to plot two heatmaps side by side.
 

@@ -1,6 +1,6 @@
 """
-Mouse Embryo Map
-================
+Spatial map annotation in Python: mouse embryo
+==============================================
 
 This example shows how to enhance a mouse embryo map.
 

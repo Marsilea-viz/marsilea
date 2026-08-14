@@ -1,6 +1,8 @@
 """
-Annotate stacked bar
-====================
+Stacked bar chart in Python
+===========================
+
+Annotate a stacked bar chart with :class:`~marsilea.plotter.StackBar`.
 
 """
 

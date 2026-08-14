@@ -1,0 +1,103 @@
+# Marsilea
+
+> Marsilea is a Python library for building composable visualizations declaratively on top of
+> Matplotlib. You start from a main plot — a heatmap, a bar chart, an UpSet plot — and add side
+> plots, labels, dendrograms and legends to any of its four sides with `add_top`, `add_bottom`,
+> `add_left`, `add_right`. It covers figures that are otherwise hand-assembled with GridSpec:
+> complex annotated heatmaps (the R ComplexHeatmap equivalent), oncoprints, UpSet plots,
+> sequence logos, sequence alignments, genome tracks and single-cell panels.
+
+Install: `pip install marsilea` or `conda install -c conda-forge marsilea`.
+Requires Python >= 3.11. Optional extras: `marsilea[fast]` (fastcluster), `marsilea[stats]`
+(statannotations, for significance annotation).
+
+## Quickstart
+
+```python
+import numpy as np
+import marsilea as ma
+import marsilea.plotter as mp
+
+data = np.random.default_rng(0).standard_normal((10, 10))
+
+h = ma.Heatmap(data, linewidth=0.5, height=4, width=4)
+h.add_top(mp.Bar(data.mean(axis=0)), size=0.8, pad=0.1)
+h.add_left(mp.Labels([f"Gene{i}" for i in range(10)]), pad=0.05)
+h.add_dendrogram("right")
+h.add_legends()
+h.render()
+```
+
+Every `add_*` call takes a plotter, a `size` in inches and a `pad`. Nothing is drawn until
+`render()`; `save("figure.png")` renders and writes in one step. `group_rows`/`group_cols`
+split the canvas into labelled chunks; `cut_rows`/`cut_cols` split it at given positions.
+
+## Core API
+
+- Canvases: `ma.Heatmap`, `ma.SizedHeatmap`, `ma.CatHeatmap`, `ma.Upset`, `ma.WhiteBoard`
+  (start from an empty canvas), `ma.ClusterBoard`, `ma.StackBoard`, `ma.CompositeBoard`.
+- Plotters (`import marsilea.plotter as mp`): `Bar`, `StackBar`, `CenterBar`, `Numbers`, `Box`,
+  `Boxen`, `Violin`, `Point`, `Strip`, `Swarm`, `Area`, `Range`, `Arc`, `ColorMesh`, `SizedMesh`,
+  `MarkerMesh`, `TextMesh`, `Colors`, `Labels`, `AnnoLabels`, `Chunk`, `FixedChunk`, `Title`,
+  `Image`, `Emoji`, `SeqLogo`.
+- Board methods: `add_top`, `add_bottom`, `add_left`, `add_right`, `add_dendrogram`, `add_title`,
+  `add_legends`, `group_rows`, `group_cols`, `cut_rows`, `cut_cols`, `render`, `save`.
+- Data: `ma.load_data("<name>")` loads the datasets used across the examples;
+  `ma.UpsetData.from_memberships(...)` / `.from_sets(...)` prepare UpSet input.
+- Custom plotters: subclass `mp.RenderPlan` and implement `render_ax`.
+
+## Documentation
+
+- [Tutorial](https://marsilea.readthedocs.io/en/stable/tutorial/index.html): the guided path, start here.
+- [Introduction](https://marsilea.readthedocs.io/en/stable/tutorial/intro.html): the composable model, sides and units.
+- [Heatmap tutorial](https://marsilea.readthedocs.io/en/stable/tutorial/heatmap.html): clustering, grouping and annotating a heatmap.
+- [Concatenation](https://marsilea.readthedocs.io/en/stable/tutorial/concatenation.html): placing several canvases in one figure.
+- [Stacking](https://marsilea.readthedocs.io/en/stable/tutorial/stack.html): layering plotters in a single axes.
+- [UpSet tutorial](https://marsilea.readthedocs.io/en/stable/tutorial/upset.html): set intersections from memberships or sets.
+- [Significance annotation](https://marsilea.readthedocs.io/en/stable/tutorial/stats_annotation.html): p-value brackets on seaborn plotters.
+- [Custom plotters](https://marsilea.readthedocs.io/en/stable/tutorial/new_renderplan.html): writing your own `RenderPlan`.
+- [Axes-level API](https://marsilea.readthedocs.io/en/stable/tutorial/axes-level.html): using plotters on plain Matplotlib axes.
+- [How-to guides](https://marsilea.readthedocs.io/en/stable/how_to/index.html): layout, dendrograms, legends, styling, saving.
+- [API reference](https://marsilea.readthedocs.io/en/stable/api/index.html): every class and parameter.
+- [Gallery](https://marsilea.readthedocs.io/en/stable/examples/index.html): all examples with runnable source.
+- [Installation](https://marsilea.readthedocs.io/en/stable/installation.html)
+
+## Plot types (example with full source)
+
+- [Heatmap](https://marsilea.readthedocs.io/en/stable/examples/Basics/plot_heatmap.html): the minimal heatmap.
+- [Complex annotated heatmap](https://marsilea.readthedocs.io/en/stable/examples/Basics/plot_adv_heatmap.html): grouped rows and columns, annotations on every side.
+- [Two heatmaps side by side](https://marsilea.readthedocs.io/en/stable/examples/Basics/plot_two_heatmap.html): concatenating canvases.
+- [Stacked bar chart](https://marsilea.readthedocs.io/en/stable/examples/Basics/plot_stacked_bar.html): `StackBar` with annotations.
+- [Oncoprint](https://marsilea.readthedocs.io/en/stable/examples/Gallery/plot_oncoprint.html): TCGA breast cancer mutations, via the bundled `oncoprinter.OncoPrint`.
+- [UpSet plot](https://marsilea.readthedocs.io/en/stable/examples/Gallery/plot_upset.html): genre intersections in the IMDB top 1000 movies.
+- [Sequence logo](https://marsilea.readthedocs.io/en/stable/examples/Plotters/plot_seq_logo.html): `SeqLogo` from a position frequency matrix.
+- [Sequence alignment (MSA)](https://marsilea.readthedocs.io/en/stable/examples/Gallery/plot_seqalign.html): alignment with logo and conservation track.
+- [Single-cell RNA-seq heatmap](https://marsilea.readthedocs.io/en/stable/examples/Gallery/plot_pbmc3k.html): marker genes across PBMC 3k cell types.
+- [Single-cell multi-omics](https://marsilea.readthedocs.io/en/stable/examples/Gallery/plot_sc_multiomics.html): RNA, protein and chromatin views in one figure.
+- [Genome track plot](https://marsilea.readthedocs.io/en/stable/examples/Gallery/plot_tracks.html): stacked signal tracks.
+- [Arc diagram](https://marsilea.readthedocs.io/en/stable/examples/Gallery/plot_arc_diagram.html): the Les Misérables character network.
+- [Bivariate distribution](https://marsilea.readthedocs.io/en/stable/examples/Gallery/plot_bivariate_dist.html): joint plot with marginals.
+- [Spatial map annotation](https://marsilea.readthedocs.io/en/stable/examples/Gallery/plot_mouse_embryo.html): annotating a mouse embryo map.
+- [Significance annotation](https://marsilea.readthedocs.io/en/stable/examples/Gallery/plot_stats_annotation.html): p-value brackets on box plots.
+- [Bar chart with images](https://marsilea.readthedocs.io/en/stable/examples/Gallery/plot_tiobe_index.html): TIOBE index with language logos.
+- [Cross-layout stacked bars](https://marsilea.readthedocs.io/en/stable/examples/Gallery/plot_oil_well.html): fat content in cooking oils.
+- [All plotters at a glance](https://marsilea.readthedocs.io/en/stable/examples/Gallery/plot_available_plotters.html)
+
+## For AI assistants
+
+- [Use Marsilea with AI assistants](https://marsilea.readthedocs.io/en/stable/ai_assistants.html): setup for Claude Code and other assistants.
+- Claude Code skill, installed from inside Claude Code:
+  `/plugin marketplace add Marsilea-viz/marsilea-skill` then
+  `/plugin install marsilea@marsilea-marketplace`. Source:
+  [marsilea-skill](https://github.com/Marsilea-viz/marsilea-skill).
+- Marsilea is also documented in scanpy:
+  [Plotting with Marsilea](https://scanpy.scverse.org/en/stable/how-to/plotting-with-marsilea.html).
+
+## Optional
+
+- [Source code](https://github.com/Marsilea-viz/marsilea)
+- [legendkit](https://legendkit.readthedocs.io/en/stable/): the legend library Marsilea uses.
+- [mpl-fontkit](https://github.com/Marsilea-viz/mpl-fontkit/): font management used in the examples.
+- Citation: Zheng Y, Zheng Z, Rendeiro AF, Cheung E. "Marsilea: an intuitive generalized paradigm
+  for composable visualizations." *Genome Biology* 26, 5 (2025).
+  DOI: [10.1186/s13059-024-03469-3](https://doi.org/10.1186/s13059-024-03469-3)

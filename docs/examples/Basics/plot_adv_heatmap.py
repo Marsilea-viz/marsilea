@@ -1,7 +1,9 @@
 """
-Grouped heatmap
-===============
+Complex annotated heatmap in Python
+===================================
 
+Group and cluster the rows of a heatmap, then label the groups beside it with
+:class:`~marsilea.plotter.Chunk`.
 
 """
 

@@ -1,8 +1,9 @@
 """
-Upset Plot
-===========
+UpSet plot in Python: IMDB top 1000 movies
+==========================================
 
-IMDB Top 1000 Movies
+Visualize set intersections in the IMDB Top 1000 Movies
+with :class:`~marsilea.upset.Upset`.
 
 """
 

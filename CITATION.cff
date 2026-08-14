@@ -4,8 +4,8 @@
 cff-version: 1.2.0
 title: Marsilea
 message: >-
-  An intuitive generalized visualization paradigm for
-  complex datasets
+  If you use this software, please cite the article in
+  preferred-citation.
 type: software
 authors:
   - given-names: Yimin
@@ -19,7 +19,7 @@ authors:
       Hong Kong University of Science and Technology
       (Guangzhou)
     orcid: 'https://orcid.org/0000-0001-7986-4925'
-  - given-names: Andre
+  - given-names: André F.
     family-names: Rendeiro
     affiliation: CeMM
     orcid: 'https://orcid.org/0000-0001-9362-5373'
@@ -29,9 +29,57 @@ authors:
     orcid: 'https://orcid.org/0000-0001-8034-2833'
 identifiers:
   - type: doi
+    value: 10.1186/s13059-024-03469-3
+    description: Genome Biology article
+  - type: doi
     value: 10.1101/2024.02.14.580236
-    description: Bioarxiv
+    description: Preprint on bioRxiv
 repository-code: 'https://github.com/Marsilea-viz/marsilea'
+url: 'https://marsilea.readthedocs.io'
 keywords:
-  - Visualization
+  - visualization
+  - matplotlib
+  - heatmap
+  - complex-heatmap
+  - oncoprint
+  - upset-plot
+  - sequence-logo
+  - bioinformatics
+  - single-cell
 license: MIT
+preferred-citation:
+  type: article
+  title: >-
+    Marsilea: an intuitive generalized paradigm for
+    composable visualizations
+  authors:
+    - given-names: Yimin
+      family-names: Zheng
+      email: yzheng@cemm.at
+      affiliation: CeMM
+      orcid: 'https://orcid.org/0000-0002-0394-9735'
+    - given-names: Zhihang
+      family-names: Zheng
+      affiliation: >-
+        Hong Kong University of Science and Technology
+        (Guangzhou)
+      orcid: 'https://orcid.org/0000-0001-7986-4925'
+    - given-names: André F.
+      family-names: Rendeiro
+      affiliation: CeMM
+      orcid: 'https://orcid.org/0000-0001-9362-5373'
+    - given-names: Edwin
+      family-names: Cheung
+      affiliation: University of Macau
+      orcid: 'https://orcid.org/0000-0001-8034-2833'
+  journal: Genome Biology
+  volume: 26
+  issue: 1
+  # Genome Biology numbers articles rather than paginating; 5 is the article
+  # number, which CFF has no dedicated field for.
+  start: 5
+  year: 2025
+  month: 1
+  issn: 1474-760X
+  doi: 10.1186/s13059-024-03469-3
+  url: 'https://doi.org/10.1186/s13059-024-03469-3'

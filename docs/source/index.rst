@@ -1,5 +1,9 @@
 :html_theme.sidebar_secondary.remove:
 
+.. meta::
+   :description: Marsilea is a Python library for composable visualizations built on
+       Matplotlib: complex annotated heatmaps, oncoprints, UpSet plots, sequence logos and
+       single-cell figures, composed declaratively.
 
 .. image:: https://raw.githubusercontent.com/Marsilea-viz/marsilea/main/img/banner-blue.jpg
     :alt: Marsilea banner
@@ -15,7 +19,8 @@ Marsilea: Declarative creation of composable visualization
 
 Marsilea is a Python library for creating composable visualizations in a declarative way.
 It is built on top of Matplotlib and provides a high-level API for you to puzzle different visualizations
-together like logo.
+together like our logo. Complex annotated heatmaps, oncoprints, UpSet plots, sequence logos,
+genome tracks and single-cell panels are all the same few calls.
 
 
 .. grid:: 1 1 2 2
@@ -57,7 +62,7 @@ Install via pip:
 Documentation Sections
 ----------------------
 
-.. grid:: 2 2 4 4
+.. grid:: 2 2 5 5
 
     .. grid-item-card:: :octicon:`repo;4em;sd-text-primary`
         :shadow: none
@@ -86,10 +91,18 @@ Documentation Sections
     .. grid-item-card:: :octicon:`question;4em;sd-text-primary`
         :shadow: none
         :text-align: center
-        :link: how-to.html
+        :link: how_to/index.html
         :margin: 1 1 0 0
 
         **How-To**
+
+    .. grid-item-card:: :octicon:`dependabot;4em;sd-text-primary`
+        :shadow: none
+        :text-align: center
+        :link: ai_assistants.html
+        :margin: 1 1 0 0
+
+        **AI Assistants**
 
 
 .. toctree::
@@ -102,3 +115,4 @@ Documentation Sections
    API <api/index>
    Installation <installation>
    How-To <how_to/index>
+   AI Assistants <ai_assistants>

@@ -1,6 +1,9 @@
 """
-Track Plot
-==========
+Genome track plot in Python
+===========================
+
+Stack genomic signal tracks with :class:`~marsilea.plotter.Area`.
+
 """
 
 import marsilea as ma

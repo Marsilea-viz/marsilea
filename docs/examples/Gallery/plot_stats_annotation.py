@@ -1,6 +1,6 @@
 """
-Significance Annotation
-=======================
+Significance annotation in Python (p-value brackets)
+====================================================
 
 Test pairs of categories and draw the result on a seaborn plotter with
 :meth:`annotate_stats <marsilea.plotter.Box.annotate_stats>`. This needs the

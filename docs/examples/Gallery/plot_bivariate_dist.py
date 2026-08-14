@@ -1,6 +1,9 @@
 """
-Bivariate Distribution
-=======================
+Bivariate distribution plot in Python (joint plot with marginals)
+=================================================================
+
+Wrap a 2D kernel density with its marginal distributions on all four sides, a joint
+plot assembled from :class:`~marsilea.WhiteBoard` canvases.
 
 """
 
