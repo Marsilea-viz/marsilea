@@ -10,6 +10,8 @@ import numpy as np
 import marsilea as ma
 
 data = np.random.randint(0, 10, (10, 10))
+# Fixed sizes rather than a draw: `order` below names all three groups, and
+# drawing them left a 1-in-20 chance that one never came up.
 groups = np.repeat(["A", "B", "C"], [4, 3, 3])
 
 # %%

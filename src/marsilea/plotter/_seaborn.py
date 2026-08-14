@@ -1,3 +1,5 @@
+import warnings
+
 import numpy as np
 import pandas as pd
 import seaborn
@@ -5,8 +7,26 @@ from legendkit import CatLegend
 from seaborn import color_palette
 from typing import Mapping, Sequence
 
+from ._stats_annot import (
+    CategoryLayout,
+    DrawnChunk,
+    StatsConfig,
+    accepted_options,
+    annotate,
+    flatten,
+    plan_pairs,
+    undodged_pairs,
+)
 from .base import StatsBase
 from ..utils import ECHARTS16
+
+
+def _extract_names(data):
+    """The column labels of the wide input, if it carries any."""
+    if isinstance(data, Mapping):
+        data = next(iter(data.values()), None)
+    columns = getattr(data, "columns", None)
+    return None if columns is None else np.asarray(columns)
 
 
 class _SeabornBase(StatsBase):
@@ -14,6 +34,8 @@ class _SeabornBase(StatsBase):
     datasets = None
     hue = None
     data = None
+    _stats = None
+    _drawn_kws = None
 
     def __init__(
         self,
@@ -28,6 +50,7 @@ class _SeabornBase(StatsBase):
         label_props=None,
         **kwargs,
     ):
+        self._var_names = _extract_names(data)
         if isinstance(data, Mapping):
             datasets = []
             self.hue = []
@@ -131,6 +154,184 @@ class _SeabornBase(StatsBase):
         if leg is not None:
             leg.remove()
         self._align_cat_axis(ax, data, orient)
+
+        if self._stats is not None:
+            names = self._chunk_names
+            self._chunks.append(
+                DrawnChunk(
+                    ax=ax,
+                    pdata=pdata,
+                    hue=self.hue,
+                    names=names[spec.current_ix] if self.is_split else names,
+                )
+            )
+            # The options seaborn was actually called with decide where the
+            # groups landed, so the brackets are built from the same ones.
+            self._drawn_kws = options
+
+    def annotate_stats(
+        self, pairs, test="Mann-Whitney", ref=None, pvalues=None, **configure_kws
+    ):
+        """Test pairs of categories and draw the result on the plot.
+
+        The tests come from
+        `statannotations <https://github.com/trevismd/statannotations>`_,
+        installed with :code:`pip install marsilea[stats]`. Marsilea draws the
+        brackets, so a comparison spanning two groups of a split canvas looks
+        like any other.
+
+        Categories are named with the columns of the input data; when the input
+        is a plain array they are named by position (0, 1, 2, ...). When the
+        canvas is split, a pair whose two members land in different groups is
+        bracketed across their axes, above the within-group brackets it passes
+        over.
+
+        :class:`Strip`, :class:`Swarm` and :class:`Point` draw their hue levels
+        on top of each other unless given :code:`dodge=True`; comparisons
+        between overlaid levels are skipped with a warning.
+
+        Parameters
+        ----------
+        pairs : list of pairs, "hue" or "all"
+            In an explicit list, each side of a pair is a category label,
+            :code:`("A", "B")`, or a :code:`(category, hue_level)` tuple when
+            the data has hue, :code:`(("A", "WT"), ("A", "KO"))`.
+            :code:`"hue"` compares the hue levels inside every category;
+            :code:`"all"` compares the categories with each other, staying
+            inside each group when the canvas is split.
+        test : str, default: "Mann-Whitney"
+            The statistical test, see
+            :meth:`statannotations.Annotator.Annotator.configure`. Ignored when
+            *pvalues* is given.
+        ref : str, optional
+            Reduce a shorthand to comparisons against one reference: a hue level
+            for :code:`pairs="hue"`, a category label for :code:`pairs="all"`.
+            A category reference reaches into every group, not just its own.
+        pvalues : array, optional
+            Skip testing and annotate these p-values instead, one per pair, in
+            the order the pairs were listed. Needs an explicit *pairs* list.
+        configure_kws :
+            How the result is computed and shown. :code:`alpha` and
+            :code:`comparisons_correction` (which needs :code:`statsmodels`)
+            reach statannotations' statistics; :code:`text_format`,
+            :code:`pvalue_thresholds` and the rest of
+            :class:`statannotations.PValueFormat.PValueFormat`'s options shape
+            the label; :code:`color`, :code:`line_width`, :code:`text_offset`
+            and :code:`fontsize` style the bracket. An unknown name is an error
+            rather than silently ignored.
+
+            The correction covers every comparison drawn on the plot at once,
+            so a split canvas is one family of tests, not one per group.
+
+        Returns
+        -------
+        self
+
+        Examples
+        --------
+        .. code-block:: python
+
+            >>> import marsilea as ma
+            >>> import marsilea.plotter as mp
+            >>> box = mp.Box({"WT": wt, "KO": ko})  # doctest: +SKIP
+            >>> box.annotate_stats(  # doctest: +SKIP
+            ...     pairs="hue", test="Mann-Whitney", text_format="star"
+            ... )
+            >>> h = ma.Heatmap(data)  # doctest: +SKIP
+            >>> h.add_top(box, size=2)  # doctest: +SKIP
+            >>> h.render()  # doctest: +SKIP
+
+        """
+        allowed = accepted_options()  # also fails early if the extra is missing
+        unknown = sorted(set(configure_kws) - set(allowed))
+        if unknown:
+            raise ValueError(
+                f"Unknown option(s) {', '.join(unknown)}; "
+                f"annotate_stats accepts {', '.join(allowed)}"
+            )
+
+        names = self._var_names
+        if names is not None and len(np.unique(names)) != len(names):
+            raise ValueError(
+                f"{self.__class__.__name__} cannot annotate data with duplicated "
+                "column labels, pairs would be ambiguous."
+            )
+        if (ref is not None) and not isinstance(pairs, str):
+            raise ValueError("ref only applies to pairs='hue' or pairs='all'")
+        if (pvalues is not None) and isinstance(pairs, str):
+            raise ValueError(
+                "pvalues needs an explicit list of pairs, so each value has a "
+                "pair to belong to"
+            )
+
+        self._stats = StatsConfig(
+            pairs=pairs,
+            ref=ref,
+            test=test,
+            pvalues=pvalues,
+            configure_kws=configure_kws,
+        )
+        return self
+
+    def _deform_names(self):
+        """Chunk and reorder the category labels the same way as the data."""
+        names = self._var_names
+        if names is None:
+            names = np.arange(self.get_data()[0].shape[1])
+        deform_func = self.get_deform_func()
+        return names if deform_func is None else deform_func(names)
+
+    def _draw_stats(self, axes):
+        chunk_names = [chunk.names for chunk in self._chunks]
+        per_chunk, cross, unknown = plan_pairs(self._stats, chunk_names, self.hue)
+        brackets = flatten(per_chunk, cross, self.hue)
+
+        layout = CategoryLayout.from_kws(self._seaborn_plot, self.hue, self._drawn_kws)
+        overlaid = undodged_pairs(brackets, layout)
+        if overlaid:
+            # seaborn draws strip, swarm and point plots undodged by default,
+            # so the two hue levels sit on top of each other and a bracket
+            # between them would have nothing to point at.
+            warnings.warn(
+                f"{len(overlaid)} pair(s) compare hue levels that are drawn at the "
+                f"same place; pass dodge=True to separate them: "
+                f"{sorted(overlaid, key=str)}",
+                stacklevel=4,
+            )
+            overlaid = set(map(str, overlaid))
+            brackets = [b for b in brackets if str(b.original) not in overlaid]
+
+        # Every bracket is placed against one value scale, so unify the chunks
+        # before measuring where anything goes.
+        self.align_lim(axes)
+        annotate(
+            axes[0].figure,
+            axes,
+            self._chunks,
+            brackets,
+            self._stats,
+            layout,
+            self.get_orient(),
+            self._seaborn_plot,
+        )
+
+        if unknown:
+            warnings.warn(
+                f"{len(unknown)} pair(s) name a category that is not in the data "
+                f"and were skipped: {sorted(unknown, key=str)}",
+                stacklevel=4,
+            )
+
+    def render(self, axes):
+        self._chunks = []
+        if self._stats is not None:
+            self._chunk_names = self._deform_names()
+        super().render(axes)
+        if self._stats is not None:
+            self._draw_stats(axes if self.is_split else [axes])
+            if self.is_split:
+                # Brackets grew the value axis; unify the chunks again.
+                self.align_lim(axes)
 
     def _align_cat_axis(self, ax, data, orient):
         """Pin the categorical axis so the plot stays aligned with other plots.
@@ -262,12 +463,29 @@ def _seaborn_doc(obj: _SeabornBase):
         >>> cb.cut_rows([3, 7])
         >>> cb.add_left(anno)
         >>> cb.render()
-        
+
+    """
+
+    # Not executed: statannotations is an optional extra, and the docs must
+    # build without it.
+    stats_doc = f"""
+    Significance can be tested and drawn on the plot with
+    :meth:`{cls_name}.annotate_stats`, documented below, which needs
+    :code:`pip install marsilea[stats]`
+
+    .. code-block:: python
+
+        >>> plot = {cls_name}({hue_data}, {kws})
+        >>> plot.annotate_stats(pairs='hue', text_format='star')
+        >>> h = ma.Heatmap(data)
+        >>> h.add_right(plot)
+        >>> h.render()
+
     """
     if cls_name == "Count":
         obj.__doc__ = base_doc
     else:
-        obj.__doc__ = base_doc + extend_examples
+        obj.__doc__ = base_doc + extend_examples + stats_doc
     return obj
 
 

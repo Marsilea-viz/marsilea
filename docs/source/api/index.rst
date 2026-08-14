@@ -230,9 +230,13 @@ Mesh
 Seaborn plots
 -------------
 
+Every one of these carries :code:`annotate_stats()`, which tests pairs of
+categories and draws the result on the plot; it is documented on each class's
+own page and needs :code:`pip install marsilea[stats]`.
+
 .. autosummary::
     :toctree: APIs/
-    :template: autosummary.rst
+    :template: autosummary_seaborn.rst
     :nosignatures:
 
     Bar
