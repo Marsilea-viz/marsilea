@@ -81,6 +81,23 @@ def test_set_legends_does_not_leak_between_plotters(data_2d):
     assert MeshBase._legend_kws == {}
 
 
+def test_set_legends_on_stackbar(data_2d, rng):
+    # StackBar holds `_legend_kws` but used to inherit the RenderPlan stub
+    stack_data = pd.DataFrame(rng.random((3, 6)), index=["cat_a", "cat_b", "cat_c"])
+    sb = mp.StackBar(stack_data)
+    sb.set_legends(title="Cats")
+    assert sb._legend_kws == {"title": "Cats", "size": 1}
+    h = ma.Heatmap(data_2d)
+    h.add_top(sb)
+    h.add_legends()
+    h.render()
+
+
+def test_set_legends_unsupported_raises(data_1d):
+    with pytest.raises(NotImplementedError):
+        mp.Numbers(data_1d).set_legends(title="x")
+
+
 # --- CenterBar ---
 
 
