@@ -28,8 +28,8 @@ together like logo.
             :shadow: none
 
             If you use Marsilea in your research, please cite:
-            `Marsilea: an intuitive generalized framework for composable visualizations <https://doi.org/10.1186/s13059-024-03469-3>`_
-            — *Genome Biology*, 2024
+            `Marsilea: an intuitive generalized paradigm for composable visualizations <https://doi.org/10.1186/s13059-024-03469-3>`_
+            — *Genome Biology*, 2025
 
         .. card :: Related Projects
             :shadow: none

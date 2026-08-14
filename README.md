@@ -72,7 +72,7 @@ If you use Marsilea in your research, please cite the following:
 > 
 > Yimin Zheng, Zhihang Zheng, André F. Rendeiro & Edwin Cheung
 > 
-> _Genome Biology_ 2025 Jan 06. DOI: [10.1186/s13059-017-1382-0](https://doi.org/10.1186/s13059-024-03469-3)
+> _Genome Biology_ 2025 Jan 06. DOI: [10.1186/s13059-024-03469-3](https://doi.org/10.1186/s13059-024-03469-3)
 
 ## Get helps
 
