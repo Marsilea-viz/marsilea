@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from copy import deepcopy
 from dataclasses import dataclass
 from numbers import Number
 from typing import List, Dict, Literal
@@ -92,6 +93,25 @@ def get_axes_rect(rect, figsize):
     return cx / fig_w, cy / fig_h, cw / fig_w, ch / fig_h
 
 
+# Attributes that hold live matplotlib artists (Figure/Axes).
+_LIVE_ARTIST_ATTRS = ("figure", "ax")
+
+
+def _deepcopy_drop_artists(self, memo):
+    """__deepcopy__ that drops references to live matplotlib artists.
+
+    A copied layout is always re-frozen onto its own figure, so the
+    source's figure and axes are stale for the copy.  They are also not
+    deep-copyable on Python 3.14+: matplotlib's ``category.UnitData``
+    holds an ``itertools.count``, which lost pickle support there.
+    """
+    new = self.__class__.__new__(self.__class__)
+    memo[id(self)] = new
+    for k, v in vars(self).items():
+        setattr(new, k, None if k in _LIVE_ARTIST_ATTRS else deepcopy(v, memo))
+    return new
+
+
 class BaseCell:
     name: str
     side: str
@@ -106,6 +126,8 @@ class BaseCell:
     v_ratios: np.ndarray = None
 
     is_canvas: bool = True
+
+    __deepcopy__ = _deepcopy_drop_artists
 
     def set_ax(self, ax):
         self.ax = ax
@@ -228,6 +250,8 @@ class Margin:
 
 class _MarginMixin:
     margin = Margin(0, 0, 0, 0)
+
+    __deepcopy__ = _deepcopy_drop_artists
 
     def set_margin(self, margin):
         if isinstance(margin, Number):
@@ -674,6 +698,8 @@ class _LegendAxes:
     size: float
     pad: float
     ax = None
+
+    __deepcopy__ = _deepcopy_drop_artists
 
     def get_length(self):
         return self.size + self.pad

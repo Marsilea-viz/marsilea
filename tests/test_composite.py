@@ -25,6 +25,25 @@ def test_composite_vertical(rng):
     comp.render()
 
 
+def test_composite_after_render(rng):
+    """Composing already-rendered boards must not deep-copy live figure/axes.
+
+    The Violin gives the axes a categorical unit, whose matplotlib
+    ``UnitData`` holds an ``itertools.count`` -- not copyable on Python
+    3.14+, where it raised ``cannot pickle 'itertools.count' object``.
+    """
+    h1 = _make_heatmap(rng)
+    h1.add_top(mp.Violin(rng.standard_normal((6, 4))))
+    h2 = _make_heatmap(rng)
+    h1.render()
+    h2.render()
+    comp = h1 / h2
+    comp.render()
+    # the copy got its own figure, the sources kept theirs
+    assert comp.figure is not h1.figure
+    assert h1.figure is not None
+
+
 def test_composite_mixed(rng):
     h1 = _make_heatmap(rng)
     h2 = _make_heatmap(rng)
