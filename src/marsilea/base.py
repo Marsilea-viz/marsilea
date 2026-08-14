@@ -860,6 +860,15 @@ class _GroupBoard(LegendMaker):
         for board in self._board_list:
             board._freeze_flex_plots(figure)
 
+    def _freeze_legend(self, figure):
+        super()._freeze_legend(figure)
+        # With keep_legends=True a board draws its own legend, so its
+        # legend axes must be sized and registered before the tree is
+        # frozen: _draw needs the axes to exist, and the legend is a side
+        # cell, so the stack only leaves room for it if it is there first.
+        for board in self._board_list:
+            board._freeze_legend(figure)
+
     def remove_legends(self):
         super().remove_legends()
         # Keep the boards in step with the layout tree, whose legend

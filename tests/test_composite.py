@@ -24,6 +24,20 @@ def _assert_inside_figure(figure):
         )
 
 
+def _assert_no_overlap(figure):
+    """No two axes may cover the same area"""
+    boxes = _bounds(figure)
+    for i, (xi, yi, wi, hi) in enumerate(boxes):
+        for j, (xj, yj, wj, hj) in enumerate(boxes[i + 1 :], start=i + 1):
+            apart = (
+                xi + wi <= xj + 1e-6
+                or xj + wj <= xi + 1e-6
+                or yi + hi <= yj + 1e-6
+                or yj + hj <= yi + 1e-6
+            )
+            assert apart, f"axes {i} and {j} overlap"
+
+
 # --- CompositeBoard ---
 
 
@@ -166,6 +180,23 @@ def test_stack_save_before_render(rng, tmp_path):
 def test_stack_empty_boards():
     with pytest.raises(ValueError, match="empty list"):
         ma.StackBoard([])
+
+
+def test_stack_keeps_per_board_legends(rng):
+    """keep_legends=True: each board draws its own legend, with room for it."""
+    h1 = _make_heatmap(rng)
+    h1.add_legends()
+    h2 = _make_heatmap(rng)
+    h2.add_legends()
+
+    sb = ma.StackBoard([h1, h2], direction="horizontal", keep_legends=True)
+    sb.render()
+
+    # two heatmaps plus a legend axes each, none clipped or overlapping
+    assert len(sb.figure.axes) == 4
+    assert sum(len(ax.artists) > 0 for ax in sb.figure.axes) == 2
+    _assert_inside_figure(sb.figure)
+    _assert_no_overlap(sb.figure)
 
 
 @pytest.mark.parametrize("side", ["right", "left", "top", "bottom"])
