@@ -16,6 +16,17 @@ To serve the documentation, use:
 uv run task doc-serve
 ```
 
+## llms.txt
+
+`source/_extra/llms.txt` is copied verbatim to the site root by `html_extra_path`, so it is
+served at <https://marsilea.readthedocs.io/en/stable/llms.txt>. It is hand-written: when the
+API or the gallery changes, update it in the same PR.
+
+Assistants also look for it at the domain root. That needs a Read the Docs **Exact redirect**
+(Admin → Redirects), which lives in the dashboard, not in this repo:
+
+    /llms.txt  ->  /en/stable/llms.txt
+
 ## Writing Style
 
 ### Class

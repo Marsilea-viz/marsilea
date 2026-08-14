@@ -1,6 +1,8 @@
 """
-Heatmap
-=======
+Heatmap in Python
+=================
+
+Draw a heatmap with :class:`~marsilea.Heatmap`.
 
 """
 

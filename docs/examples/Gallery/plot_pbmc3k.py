@@ -1,6 +1,9 @@
 """
-Visualizing Single-cell RNA-seq Data
-====================================
+Single-cell RNA-seq heatmap in Python (PBMC 3k)
+===============================================
+
+Marker gene expression across PBMC cell types: a heatmap layered with
+:class:`~marsilea.plotter.SizedMesh` dots, violins and cell counts.
 
 """
 

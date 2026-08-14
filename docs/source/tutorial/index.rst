@@ -1,3 +1,7 @@
+.. meta::
+   :description: Learn Marsilea step by step: compose a heatmap with side plots, cluster and
+       group it, stack plotters, build UpSet plots and write your own plotters in Python.
+
 Tutorial
 ========
 

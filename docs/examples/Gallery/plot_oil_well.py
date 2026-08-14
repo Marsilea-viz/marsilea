@@ -1,6 +1,6 @@
 """
-Fat content in cooking oils
-===========================
+Cross-layout stacked bar chart in Python: fat in cooking oils
+=============================================================
 
 This example shows how to apply cross-layout on statistical plots.
 

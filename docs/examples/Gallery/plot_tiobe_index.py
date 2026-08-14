@@ -1,6 +1,6 @@
 """
-Ranking of programming languages.
-==================================
+Bar chart with images in Python: TIOBE index
+============================================
 
 Visualize the ratings of programming languages
 according to the `TIOBE index <https://www.tiobe.com/tiobe-index/>`_.

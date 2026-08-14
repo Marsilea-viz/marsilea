@@ -1,6 +1,9 @@
 """
-Visualizing Single-cell Multi-Omics Data
+Single-cell multi-omics figure in Python
 ========================================
+
+Place a transcriptomics and a proteomics profile of the same cell lineages side by
+side, both as :class:`~marsilea.SizedHeatmap` panels.
 
 """
 

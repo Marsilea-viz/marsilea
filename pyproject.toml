@@ -22,9 +22,21 @@ classifiers = [
     "Topic :: Scientific/Engineering",
     "Topic :: Scientific/Engineering :: Visualization",
 ]
+keywords = [
+    "visualization",
+    "matplotlib",
+    "heatmap",
+    "complex-heatmap",
+    "annotated-heatmap",
+    "oncoprint",
+    "upset-plot",
+    "sequence-logo",
+    "bioinformatics",
+    "single-cell",
+]
 dynamic = ["version"]
 requires-python = ">=3.11"
-urls = { Home="https://github.com/Marsilea-viz/marsilea", Documentation="https://marsilea.readthedocs.io"}
+urls = { Home="https://github.com/Marsilea-viz/marsilea", Documentation="https://marsilea.readthedocs.io", Source="https://github.com/Marsilea-viz/marsilea", Issues="https://github.com/Marsilea-viz/marsilea/issues"}
 dependencies = [
     "numpy",
     "pandas[parquet]",

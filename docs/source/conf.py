@@ -14,6 +14,7 @@
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
 import json
+import os
 import shutil
 from datetime import datetime
 from pathlib import Path
@@ -130,6 +131,12 @@ suppress_warnings = ["config.cache"]
 
 html_theme = "pydata_sphinx_theme"
 html_static_path = ["_static"]
+# Canonical URL, so /en/latest/ and pull-request builds do not compete with the
+# released page in search results. Read the Docs sets the variable per build;
+# locally it stays empty, which disables the canonical link.
+html_baseurl = os.environ.get("READTHEDOCS_CANONICAL_URL", "")
+# Copied verbatim to the site root: llms.txt for AI assistants.
+html_extra_path = ["_extra"]
 html_css_files = ["css/custom.css"]
 html_logo = "../../img/logo.png"
 html_show_sourcelink = False

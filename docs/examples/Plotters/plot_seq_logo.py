@@ -1,6 +1,6 @@
 """
-SeqLogo
-=======
+Sequence logo in Python
+=======================
 
 :class:`~marsilea.plotter.SeqLogo` is for plotting sequence logo.
 

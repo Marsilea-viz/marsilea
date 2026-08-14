@@ -1,6 +1,6 @@
 """
-Les Miserables Arc Diagram
-===============================
+Arc diagram in Python: Les Misérables network
+=============================================
 
 This example shows how to create an arc diagram from a network.
 
