@@ -718,8 +718,11 @@ class CompositeCrossLayout(_MarginMixin):
     """
 
     figure = None
+    # True when this layout is nested in another one, which then owns the
+    # figure size and tells us where to sit
+    is_composite = False
 
-    def __init__(self, main_layout, margin=0, align_main=True) -> None:
+    def __init__(self, main_layout, margin=0, align_main=True, name=None) -> None:
         self.main_layout = _reset_layout(main_layout)
         self.main_cell_height = self.main_layout.get_main_height()
         self.main_cell_width = self.main_layout.get_main_width()
@@ -733,6 +736,12 @@ class CompositeCrossLayout(_MarginMixin):
         self.layouts = {self.main_layout.main_cell.name: self.main_layout}
         self.set_margin(margin)
         self.align_main = align_main
+        if name is None:
+            name = uuid4().hex
+        self.name = name
+        self.figsize = None
+        # The main canvas anchor, set by a parent layout when nested
+        self.anchor = None
 
     def append(self, side, other):
         _check_side(side)
@@ -838,19 +847,43 @@ class CompositeCrossLayout(_MarginMixin):
         return fig_w, fig_h
 
     def get_main_anchor(self):
+        if self.anchor is not None:
+            return self.anchor
         x = self.get_side_size("left") + self.margin.left
         y = self.get_side_size("bottom") + self.margin.bottom
         return x, y
 
     def set_anchor(self, anchor):
-        self.main_layout.set_anchor(anchor)
+        # Where the main canvas goes; freeze places everything else
+        # relative to it
+        self.anchor = anchor
+
+    # Mimic the CrossLayout API, so this layout can be stacked
+    def set_figsize(self, figsize):
+        self.figsize = figsize
+
+    def get_main_width(self):
+        return self.main_cell_width
+
+    def get_main_height(self):
+        return self.main_cell_height
+
+    def remove_legend_ax(self):
+        self._legend_axes = None
+        for layout in self.layouts.values():
+            layout.remove_legend_ax()
 
     def freeze(self, figure=None, scale=1, _debug=False):
-        figsize = np.asarray(self.get_figure_size()) * scale
+        # If not composed, update the figsize.
+        # When composed, the parent is expected to have pushed its figsize
+        # down with set_figsize before calling freeze.
+        if not self.is_composite:
+            self.figsize = np.asarray(self.get_figure_size())
+        figsize = self.figsize * scale
 
         if figure is None:
             figure = plt.figure(figsize=figsize)
-        else:
+        elif not self.is_composite:
             figure.set_size_inches(figsize)
 
         # To freeze all the layouts

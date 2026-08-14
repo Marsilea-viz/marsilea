@@ -199,6 +199,63 @@ def test_stack_keeps_per_board_legends(rng):
     _assert_no_overlap(sb.figure)
 
 
+def test_stack_of_composites(rng):
+    """A CompositeBoard can be stacked, which is another way to a grid."""
+    data = rng.standard_normal((5, 4))
+    cmaps = ["Reds", "Greens", "Blues", "Purples"]
+    h1, h2, h3, h4 = [ma.Heatmap(data, cmap=c, width=1, height=1) for c in cmaps]
+    grid = ma.StackBoard([h1 + h2, h3 + h4], direction="vertical")
+    grid.render()
+
+    bounds = _bounds(grid.figure)
+    assert len(bounds) == 4
+    assert len({round(b[0], 6) for b in bounds}) == 2
+    assert len({round(b[1], 6) for b in bounds}) == 2
+    _assert_inside_figure(grid.figure)
+    _assert_no_overlap(grid.figure)
+
+    drawn = [c.cmap.name for ax in grid.figure.axes for c in ax.collections]
+    assert sorted(drawn) == sorted(cmaps)
+
+
+@pytest.mark.parametrize("direction", ["horizontal", "vertical"])
+def test_stack_mixed_children(rng, direction):
+    """A stack can hold a composite, another stack and a plain board at once."""
+    sb = ma.StackBoard(
+        [
+            _make_heatmap(rng) + _make_heatmap(rng),
+            ma.StackBoard([_make_heatmap(rng), _make_heatmap(rng)]),
+            _make_heatmap(rng),
+        ],
+        direction=direction,
+    )
+    sb.render()
+
+    assert len(sb.figure.axes) == 5
+    _assert_inside_figure(sb.figure)
+    _assert_no_overlap(sb.figure)
+
+
+def test_stack_composite_keeps_own_legend(rng):
+    """A composite legend is added after concatenation, and must survive."""
+    comp = _make_heatmap(rng) + _make_heatmap(rng)
+    comp.add_legends(side="right")
+    sb = ma.StackBoard(
+        [comp, _make_heatmap(rng)], direction="vertical", keep_legends=True
+    )
+    sb.render()
+
+    assert sum(len(ax.artists) > 0 for ax in sb.figure.axes) == 1
+    _assert_inside_figure(sb.figure)
+
+
+def test_stack_inside_composite_is_refused(rng):
+    """The other direction is not supported, and says so."""
+    sb = ma.StackBoard([_make_heatmap(rng), _make_heatmap(rng)])
+    with pytest.raises(TypeError, match="Cannot append object type"):
+        _make_heatmap(rng) + sb
+
+
 @pytest.mark.parametrize("side", ["right", "left", "top", "bottom"])
 def test_stack_legend_inside_figure(rng, side):
     """The figure has to grow for the legend instead of pushing it off-canvas."""
