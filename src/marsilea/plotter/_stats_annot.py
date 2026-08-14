@@ -25,6 +25,7 @@ import numpy as np
 from matplotlib.collections import Collection
 from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
+from matplotlib.text import Text
 
 #: Every seaborn plotter marsilea wraps can be annotated.
 SUPPORTED_PLOTS = (
@@ -49,6 +50,9 @@ _CAT_WIDTH = 0.8
 
 #: Bracket geometry, in points.
 _STEM_POINTS = 4.0
+
+#: Clear space kept between two labels on the same row.
+_LABEL_GAP_POINTS = 4.0
 
 #: Share of the panel kept clear above the top bracket, and the least the data
 #: is allowed to shrink to when there are many rows of brackets.
@@ -488,13 +492,15 @@ def measure_extents(ax, orient, coords):
         if found is None:
             continue
         categorical, value = found
-        if np.ptp(categorical) >= 0.99:
-            # Something drawn across categories, such as a pointplot's line.
-            continue
-        nearest = coords[np.argmin(np.abs(coords - categorical.mean()))]
-        if abs(nearest - categorical.mean()) > reach:
-            continue
-        extents[float(nearest)] = max(extents[float(nearest)], float(value.max()))
+        # Bin every point rather than place the whole artist by its mean: a
+        # strip or swarm plot puts *all* categories in one collection per hue
+        # level, so by its mean it belongs to no group at all.
+        nearest = np.argmin(np.abs(coords[None, :] - categorical[:, None]), axis=1)
+        claimed = np.abs(coords[nearest] - categorical) <= reach
+        for index in np.unique(nearest[claimed]):
+            group = claimed & (nearest == index)
+            key = float(coords[index])
+            extents[key] = max(extents[key], float(value[group].max()))
 
     finite = [v for v in extents.values() if np.isfinite(v)]
     fallback = max(finite) if finite else 0.0
@@ -504,32 +510,117 @@ def measure_extents(ax, orient, coords):
 # --- placing and drawing ---------------------------------------------------
 
 
-def assign_levels(brackets, layout, slots):
-    """Give every bracket a tier that clears whatever it passes over.
+def assign_levels(spans):
+    """Give every bracket the lowest tier where nothing is in its way.
+
+    *spans* are the intervals the brackets occupy along the categorical
+    direction, in figure coordinates and already widened to hold their labels.
+    Working in figure space rather than in categories is what lets a label
+    wider than its own bracket push its neighbours up instead of printing on
+    top of them, and it measures the gap between chunks correctly too.
 
     Tiers are integers: the value they map to is decided later, once the room
     a label needs is known.
     """
-    ceiling = {slot: -1 for slot in slots}
     order = sorted(
-        range(len(brackets)),
-        key=lambda i: (
-            abs(brackets[i].right.key(layout)[0] - brackets[i].left.key(layout)[0]),
-            abs(brackets[i].right.key(layout)[1] - brackets[i].left.key(layout)[1]),
-            brackets[i].left.key(layout),
-        ),
+        range(len(spans)), key=lambda i: (spans[i][1] - spans[i][0], spans[i][0])
     )
-
-    tiers = [0] * len(brackets)
+    tiers = [0] * len(spans)
+    placed = []
     for index in order:
-        bracket = brackets[index]
-        low, high = sorted([bracket.left.key(layout), bracket.right.key(layout)])
-        covered = [s for s in slots if low <= s <= high]
-        tier = max(ceiling[s] for s in covered) + 1
+        low, high = spans[index]
+        tier = 0
+        while any(
+            t == tier and low < other_high and other_low < high
+            for other_low, other_high, t in placed
+        ):
+            tier += 1
         tiers[index] = tier
-        for slot in covered:
-            ceiling[slot] = tier
+        placed.append((low, high, tier))
     return tiers
+
+
+def _renderer(fig):
+    """A renderer to measure text with, or None if the backend cannot give one."""
+    for source in (fig, getattr(fig, "canvas", None)):
+        for name in ("_get_renderer", "get_renderer"):
+            get = getattr(source, name, None)
+            if get is None:
+                continue
+            try:
+                return get()
+            except Exception:
+                continue
+    return None
+
+
+def _label_half_widths(fig, texts, style):
+    """Half the width of each label, as a fraction of the figure.
+
+    A label is laid along the categorical direction in both orientations -- a
+    horizontal plot rotates it a quarter turn -- so its long dimension is what
+    has to clear the neighbours either way.
+    """
+    size = style.fontsize
+    if not isinstance(size, (int, float)):
+        size = mpl.rcParams["font.size"]
+    figure_width = fig.get_window_extent().width
+    renderer = _renderer(fig)
+    if renderer is None:
+        # No renderer to measure with; 0.6 em per character is close enough to
+        # keep labels off each other.
+        return [len(t) * size * 0.6 * fig.dpi / 72 / figure_width / 2 for t in texts]
+
+    widths = []
+    for text in texts:
+        probe = Text(0, 0, text, fontsize=size, figure=fig)
+        widths.append(probe.get_window_extent(renderer).width / figure_width / 2)
+    return widths
+
+
+def _panel_extent(fig, axes, axis):
+    """How far the plot reaches along the categorical direction, in the figure."""
+    boxes = [
+        ax.get_window_extent().transformed(fig.transFigure.inverted()) for ax in axes
+    ]
+    if axis == 0:
+        return min(b.x0 for b in boxes), max(b.x1 for b in boxes)
+    return min(b.y0 for b in boxes), max(b.y1 for b in boxes)
+
+
+def bracket_spans(fig, axes, brackets, texts, layout, orient, style):
+    """The figure-space interval each bracket needs, and where its label sits.
+
+    The interval holds the label, not just the bracket, so a label wider than
+    its own bracket pushes its neighbours onto another row instead of printing
+    over them. A label is also nudged back inside the plot when centring it
+    would hang it over the axis.
+    """
+    half_widths = _label_half_widths(fig, texts, style)
+    axis = 1 if orient == "h" else 0
+    gap = _LABEL_GAP_POINTS / (72 * fig.get_size_inches()[axis])
+    panel_low, panel_high = _panel_extent(fig, axes, axis)
+
+    spans, centres = [], []
+    for bracket, half in zip(brackets, half_widths):
+        ends = [
+            _to_figure(
+                fig,
+                axes[end.chunk],
+                orient,
+                layout.coord(end.position, end.hue),
+                0,
+            )[axis]
+            for end in (bracket.left, bracket.right)
+        ]
+        low, high = min(ends), max(ends)
+        centre = (low + high) / 2
+        if panel_high - panel_low > 2 * half:
+            centre = min(max(centre, panel_low + half), panel_high - half)
+        centres.append(centre)
+        # `gap` keeps neighbours from abutting, which reads as one long string.
+        spans.append((min(low, centre - half - gap), max(high, centre + half + gap)))
+    return spans, centres
 
 
 @dataclass
@@ -591,7 +682,7 @@ def place_levels(fig, ax, orient, tiers, style, near, data_top):
     return levels, near + span, crowded
 
 
-def draw_brackets(fig, axes, brackets, levels, texts, layout, orient, style):
+def draw_brackets(fig, axes, brackets, levels, texts, centres, layout, orient, style):
     """Draw every bracket in figure coordinates, so they all match.
 
     A bracket between two groups has to span two Axes, which no single Axes'
@@ -616,7 +707,8 @@ def draw_brackets(fig, axes, brackets, levels, texts, layout, orient, style):
     else:
         align = dict(ha="left" if outward[0] > 0 else "right", va="center")
 
-    for bracket, level, text in zip(brackets, levels, texts):
+    axis = 1 if orient == "h" else 0
+    for bracket, level, text, centre in zip(brackets, levels, texts, centres):
         ends = [
             np.asarray(
                 _to_figure(
@@ -641,6 +733,7 @@ def draw_brackets(fig, axes, brackets, levels, texts, layout, orient, style):
             )
         )
         middle = (a + b) / 2 + pad
+        middle[axis] = centre
         fig.text(
             middle[0],
             middle[1],
@@ -677,7 +770,8 @@ def annotate(fig, axes, chunks, brackets, config, layout, orient, plot):
 
     limits = axes[0].get_xlim() if orient == "h" else axes[0].get_ylim()
     near = min(limits)
-    tiers = assign_levels(brackets, layout, sorted(extents))
+    spans, centres = bracket_spans(fig, axes, brackets, texts, layout, orient, style)
+    tiers = assign_levels(spans)
     levels, far, crowded = place_levels(
         fig, axes[0], orient, tiers, style, near, max(extents.values())
     )
@@ -693,7 +787,7 @@ def annotate(fig, axes, chunks, brackets, config, layout, orient, plot):
     for ax in axes:
         _set_value_limits(ax, orient, near, far)
 
-    draw_brackets(fig, axes, brackets, levels, texts, layout, orient, style)
+    draw_brackets(fig, axes, brackets, levels, texts, centres, layout, orient, style)
 
 
 def undodged_pairs(brackets, layout):

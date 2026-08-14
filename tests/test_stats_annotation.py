@@ -228,7 +228,8 @@ def _board(
     if Plot in NEEDS_DODGE:
         kws.setdefault("dodge", True)
     plot = Plot(data, orient=orient, **kws)
-    plot.annotate_stats(pairs=pairs, text_format="star", **stats_kws)
+    stats_kws.setdefault("text_format", "star")
+    plot.annotate_stats(pairs=pairs, **stats_kws)
 
     h = ma.Heatmap(rng.standard_normal((n_cat, n_cat)), width=3, height=3)
     if cuts:
@@ -471,6 +472,59 @@ def test_a_narrower_width_moves_the_brackets_with_the_boxes():
     )
     ends = sorted(to_data.transform(points)[1:3, 0])
     assert ends == pytest.approx([2 - 0.1, 2 + 0.1], abs=1e-6)
+
+
+@pytest.mark.parametrize("PlotClass", ALL_PLOTS)
+def test_the_value_axis_still_holds_the_data_after_annotating(PlotClass):
+    """A plot type whose extents go unmeasured collapses the axis onto nothing.
+
+    seaborn draws a strip or swarm plot as one collection per hue level holding
+    *every* category, so measuring by an artist's mean position placed them
+    nowhere, every extent fell back to zero, and the panel shrank to a slice
+    that did not contain the data.
+    """
+    board, plot, data = _board("hue", Plot=PlotClass)
+    ax = _axes(board)[0]
+    low, high = sorted(ax.get_ylim())
+    reach = pd.concat(data.values()).values
+    if PlotClass in (mp.Bar, mp.Point):
+        # these draw means, so only the middle of the data has to be inside
+        assert low < float(np.mean(reach)) < high
+    else:
+        assert low <= reach.min() and high >= reach.max()
+
+
+def test_wide_labels_are_pushed_onto_separate_rows():
+    """`text_format="simple"` is far wider than a category, and must stagger."""
+    board, _, _ = _board("hue", n_cat=6, test="t-test_ind", text_format="simple")
+    labels = _labels(board)
+    assert len(labels) == 6
+
+    boxes = [t.get_window_extent() for t in labels]
+    # A real gap, not merely "not overlapping": two labels that touch read as
+    # one long string, which is how this looked when it was wrong.
+    too_close = [
+        (a, b)
+        for i, a in enumerate(boxes)
+        for b in boxes[i + 1 :]
+        if a.x1 + 2 > b.x0 and b.x1 + 2 > a.x0 and a.y1 > b.y0 and b.y1 > a.y0
+    ]
+    assert too_close == []
+    # staggering is the mechanism: they cannot all sit on one row
+    assert len({round(box.y0) for box in boxes}) > 1
+
+
+def test_a_label_wider_than_its_slot_stays_on_the_plot():
+    """Centring a wide label on an edge category would hang it over the axis."""
+    board, _, _ = _board("hue", n_cat=6, test="t-test_ind", text_format="simple")
+    panel = min(ax.get_window_extent().x0 for ax in _axes(board))
+    assert min(t.get_window_extent().x0 for t in _labels(board)) >= panel - 1
+
+
+def test_short_labels_still_share_one_row():
+    """Staggering is driven by the labels, so stars should not need extra rows."""
+    board, _, _ = _board("hue", n_cat=6, text_format="star")
+    assert len({round(t.get_window_extent().y0) for t in _labels(board)}) == 1
 
 
 def test_brackets_clear_the_drawn_artists_not_just_the_data():
