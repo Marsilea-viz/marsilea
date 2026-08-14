@@ -10,7 +10,7 @@ import numpy as np
 import marsilea as ma
 
 data = np.random.randint(0, 10, (10, 10))
-groups = np.random.choice(["A", "B", "C"], 10)
+groups = np.repeat(["A", "B", "C"], [4, 3, 3])
 
 # %%
 
