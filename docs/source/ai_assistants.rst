@@ -38,8 +38,8 @@ Any other assistant: llms.txt
 -----------------------------
 
 `llms.txt <https://llmstxt.org>`_ is a plain-text summary of a project written for
-language models: what the library is, the core API, and a link per topic. Marsilea's lives
-at
+language models: what the library is, the core API, and a link per topic. Marsilea's
+``llms.txt`` lives at
 
     https://marsilea.readthedocs.io/en/stable/llms.txt
 
