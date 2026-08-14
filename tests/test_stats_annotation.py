@@ -10,12 +10,11 @@ import numpy as np
 import pandas as pd
 import pytest
 from matplotlib.lines import Line2D
-from matplotlib.patches import PathPatch
 
 import marsilea as ma
 import marsilea.plotter as mp
 from marsilea.plotter._stats_annot import (
-    Endpoint,
+    CategoryLayout,
     StatsConfig,
     plan_pairs,
     resolve_pairs,
@@ -184,315 +183,327 @@ def test_plan_leaves_a_single_chunk_alone():
     assert cross == [] and unknown == []
 
 
-def test_endpoint_dodges_like_seaborn():
-    assert Endpoint(0, 3, "WT").coord(HUE) == pytest.approx(2.8)
-    assert Endpoint(0, 3, "KO").coord(HUE) == pytest.approx(3.2)
-    assert Endpoint(0, 3).coord(None) == pytest.approx(3.0)
-
-
-# --- configuration errors, no statannotations needed for the plot check ---
-
-
-@pytest.mark.parametrize("PlotClass", [mp.Boxen, mp.Point])
-def test_unsupported_plots_raise(rng, PlotClass):
-    plot = PlotClass(rng.standard_normal((10, 6)))
-    with pytest.raises(ValueError, match="statannotations cannot annotate"):
-        plot.annotate_stats(pairs="all")
+def test_layout_places_groups_where_seaborn_does():
+    dodged = CategoryLayout.from_kws("boxplot", HUE, {})
+    assert dodged.coord(3, "WT") == pytest.approx(2.8)
+    assert dodged.coord(3, "KO") == pytest.approx(3.2)
+    # seaborn overlays strip/swarm/point hue levels unless told to dodge
+    overlaid = CategoryLayout.from_kws("stripplot", HUE, {})
+    assert overlaid.coord(3, "WT") == overlaid.coord(3, "KO") == 3.0
+    assert CategoryLayout.from_kws("stripplot", HUE, {"dodge": True}).coord(
+        3, "WT"
+    ) == pytest.approx(2.8)
+    # a narrower width narrows the dodge with it
+    narrow = CategoryLayout.from_kws("boxplot", HUE, {"width": 0.4})
+    assert narrow.coord(3, "WT") == pytest.approx(2.9)
 
 
 # --- rendering ---
 
 pytest.importorskip("statannotations")
 
-
-def _side_axes(board, plot):
-    axes = board.layout.get_ax(plot.name)
-    return axes if isinstance(axes, list) else [axes]
-
-
-@pytest.mark.parametrize("PlotClass", [mp.Bar, mp.Box, mp.Violin, mp.Strip, mp.Swarm])
-def test_annotate_every_supported_plot(rng, wide, PlotClass):
-    plot = PlotClass(wide)
-    plot.annotate_stats(pairs="hue", text_format="star")
-    h = ma.Heatmap(rng.standard_normal((8, 12)))
-    h.add_top(plot, size=2)
-    h.render()
-    assert len(_side_axes(h, plot)[0].texts) == 12
+ALL_PLOTS = [mp.Bar, mp.Box, mp.Boxen, mp.Violin, mp.Point, mp.Strip, mp.Swarm]
+# seaborn overlays hue levels for these unless told otherwise
+NEEDS_DODGE = {mp.Point, mp.Strip, mp.Swarm}
 
 
-def _annotated_board(side, orient, pairs, n_cat=6):
-    """A ``n_cat``-column canvas with an annotated Box on one side."""
+def _board(
+    pairs,
+    Plot=mp.Box,
+    side="top",
+    orient="v",
+    n_cat=6,
+    cuts=None,
+    plot_kws=None,
+    **stats_kws,
+):
+    """A canvas with one annotated plot, optionally split into groups."""
     rng = np.random.default_rng(0)
     cols = [f"c{i}" for i in range(n_cat)]
     data = {
         k: pd.DataFrame(rng.normal(shift, 1, (30, n_cat)), columns=cols)
         for k, shift in [("WT", 0), ("KO", 2)]
     }
-    plot = mp.Box(data, orient=orient)
-    plot.annotate_stats(pairs=pairs, text_format="star")
-    h = ma.Heatmap(rng.standard_normal((n_cat, n_cat)), width=2, height=2)
-    h.add_plot(side, plot, size=2, name="p")
-    h.render()
-    h.figure.canvas.draw()
-    return h, data
+    kws = dict(plot_kws or {})
+    if Plot in NEEDS_DODGE:
+        kws.setdefault("dodge", True)
+    plot = Plot(data, orient=orient, **kws)
+    plot.annotate_stats(pairs=pairs, text_format="star", **stats_kws)
 
-
-@pytest.mark.parametrize("side", ["top", "bottom", "left", "right"])
-@pytest.mark.parametrize("orient", ["v", "h"])
-def test_labels_land_beyond_the_data_on_every_side(side, orient):
-    """Whichever way the value axis runs, the label sits past the data.
-
-    Only a horizontal plot on the left has that axis inverted, but assert it
-    everywhere so a change to the orientation handling cannot quietly put
-    labels back on top of the plot.
-    """
-    h, data = _annotated_board(side, orient, pairs="hue")
-    ax = h.get_ax("p")
-    value_axis = 0 if orient == "h" else 1
-    to_data = ax.transData.inverted()
-
-    assert len(ax.texts) == 6
-    for text in ax.texts:
-        category = int(round(text.xy[1 - value_axis]))
-        span = to_data.transform(text.get_window_extent().get_points())[:, value_axis]
-        reach = max(d.iloc[:, category].max() for d in data.values())
-        assert min(span) > reach
-        lo, hi = sorted(ax.get_xlim() if orient == "h" else ax.get_ylim())
-        assert lo <= min(span) and max(span) <= hi
-
-
-@pytest.mark.parametrize("side", ["top", "bottom", "left", "right"])
-@pytest.mark.parametrize("orient", ["v", "h"])
-def test_brackets_land_on_the_category_they_name(side, orient):
-    """The categorical axis is inverted for horizontal plots; positions must hold."""
-    h, _ = _annotated_board(side, orient, pairs=[(("c4", "WT"), ("c4", "KO"))])
-    ax = h.get_ax("p")
-
-    (text,) = ax.texts
-    category_axis = 1 if orient == "h" else 0
-    assert text.xy[category_axis] == pytest.approx(4, abs=0.5)
-
-    # seaborn dodges c4's two boxes around position 4; the bracket spans them
-    boxes = [
-        p.get_path().vertices[:, category_axis]
-        for p in ax.patches
-        if isinstance(p, PathPatch)
-    ]
-    around_c4 = [v for v in boxes if abs((v.min() + v.max()) / 2 - 4) < 0.5]
-    assert len(around_c4) == 2
-
-
-def test_annotation_keeps_split_chunks_aligned(rng, wide):
-    """Brackets grow the value axis, so the chunks must be re-unified."""
-    plot = mp.Violin(wide)
-    plot.annotate_stats(pairs="hue", text_format="star")
-    h = ma.Heatmap(rng.standard_normal((8, 12)))
-    h.cut_cols([4, 8])
-    h.add_top(plot, size=2)
-    h.render()
-
-    axes = _side_axes(h, plot)
-    assert len(axes) == 3
-    assert all(len(ax.texts) == 4 for ax in axes)
-    lims = {ax.get_ylim() for ax in axes}
-    assert len(lims) == 1
-    # every bracket has to fit inside the shared limit
-    ((_, top),) = {(round(lo, 6), round(hi, 6)) for lo, hi in lims}
-    assert all(t.xy[1] <= top for ax in axes for t in ax.texts)
-
-
-def _horizontal_board(rng, side):
-    cols = [f"c{i}" for i in range(8)]
-    data = {
-        k: pd.DataFrame(rng.normal(shift, 1, (30, 8)), columns=cols)
-        for k, shift in [("WT", 0), ("KO", 2)]
-    }
-    plot = mp.Box(data, orient="h")
-    plot.annotate_stats(pairs="hue", text_format="star")
-    h = ma.Heatmap(rng.standard_normal((8, 12)))
-    h.add_plot(side, plot, size=2, name="p")
-    h.render()
-    return h, data
-
-
-def test_annotation_follows_the_inverted_axis_of_a_left_plot(rng):
-    """A left plot has its value axis inverted; brackets belong outside the data."""
-    h, data = _horizontal_board(rng, "left")
-
-    ax = h.get_ax("p")
-    assert ax.xaxis_inverted()
-    # each bracket is anchored at (value, category); it belongs past the
-    # outer end of its own category, not inside the boxes
-    for text in ax.texts:
-        category = int(round(text.xy[1]))
-        assert text.xy[0] > max(d.iloc[:, category].max() for d in data.values())
-
-
-def _label_spans(h):
-    """Where each label actually sits on the value axis, in data coordinates."""
-    ax = h.get_ax("p")
-    h.figure.canvas.draw()
-    to_data = ax.transData.inverted()
-    return {
-        int(round(t.xy[1])): sorted(
-            to_data.transform(t.get_window_extent().get_points())[:, 0]
-        )
-        for t in ax.texts
-    }
-
-
-def test_labels_sit_outside_the_bracket_on_an_inverted_axis(rng):
-    """The label grows away from the data on both sides.
-
-    statannotations places the label with ``va`` and an offset in points, both
-    in display space, so on a left plot they point back into the plot. Mirrored,
-    a left plot must lay its labels out exactly like a right plot.
-    """
-    left, data = _horizontal_board(np.random.default_rng(0), "left")
-    right, _ = _horizontal_board(np.random.default_rng(0), "right")
-
-    left_spans, right_spans = _label_spans(left), _label_spans(right)
-    assert left_spans.keys() == right_spans.keys()
-    for category, (lo, hi) in left_spans.items():
-        assert (lo, hi) == pytest.approx(right_spans[category])
-        # and neither one overlaps the data it annotates
-        assert lo > max(d.iloc[:, category].max() for d in data.values())
-
-
-# --- brackets that span the chunk axes ---
-
-
-def _split_board(pairs, orient="v", side="top", n_cat=12, cuts=(4, 8), **kws):
-    rng = np.random.default_rng(0)
-    cols = [f"c{i}" for i in range(n_cat)]
-    data = {
-        k: pd.DataFrame(rng.normal(shift, 1, (30, n_cat)), columns=cols)
-        for k, shift in [("WT", 0), ("KO", 2)]
-    }
-    plot = mp.Box(data, orient=orient)
-    plot.annotate_stats(pairs=pairs, text_format="star", **kws)
     h = ma.Heatmap(rng.standard_normal((n_cat, n_cat)), width=3, height=3)
-    (h.cut_rows if side in ("left", "right") else h.cut_cols)(list(cuts))
+    if cuts:
+        (h.cut_rows if side in ("left", "right") else h.cut_cols)(list(cuts))
     h.add_plot(side, plot, size=2, name="p")
     h.render()
     h.figure.canvas.draw()
     return h, plot, data
 
 
-def _figure_brackets(h):
-    return [a for a in h.figure.artists if isinstance(a, Line2D)]
+def _axes(board):
+    axes = board.get_ax("p")
+    return list(axes) if isinstance(axes, (list, np.ndarray)) else [axes]
+
+
+def _brackets(board):
+    return [a for a in board.figure.artists if isinstance(a, Line2D)]
+
+
+def _labels(board):
+    return list(board.figure.texts)
+
+
+def _spans(board, artist, value_axis):
+    """A figure artist's extent in the value direction, in data coordinates."""
+    to_data = _axes(board)[0].transData.inverted()
+    if isinstance(artist, Line2D):
+        points = board.figure.transFigure.transform(
+            list(zip(artist.get_xdata(), artist.get_ydata()))
+        )
+    else:
+        points = artist.get_window_extent().get_points()
+    return sorted(to_data.transform(points)[:, value_axis])
+
+
+@pytest.mark.parametrize("PlotClass", ALL_PLOTS)
+def test_every_seaborn_plotter_can_be_annotated(PlotClass):
+    """Nothing is off-limits now that marsilea does the drawing itself."""
+    board, _, _ = _board("hue", Plot=PlotClass)
+    assert len(_brackets(board)) == 6
+    assert len(_labels(board)) == 6
+    # the plot's own axes stay free of annotation artists
+    assert all(len(ax.texts) == 0 for ax in _axes(board))
+
+
+@pytest.mark.parametrize("side", ["top", "bottom", "left", "right"])
+@pytest.mark.parametrize("orient", ["v", "h"])
+def test_labels_land_beyond_the_data_on_every_side(side, orient):
+    """Whichever way the value axis runs, the label sits past the data."""
+    board, _, data = _board("hue", side=side, orient=orient)
+    value_axis = 0 if orient == "h" else 1
+    limits = sorted(
+        _axes(board)[0].get_xlim() if orient == "h" else _axes(board)[0].get_ylim()
+    )
+    reach = max(d.values.max() for d in data.values())
+
+    assert len(_labels(board)) == 6
+    for label in _labels(board):
+        low, high = _spans(board, label, value_axis)
+        assert low > reach
+        assert limits[0] <= low and high <= limits[1]
+
+
+@pytest.mark.parametrize("side", ["top", "bottom", "left", "right"])
+@pytest.mark.parametrize("orient", ["v", "h"])
+def test_brackets_land_on_the_category_they_name(side, orient):
+    """The categorical axis is inverted for horizontal plots; positions hold."""
+    board, _, _ = _board([(("c4", "WT"), ("c4", "KO"))], side=side, orient=orient)
+    (bracket,) = _brackets(board)
+    ax = _axes(board)[0]
+
+    category_axis = 1 if orient == "h" else 0
+    to_data = ax.transData.inverted()
+    points = board.figure.transFigure.transform(
+        list(zip(bracket.get_xdata(), bracket.get_ydata()))
+    )
+    ends = to_data.transform(points)[1:3, category_axis]
+    # seaborn dodges c4's two boxes to 3.8 and 4.2
+    assert sorted(ends) == pytest.approx([3.8, 4.2], abs=1e-6)
+
+
+def test_labels_are_placed_identically_whichever_way_the_axis_runs():
+    """A left plot inverts its value axis; it must still lay labels out the same."""
+    left, _, _ = _board("hue", side="left", orient="h")
+    right, _, _ = _board("hue", side="right", orient="h")
+    assert _axes(left)[0].xaxis_inverted()
+    assert not _axes(right)[0].xaxis_inverted()
+
+    assert [t.get_text() for t in _labels(left)] == [
+        t.get_text() for t in _labels(right)
+    ]
+    for a, b in zip(_labels(left), _labels(right)):
+        assert _spans(left, a, 0) == pytest.approx(_spans(right, b, 0))
+
+
+def test_a_label_never_sits_on_a_bracket():
+    """Each row reserves the space its label needs, so nothing collides."""
+    board, _, _ = _board("hue", n_cat=4)
+    figure = board.figure
+    for label in _labels(board):
+        box = label.get_window_extent()
+        for bracket in _brackets(board):
+            points = figure.transFigure.transform(
+                list(zip(bracket.get_xdata(), bracket.get_ydata()))
+            )
+            xs, ys = points[:, 0], points[:, 1]
+            if box.x1 < xs.min() or box.x0 > xs.max():
+                continue
+            assert box.y0 >= ys.max() or box.y1 <= ys.min()
+
+
+def test_style_is_shared_by_every_bracket():
+    """Within-group and cross-group brackets come out of the same call."""
+    board, _, _ = _board(
+        [(("c0", "WT"), ("c0", "KO")), (("c0", "WT"), ("c5", "KO"))],
+        n_cat=6,
+        cuts=(3,),
+        color="#123456",
+        line_width=2.5,
+    )
+    brackets = _brackets(board)
+    assert len(brackets) == 2
+    assert {b.get_linewidth() for b in brackets} == {2.5}
+    assert {b.get_color() for b in brackets} == {"#123456"}
+    assert {t.get_color() for t in _labels(board)} == {"#123456"}
+
+
+def test_unknown_options_are_rejected():
+    plot = mp.Box(np.random.default_rng(0).standard_normal((10, 4)))
+    with pytest.raises(ValueError, match="Unknown option"):
+        plot.annotate_stats(pairs="all", nonsense=1)
+
+
+# --- brackets that span the chunk axes ---
 
 
 def test_pairs_spanning_two_chunks_are_drawn_across_axes():
-    """statannotations cannot reach across Axes, so marsilea draws these itself."""
-    h, plot, _ = _split_board(
+    """statannotations cannot reach across Axes; marsilea draws these itself."""
+    board, _, _ = _board(
         [
             (("c0", "WT"), ("c0", "KO")),  # inside chunk 0
-            (("c0", "WT"), ("c9", "KO")),  # chunk 0 -> chunk 2
             (("c0", "WT"), ("c5", "KO")),  # chunk 0 -> chunk 1
-        ]
+        ],
+        n_cat=6,
+        cuts=(3,),
     )
-    axes = _side_axes(h, plot)
+    brackets = _brackets(board)
+    assert len(brackets) == 2
+    assert [t.get_text() for t in _labels(board)] == ["****", "****"]
 
-    # the within-chunk pair still goes through statannotations, per Axes
-    assert [len(ax.texts) for ax in axes] == [1, 0, 0]
-    # the two spanning pairs are figure-level artists instead
-    assert len(_figure_brackets(h)) == 2
-    assert [t.get_text() for t in h.figure.texts] == ["****", "****"]
+    axes = _axes(board)
+    to_figure = board.figure.transFigure.inverted()
+    within, across = sorted(brackets, key=lambda b: np.ptp(b.get_xdata()))
+    # the spanning one reaches past the first chunk's Axes
+    edge = to_figure.transform(axes[0].transAxes.transform((1, 0)))[0]
+    assert max(across.get_xdata()) > edge
+    assert max(within.get_xdata()) < edge
 
 
 def test_cross_brackets_end_over_the_categories_they_name():
     """Each end sits on its own chunk's Axes, at that category's dodged position."""
-    h, plot, _ = _split_board([(("c1", "WT"), ("c9", "KO"))])
-    axes = _side_axes(h, plot)
-    (bracket,) = _figure_brackets(h)
-    to_figure = h.figure.transFigure.inverted()
+    board, _, _ = _board([(("c1", "WT"), ("c5", "KO"))], n_cat=6, cuts=(3,))
+    axes = _axes(board)
+    (bracket,) = _brackets(board)
+    to_figure = board.figure.transFigure.inverted()
 
     def figure_x(ax, position):
         return to_figure.transform(ax.transData.transform((position, 0)))[0]
 
-    # c1 is at position 1 of chunk 0, WT dodges left; c9 at position 1 of
-    # chunk 2, KO dodges right
     left, right = bracket.get_xdata()[1], bracket.get_xdata()[2]
     assert left == pytest.approx(figure_x(axes[0], 1 - 0.2), abs=1e-6)
-    assert right == pytest.approx(figure_x(axes[2], 1 + 0.2), abs=1e-6)
+    assert right == pytest.approx(figure_x(axes[1], 2 + 0.2), abs=1e-6)
 
 
 def test_cross_brackets_clear_the_within_group_ones():
-    """A spanning bracket passes over other chunks, so it has to sit above them."""
-    h, plot, _ = _split_board(
-        [(("c0", "WT"), ("c0", "KO")), (("c0", "WT"), ("c9", "KO"))]
+    """A spanning bracket passes over other groups, so it sits above them."""
+    board, _, _ = _board(
+        [(("c0", "WT"), ("c0", "KO")), (("c0", "WT"), ("c5", "KO"))],
+        n_cat=6,
+        cuts=(3,),
     )
-    axes = _side_axes(h, plot)
-    to_figure = h.figure.transFigure.inverted()
-
-    within = max(
-        to_figure.transform(t.get_window_extent().get_points())[:, 1].max()
-        for ax in axes
-        for t in ax.texts
-    )
-    (bracket,) = _figure_brackets(h)
-    assert min(bracket.get_ydata()) > within
-    # and all three chunks were grown to make the room, together
-    assert len({ax.get_ylim() for ax in axes}) == 1
-
-
-@pytest.mark.parametrize("side,orient", [("top", "v"), ("left", "h"), ("right", "h")])
-def test_cross_brackets_in_every_orientation(side, orient):
-    h, plot, data = _split_board(
-        [(("c0", "WT"), ("c9", "KO"))], orient=orient, side=side
-    )
-    (bracket,) = _figure_brackets(h)
-    (label,) = h.figure.texts
-    axes = _side_axes(h, plot)
-    value_axis = 0 if orient == "h" else 1
-
-    # the bracket clears the data on the value axis, whichever way it runs
-    reach = max(d.values.max() for d in data.values())
-    to_figure = h.figure.transFigure.inverted()
-    outer = to_figure.transform(
-        axes[0].transData.transform((reach, 0) if orient == "h" else (0, reach))
-    )[value_axis]
-    ends = bracket.get_xdata() if orient == "h" else bracket.get_ydata()
-    inverted = axes[0].xaxis_inverted() if orient == "h" else False
-    assert (min(ends) < outer) if inverted else (min(ends) > outer)
-    assert label.get_rotation() == (270 if orient == "h" else 0)
+    within, across = sorted(_brackets(board), key=lambda b: np.ptp(b.get_xdata()))
+    assert min(across.get_ydata()) > max(within.get_ydata())
+    # all chunks were grown together to make the room
+    assert len({ax.get_ylim() for ax in _axes(board)}) == 1
 
 
 def test_reference_reaches_across_groups():
     """`ref` names one category; the groups it is not in still get compared."""
-    h, plot, _ = _split_board("all", n_cat=6, cuts=(3,), ref="c0")
-    axes = _side_axes(h, plot)
-    # within chunk 0: c0 vs c1, c0 vs c2, once per hue level
-    assert len(axes[0].texts) == 4
-    # across to chunk 1: c0 vs c3/c4/c5, once per hue level
-    assert len(_figure_brackets(h)) == 6
+    board, _, _ = _board("all", n_cat=6, cuts=(3,), ref="c0")
+    # c0 against each of the 5 others, once per hue level
+    assert len(_brackets(board)) == 10
 
 
-def test_supplied_pvalues_are_split_between_chunks_and_brackets():
-    """Each value must reach the pair it belongs to, wherever that pair landed."""
-    h, plot, _ = _split_board(
+def test_supplied_pvalues_reach_the_pair_they_belong_to():
+    board, _, _ = _board(
         [
             (("c0", "WT"), ("c0", "KO")),  # chunk 0
-            (("c0", "WT"), ("c9", "KO")),  # spans chunks
-            (("c5", "WT"), ("c5", "KO")),  # chunk 1
+            (("c0", "WT"), ("c5", "KO")),  # spans chunks
+            (("c4", "WT"), ("c4", "KO")),  # chunk 1
         ],
-        pvalues=[0.5, 1e-6, 1e-6],
+        n_cat=6,
+        cuts=(3,),
+        pvalues=[0.5, 1e-6, 0.5],
     )
-    axes = _side_axes(h, plot)
-    assert axes[0].texts[0].get_text() == "ns"
-    assert axes[1].texts[0].get_text() == "****"
-    assert [t.get_text() for t in h.figure.texts] == ["****"]
+    assert sorted(t.get_text() for t in _labels(board)) == ["****", "ns", "ns"]
+
+
+def test_pvalues_reject_a_shorthand():
+    plot = mp.Box(np.random.default_rng(0).standard_normal((10, 4)))
+    with pytest.raises(ValueError, match="explicit list of pairs"):
+        plot.annotate_stats(pairs="hue", pvalues=[0.1])
 
 
 def test_pairs_naming_an_unknown_category_warn():
     with pytest.warns(UserWarning, match="not in the data"):
-        h, plot, _ = _split_board([(("c0", "WT"), ("nope", "KO"))])
-    assert _figure_brackets(h) == []
+        board, _, _ = _board([(("c0", "WT"), ("nope", "KO"))], n_cat=6, cuts=(3,))
+    assert len(_brackets(board)) == 0
 
 
-def test_pairs_are_matched_after_clustering_reorders_columns(rng):
+# --- what seaborn actually drew ---
+
+
+@pytest.mark.parametrize("PlotClass", [mp.Strip, mp.Swarm, mp.Point])
+def test_overlaid_hue_levels_are_refused(PlotClass):
+    """seaborn does not dodge these by default, so the two sides coincide."""
+    with pytest.warns(UserWarning, match="drawn at the same place"):
+        board, _, _ = _board("hue", Plot=PlotClass, plot_kws={"dodge": False})
+    assert len(_brackets(board)) == 0
+
+
+def test_a_narrower_width_moves_the_brackets_with_the_boxes():
+    """Positions come from the options seaborn was called with."""
+    board, _, _ = _board([(("c2", "WT"), ("c2", "KO"))], plot_kws={"width": 0.4})
+    (bracket,) = _brackets(board)
+    ax = _axes(board)[0]
+    to_data = ax.transData.inverted()
+    points = board.figure.transFigure.transform(
+        list(zip(bracket.get_xdata(), bracket.get_ydata()))
+    )
+    ends = sorted(to_data.transform(points)[1:3, 0])
+    assert ends == pytest.approx([2 - 0.1, 2 + 0.1], abs=1e-6)
+
+
+def test_brackets_clear_the_drawn_artists_not_just_the_data():
+    """Error bars reach past the mean, and the bracket has to clear them."""
+    rng = np.random.default_rng(0)
+    cols = [f"c{i}" for i in range(4)]
+    data = {
+        k: pd.DataFrame(rng.normal(shift, 1, (30, 4)), columns=cols)
+        for k, shift in [("WT", 0), ("KO", 2)]
+    }
+    plot = mp.Bar(data)
+    plot.annotate_stats(pairs="hue", text_format="star")
+    h = ma.Heatmap(rng.standard_normal((4, 4)), width=3, height=3)
+    h.add_top(plot, size=2, name="p")
+    h.render()
+    h.figure.canvas.draw()
+
+    ax = h.get_ax("p")
+    error_bar_top = max(
+        np.nanmax(line.get_ydata()) for line in ax.lines if len(line.get_ydata())
+    )
+    lowest = min(min(b.get_ydata()) for b in _brackets(h))
+    to_data = ax.transData.inverted()
+    lowest_value = to_data.transform(h.figure.transFigure.transform((0, lowest)))[1]
+    assert lowest_value > error_bar_top
+
+
+# --- other configuration ---
+
+
+def test_pairs_are_matched_after_clustering_reorders_columns():
     """Labels ride the same deformation as the data, so they stay attached."""
+    rng = np.random.default_rng(0)
     cols = [f"c{i}" for i in range(6)]
     data = {
         k: pd.DataFrame(rng.normal(shift, 1, (30, 6)), columns=cols)
@@ -502,42 +513,40 @@ def test_pairs_are_matched_after_clustering_reorders_columns(rng):
     plot.annotate_stats(pairs=[(("c3", "WT"), ("c3", "KO"))], text_format="star")
     h = ma.Heatmap(rng.standard_normal((8, 6)))
     h.add_dendrogram("bottom")
-    h.add_top(plot, size=2)
+    h.add_top(plot, size=2, name="p")
     with warnings.catch_warnings():
         warnings.simplefilter("error", UserWarning)
         h.render()
+    h.figure.canvas.draw()
 
-    ax = _side_axes(h, plot)[0]
-    assert len(ax.texts) == 1
-    # the bracket sits over c3 wherever clustering moved it
+    (bracket,) = _brackets(h)
     order = list(h.get_deform().col_reorder_index)
-    assert ax.lines[-1].get_xdata()[0] == pytest.approx(order.index(3) - 0.2)
-
-
-def test_supplied_pvalues_skip_testing(rng, wide):
-    plot = mp.Box(wide)
-    plot.annotate_stats(
-        pairs=[(("c0", "WT"), ("c0", "KO"))], pvalues=[0.5], text_format="star"
+    ax = h.get_ax("p")
+    to_data = ax.transData.inverted()
+    points = h.figure.transFigure.transform(
+        list(zip(bracket.get_xdata(), bracket.get_ydata()))
     )
-    h = ma.Heatmap(rng.standard_normal((8, 12)))
-    h.add_top(plot, size=2)
-    h.render()
-    assert _side_axes(h, plot)[0].texts[0].get_text() == "ns"
+    ends = sorted(to_data.transform(points)[1:3, 0])
+    assert ends == pytest.approx([order.index(3) - 0.2, order.index(3) + 0.2], abs=1e-6)
 
 
-def test_duplicated_column_labels_are_rejected(rng):
+def test_correction_covers_every_bracket_at_once():
+    """One family of tests, not one per group; a split must not under-correct."""
+    plain, _, _ = _board("hue", n_cat=6, cuts=(3,))
+    corrected, _, _ = _board(
+        "hue", n_cat=6, cuts=(3,), comparisons_correction="Benjamini-Hochberg"
+    )
+    assert len(_labels(plain)) == len(_labels(corrected)) == 6
+
+
+def test_duplicated_column_labels_are_rejected():
+    rng = np.random.default_rng(0)
     data = pd.DataFrame(rng.standard_normal((10, 3)), columns=["a", "a", "b"])
     with pytest.raises(ValueError, match="duplicated"):
         mp.Box(data).annotate_stats(pairs="all")
 
 
-def test_ref_with_explicit_pairs_is_rejected(rng):
-    plot = mp.Box(rng.standard_normal((10, 6)))
+def test_ref_with_explicit_pairs_is_rejected():
+    plot = mp.Box(np.random.default_rng(0).standard_normal((10, 6)))
     with pytest.raises(ValueError, match="ref only applies"):
         plot.annotate_stats(pairs=[(0, 1)], ref=0)
-
-
-def test_position_kwargs_warn(rng, wide):
-    plot = mp.Box(wide, width=0.5)
-    with pytest.warns(UserWarning, match="may not line up"):
-        plot.annotate_stats(pairs="hue")

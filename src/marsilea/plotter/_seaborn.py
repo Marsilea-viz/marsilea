@@ -8,15 +8,14 @@ from seaborn import color_palette
 from typing import Mapping, Sequence
 
 from ._stats_annot import (
-    POSITION_KWS,
-    SUPPORTED_PLOTS,
+    CategoryLayout,
     DrawnChunk,
     StatsConfig,
+    accepted_options,
     annotate,
-    cross_annotations,
-    draw_cross_brackets,
-    load_annotator,
+    flatten,
     plan_pairs,
+    undodged_pairs,
 )
 from .base import StatsBase
 from ..utils import ECHARTS16
@@ -36,6 +35,7 @@ class _SeabornBase(StatsBase):
     hue = None
     data = None
     _stats = None
+    _drawn_kws = None
 
     def __init__(
         self,
@@ -161,30 +161,34 @@ class _SeabornBase(StatsBase):
                 DrawnChunk(
                     ax=ax,
                     pdata=pdata,
-                    x=x,
-                    y=y,
-                    # A per-column palette also sets hue, but on the category
-                    # itself; statannotations only needs the real hue levels.
-                    hue="hue" if self.hue is not None else None,
-                    hue_order=self.hue,
-                    orient=orient,
+                    hue=self.hue,
                     names=names[spec.current_ix] if self.is_split else names,
                 )
             )
+            # The options seaborn was actually called with decide where the
+            # groups landed, so the brackets are built from the same ones.
+            self._drawn_kws = options
 
     def annotate_stats(
         self, pairs, test="Mann-Whitney", ref=None, pvalues=None, **configure_kws
     ):
         """Test pairs of categories and draw the result on the plot.
 
-        Requires `statannotations <https://github.com/trevismd/statannotations>`_,
-        installed with :code:`pip install marsilea[stats]`.
+        The tests come from
+        `statannotations <https://github.com/trevismd/statannotations>`_,
+        installed with :code:`pip install marsilea[stats]`. Marsilea draws the
+        brackets, so a comparison spanning two groups of a split canvas looks
+        like any other.
 
         Categories are named with the columns of the input data; when the input
         is a plain array they are named by position (0, 1, 2, ...). When the
         canvas is split, a pair whose two members land in different groups is
         bracketed across their axes, above the within-group brackets it passes
         over.
+
+        :class:`Strip`, :class:`Swarm` and :class:`Point` draw their hue levels
+        on top of each other unless given :code:`dodge=True`; comparisons
+        between overlaid levels are skipped with a warning.
 
         Parameters
         ----------
@@ -207,9 +211,17 @@ class _SeabornBase(StatsBase):
             Skip testing and annotate these p-values instead, one per pair, in
             the order the pairs were listed. Needs an explicit *pairs* list.
         configure_kws :
-            Passed to :meth:`statannotations.Annotator.Annotator.configure`,
-            e.g. :code:`text_format`, :code:`loc`, :code:`comparisons_correction`
-            (the corrections need :code:`statsmodels`).
+            How the result is computed and shown. :code:`alpha` and
+            :code:`comparisons_correction` (which needs :code:`statsmodels`)
+            reach statannotations' statistics; :code:`text_format`,
+            :code:`pvalue_thresholds` and the rest of
+            :class:`statannotations.PValueFormat.PValueFormat`'s options shape
+            the label; :code:`color`, :code:`line_width`, :code:`text_offset`
+            and :code:`fontsize` style the bracket. An unknown name is an error
+            rather than silently ignored.
+
+            The correction covers every comparison drawn on the plot at once,
+            so a split canvas is one family of tests, not one per group.
 
         Returns
         -------
@@ -230,13 +242,13 @@ class _SeabornBase(StatsBase):
             >>> h.render()  # doctest: +SKIP
 
         """
-        if self._seaborn_plot not in SUPPORTED_PLOTS:
-            supported = ", ".join(sorted(SUPPORTED_PLOTS))
+        allowed = accepted_options()  # also fails early if the extra is missing
+        unknown = sorted(set(configure_kws) - set(allowed))
+        if unknown:
             raise ValueError(
-                f"statannotations cannot annotate {self._seaborn_plot}, "
-                f"only {supported}."
+                f"Unknown option(s) {', '.join(unknown)}; "
+                f"annotate_stats accepts {', '.join(allowed)}"
             )
-        load_annotator()  # fail here rather than at render time
 
         names = self._var_names
         if names is not None and len(np.unique(names)) != len(names):
@@ -250,15 +262,6 @@ class _SeabornBase(StatsBase):
             raise ValueError(
                 "pvalues needs an explicit list of pairs, so each value has a "
                 "pair to belong to"
-            )
-
-        moved = [k for k in POSITION_KWS if k in self.kws]
-        if moved:
-            warnings.warn(
-                f"statannotations places brackets at seaborn's default category "
-                f"positions and ignores {', '.join(moved)}; the annotation may "
-                f"not line up with the plot.",
-                stacklevel=2,
             )
 
         self._stats = StatsConfig(
@@ -281,19 +284,36 @@ class _SeabornBase(StatsBase):
     def _draw_stats(self, axes):
         chunk_names = [chunk.names for chunk in self._chunks]
         per_chunk, cross, unknown = plan_pairs(self._stats, chunk_names, self.hue)
+        brackets = flatten(per_chunk, cross, self.hue)
 
-        for chunk, plan in zip(self._chunks, per_chunk):
-            if plan.pairs:
-                annotate(chunk, plan, self._seaborn_plot, self._stats)
-
-        if cross:
-            # A cross-group bracket has to clear every within-group one it
-            # passes over, so unify the chunks before measuring where to put it.
-            self.align_lim(axes)
-            texts = cross_annotations(cross, self._chunks, self._stats)
-            draw_cross_brackets(
-                axes[0].figure, axes, cross, texts, self.get_orient(), self.hue
+        layout = CategoryLayout.from_kws(self._seaborn_plot, self.hue, self._drawn_kws)
+        overlaid = undodged_pairs(brackets, layout)
+        if overlaid:
+            # seaborn draws strip, swarm and point plots undodged by default,
+            # so the two hue levels sit on top of each other and a bracket
+            # between them would have nothing to point at.
+            warnings.warn(
+                f"{len(overlaid)} pair(s) compare hue levels that are drawn at the "
+                f"same place; pass dodge=True to separate them: "
+                f"{sorted(overlaid, key=str)}",
+                stacklevel=4,
             )
+            overlaid = set(map(str, overlaid))
+            brackets = [b for b in brackets if str(b.original) not in overlaid]
+
+        # Every bracket is placed against one value scale, so unify the chunks
+        # before measuring where anything goes.
+        self.align_lim(axes)
+        annotate(
+            axes[0].figure,
+            axes,
+            self._chunks,
+            brackets,
+            self._stats,
+            layout,
+            self.get_orient(),
+            self._seaborn_plot,
+        )
 
         if unknown:
             warnings.warn(
@@ -464,9 +484,7 @@ def _seaborn_doc(obj: _SeabornBase):
     if cls_name == "Count":
         obj.__doc__ = base_doc
     else:
-        obj.__doc__ = base_doc + extend_examples
-        if obj._seaborn_plot in SUPPORTED_PLOTS:
-            obj.__doc__ += stats_doc
+        obj.__doc__ = base_doc + extend_examples + stats_doc
     return obj
 
 

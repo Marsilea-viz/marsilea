@@ -1,19 +1,22 @@
 Significance Annotation
 =======================
 
-The seaborn plotters can run a statistical test on pairs of categories and draw
-the result on the plot, using
-`statannotations <https://github.com/trevismd/statannotations>`_. It is an
-optional dependency::
+Every seaborn plotter can run a statistical test on pairs of categories and
+draw the result on the plot: :class:`Bar <marsilea.plotter.Bar>`,
+:class:`Box <marsilea.plotter.Box>`, :class:`Boxen <marsilea.plotter.Boxen>`,
+:class:`Violin <marsilea.plotter.Violin>`,
+:class:`Point <marsilea.plotter.Point>`,
+:class:`Strip <marsilea.plotter.Strip>` and
+:class:`Swarm <marsilea.plotter.Swarm>`.
+
+The tests come from
+`statannotations <https://github.com/trevismd/statannotations>`_, an optional
+dependency::
 
     pip install marsilea[stats]
 
-It works with :class:`Bar <marsilea.plotter.Bar>`,
-:class:`Box <marsilea.plotter.Box>`, :class:`Violin <marsilea.plotter.Violin>`,
-:class:`Strip <marsilea.plotter.Strip>` and
-:class:`Swarm <marsilea.plotter.Swarm>`;
-:class:`Boxen <marsilea.plotter.Boxen>` and
-:class:`Point <marsilea.plotter.Point>` are not supported by statannotations.
+Marsilea draws the brackets itself, so a comparison between two groups of a
+split canvas — which has to span two axes — comes out looking like any other.
 
 
 Comparing conditions
@@ -41,12 +44,12 @@ Pass a dict to a seaborn plotter to get one plot per condition, then call
     >>> h.add_legends()
     >>> h.render()
 
-Everything after *pairs* is handed to statannotations, so
-:code:`test`, :code:`text_format`, :code:`loc` and
-:code:`comparisons_correction` behave as documented in
-:meth:`Annotator.configure() <statannotations.Annotator.Annotator.configure>`.
-Correcting for multiple testing needs :code:`statsmodels`, and matters here:
-:code:`pairs="hue"` runs one test per category.
+:code:`test`, :code:`text_format` and :code:`comparisons_correction` name the
+same things statannotations does, and :code:`color`, :code:`line_width`,
+:code:`text_offset` and :code:`fontsize` style the brackets. Correcting for
+multiple testing needs :code:`statsmodels`, and matters here:
+:code:`pairs="hue"` runs one test per category. The correction covers every
+comparison drawn on the plot at once, groups included.
 
 .. plot::
     :context: close-figs
@@ -176,9 +179,30 @@ that stays readable.
     9-category split would be 36 brackets. Name the pairs you want, or use
     :code:`ref`.
 
-    statannotations works one axes at a time, so marsilea draws the spanning
-    brackets itself. It still runs the test through statannotations and formats
-    the result with the same options, so the two kinds of bracket agree.
+
+Overlaid hue levels
+-------------------
+
+:class:`Strip <marsilea.plotter.Strip>`,
+:class:`Swarm <marsilea.plotter.Swarm>` and
+:class:`Point <marsilea.plotter.Point>` draw their hue levels on top of each
+other unless you pass :code:`dodge=True`. A bracket between two levels drawn at
+the same place would have nothing to point at, so those comparisons are skipped
+with a warning telling you what to pass.
+
+.. plot::
+    :context: close-figs
+
+    >>> strip = mp.Strip(
+    ...     {"Control": control, "Treated": treated},
+    ...     dodge=True, size=3, label="Expression",
+    ... )
+    >>> strip.annotate_stats(pairs="hue", text_format="star")
+    >>> h = ma.Heatmap(treated.values - control.values, label="Difference")
+    >>> h.add_top(strip, size=2, pad=0.1)
+    >>> h.add_bottom(mp.Labels(genes))
+    >>> h.add_legends()
+    >>> h.render()
 
 
 Orientation
