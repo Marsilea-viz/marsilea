@@ -146,7 +146,7 @@ html_theme_options = {
 }
 
 # Remove the sidebar from following pages
-html_sidebars = {"installation": []}
+html_sidebars = {"installation": [], "ai_assistants": []}
 
 
 def matplotlib_tight_scraper(*args, **kwargs):

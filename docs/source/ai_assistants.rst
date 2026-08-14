@@ -1,3 +1,5 @@
+:html_theme.sidebar_secondary.remove:
+
 .. meta::
    :description: Use Marsilea from AI coding assistants: install the official Claude Code
        skill, or point any assistant at the machine-readable llms.txt.
