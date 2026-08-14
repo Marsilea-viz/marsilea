@@ -18,6 +18,7 @@ import shutil
 from datetime import datetime
 from pathlib import Path
 
+import numpy as np
 from mpl_fontkit.core import get_font_install_path
 from sphinx_gallery.sorting import FileNameSortKey, ExplicitOrder
 from sphinx_gallery.scrapers import matplotlib_scraper
@@ -49,7 +50,26 @@ def _seed_asset_caches():
             shutil.copyfile(src, fonts / src.name)
 
 
+def _seed_seaborn_bootstrap():
+    """Make seaborn's error-bar bootstrap reproducible.
+
+    ``Bar`` and ``Point`` wrap ``barplot``/``pointplot``, which pass an explicit
+    ``seed=None`` down to ``seaborn.algorithms.bootstrap``. That draws from a
+    fresh ``default_rng()``, so seeding ``np.random`` never reaches it and the
+    confidence intervals moved on every build.
+    """
+    from seaborn import _statistics  # the only module that binds the name
+
+    original = _statistics.bootstrap
+
+    def bootstrap(*args, seed=None, **kwargs):
+        return original(*args, seed=0 if seed is None else seed, **kwargs)
+
+    _statistics.bootstrap = bootstrap
+
+
 _seed_asset_caches()
+_seed_seaborn_bootstrap()
 
 # -- Project information -----------------------------------------------------
 
@@ -128,6 +148,16 @@ def matplotlib_tight_scraper(*args, **kwargs):
     )
 
 
+def reset_random_seed(gallery_conf, fname):
+    """Seed numpy before every gallery script.
+
+    ``plot_pre_code`` above does this for docstring ``.. plot::`` blocks. Gallery
+    scripts got no seed, so each build redrew every random example and the image
+    diffs buried any real visual regression.
+    """
+    np.random.seed(0)
+
+
 intersphinx_mapping = {
     "scipy": ("https://docs.scipy.org/doc/scipy/", None),
     "seaborn": ("https://seaborn.pydata.org/", None),
@@ -144,6 +174,8 @@ sphinx_gallery_conf = {
     "within_subsection_order": FileNameSortKey,  # Order by file name
     "image_srcset": ["2x"],
     "image_scrapers": (matplotlib_tight_scraper,),
+    # ("matplotlib", "seaborn") is the sphinx-gallery default; keep it.
+    "reset_modules": ("matplotlib", "seaborn", reset_random_seed),
     "subsection_order": ExplicitOrder(
         [
             "../examples/Basics",
