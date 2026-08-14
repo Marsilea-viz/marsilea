@@ -470,7 +470,8 @@ def _seaborn_doc(obj: _SeabornBase):
     # build without it.
     stats_doc = f"""
     Significance can be tested and drawn on the plot with
-    :meth:`annotate_stats`, which needs :code:`pip install marsilea[stats]`
+    :meth:`{cls_name}.annotate_stats`, documented below, which needs
+    :code:`pip install marsilea[stats]`
 
     .. code-block:: python
 
