@@ -43,7 +43,7 @@ Any other assistant: llms.txt
 language models: what the library is, the core API, and a link per topic. Marsilea's
 ``llms.txt`` lives at
 
-    https://marsilea.readthedocs.io/en/stable/llms.txt
+    https://marsilea.readthedocs.io/llms.txt
 
 Paste that URL into an assistant that can fetch pages, or paste the file's contents into
 the context window of one that cannot. It is short enough to include wholesale and covers

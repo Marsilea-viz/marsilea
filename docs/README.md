@@ -18,14 +18,16 @@ uv run task doc-serve
 
 ## llms.txt
 
-`source/_extra/llms.txt` is copied verbatim to the site root by `html_extra_path`, so it is
-served at <https://marsilea.readthedocs.io/en/stable/llms.txt>. It is hand-written: when the
-API or the gallery changes, update it in the same PR.
+`source/_extra/llms.txt` is copied verbatim into each version's output by `html_extra_path`.
+It is hand-written: when the API or the gallery changes, update it in the same PR.
 
-Assistants also look for it at the domain root. That needs a Read the Docs **Exact redirect**
-(Admin → Redirects), which lives in the dashboard, not in this repo:
+Assistants look for it at the domain root, <https://marsilea.readthedocs.io/llms.txt>. Read
+the Docs serves that natively — no redirect needed — but only from the project's **default
+version**, which is `stable`, which tracks the latest tag. So a change to `llms.txt` does not
+reach the canonical URL until it lands in a release; until then it is only visible at
+`/en/latest/llms.txt`. Check with:
 
-    /llms.txt  ->  /en/stable/llms.txt
+    curl -sI https://marsilea.readthedocs.io/llms.txt | grep x-rtd-path
 
 ## Writing Style
 
