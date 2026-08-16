@@ -15,7 +15,7 @@
 [Documentation](https://marsilea.readthedocs.io/en/stable/) |
 [Tutorials](https://marsilea.readthedocs.io/en/stable/tutorial/index.html) |
 [Gallery](https://marsilea.readthedocs.io/en/stable/examples/index.html) |
-[llms.txt](https://marsilea.readthedocs.io/en/stable/llms.txt) |
+[llms.txt](https://marsilea.readthedocs.io/llms.txt) |
 [Genome Biology](https://doi.org/10.1186/s13059-024-03469-3)
 
 # Marsilea: Declarative creation of composable visualization
@@ -86,7 +86,7 @@ Python environment (see above). See the
 [marsilea-skill](https://github.com/Marsilea-viz/marsilea-skill) repository, or
 [Use Marsilea with AI assistants](https://marsilea.readthedocs.io/en/stable/ai_assistants.html)
 for other assistants and the machine-readable
-[llms.txt](https://marsilea.readthedocs.io/en/stable/llms.txt).
+[llms.txt](https://marsilea.readthedocs.io/llms.txt).
 
 ## What is Composable Visualization?
 
