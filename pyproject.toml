@@ -50,6 +50,10 @@ dependencies = [
 [project.optional-dependencies]
 fast = ["fastcluster"]
 stats = ["statannotations>=0.7", "statsmodels"]
+# anndata.acc (the accessor/reference API) landed in anndata 0.13, which requires
+# Python >= 3.12; marsilea supports >= 3.11, so the marker is required or resolution
+# fails outright on 3.11.
+anndata = ["anndata>=0.13; python_version >= '3.12'"]
 
 [tool.hatch.version]
 source = "uv-dynamic-versioning"
@@ -124,4 +128,10 @@ dev = [
     "notebook>=7.3.3",
     "ipykernel>=6.29.5",
     "pip>=25.0.1",
+    # Same marker as the `anndata` extra: the 3.11 CI leg resolves without it and
+    # the reference tests skip themselves there.
+    "anndata>=0.13; python_version >= '3.12'",
+    # A second container speaking the same accessor protocol, so the source
+    # registry is exercised by more than one implementation.
+    "mudata>=0.4; python_version >= '3.12'",
 ]

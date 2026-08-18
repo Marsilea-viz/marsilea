@@ -4,6 +4,8 @@ import logging
 import numpy as np
 import pandas as pd
 
+from ._normalize import densify
+from ._sources import accepts_source
 from .base import ClusterBoard
 from .plotter import ColorMesh, SizedMesh, Colors
 from .utils import get_plot_name
@@ -28,6 +30,7 @@ class Heatmap(ClusterBoard):
 
     """
 
+    @accepts_source
     def __init__(
         self,
         data: np.ndarray,
@@ -53,6 +56,9 @@ class Heatmap(ClusterBoard):
         legend=True,
         **kwargs,
     ):
+        # Densify before it is handed to both super() and the mesh, so a sparse
+        # X costs one dense copy for the whole board rather than one per consumer.
+        data = densify(data)
         if cluster_data is None:
             if isinstance(data, pd.DataFrame):
                 cluster_data = data.values
@@ -101,6 +107,7 @@ class CatHeatmap(ClusterBoard):
 
     """
 
+    @accepts_source
     def __init__(
         self,
         data,
@@ -150,6 +157,7 @@ class SizedHeatmap(ClusterBoard):
 
     """
 
+    @accepts_source
     def __init__(
         self,
         size,
@@ -161,6 +169,8 @@ class SizedHeatmap(ClusterBoard):
         legend=True,
         **kwargs,
     ):
+        size = densify(size)
+        color = densify(color)
         if cluster_data is None:
             if isinstance(size, pd.DataFrame):
                 cluster_data = size.values

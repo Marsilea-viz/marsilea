@@ -13,12 +13,15 @@ from matplotlib.artist import Artist
 from matplotlib.colors import is_color_like
 from matplotlib.figure import Figure
 
+from ._normalize import densify
+from ._sources import accepts_source, resolve, resolve_group
 from ._deform import Deformation
 from .dendrogram import Dendrogram
 from .exceptions import SplitTwice, DuplicatePlotter, LayerConflict
 from .layout import CrossLayout, CompositeCrossLayout, StackCrossLayout
 from .plotter import RenderPlan, Title, SizedMesh
 from .plotter._seaborn import _SeabornBase
+from .plotter.base import _DeferredPlot
 from .plotter.mesh import MeshBase
 from .utils import pairwise, batched, get_plot_name, _check_side
 
@@ -29,6 +32,9 @@ from .utils import pairwise, batched, get_plot_name, _check_side
 # drag in the live matplotlib artists it keeps after a render (a Bar
 # plotter holds its BarContainer). The layout classes solve the same
 # problem one level down with their own __deepcopy__.
+# `_source` is deliberately in neither this tuple nor the deepcopy block below:
+# copy.copy(board) already shares it, which is what we want. Copying an AnnData
+# per board would duplicate the matrix, and it defines no __copy__ anyway.
 _COPY_SHALLOW = (
     "_user_legends",
     "_legend_switch",
@@ -355,7 +361,13 @@ class WhiteBoard(LegendMaker):
     _row_plan: List[RenderPlan]
     _col_plan: List[RenderPlan]
     _layer_plan: List[RenderPlan]
+    #: Optional data container (an AnnData) that data references resolve against.
+    #: Shared, never copied -- see the note above `_COPY_SHALLOW`.
+    _source = None
+    #: Which board axis each container axis maps to, e.g. {"obs": "row"}.
+    _axis_map = None
 
+    @accepts_source
     def __init__(self, width=None, height=None, name=None, margin=0.2, init_main=True):
         self.main_name = get_plot_name(name, "main", "board")
         self._main_size_updatable = (width is None) & (height is None)
@@ -398,6 +410,11 @@ class WhiteBoard(LegendMaker):
             If True, the legend will be included when calling :meth:`~marsilea.base.LegendMaker.add_legends`
 
         """
+        # Left/right plots index rows, top/bottom index columns -- the same split
+        # that picks _row_plan vs _col_plan below.
+        plot = self._build_deferred(
+            plot, "col" if side in ("top", "bottom") else "row", side
+        )
         if plot._registered:
             raise DuplicatePlotter(plot)
         plot_name = get_plot_name(name, side, plot.__class__.__name__)
@@ -531,6 +548,7 @@ class WhiteBoard(LegendMaker):
             If True, the legend will be included when calling :meth:`~marsilea.base.LegendMaker.add_legends`
 
         """
+        plot = self._build_deferred(plot, "main")
         if plot._registered:
             raise DuplicatePlotter(plot)
         if name is None:
@@ -560,6 +578,25 @@ class WhiteBoard(LegendMaker):
                 # that will change canvas size
                 self._main_size_updatable = False
         return self
+
+    def _board_shape(self):
+        """(nrow, ncol) if this board has a fixed grid, else None."""
+        deform = getattr(self, "_deform", None)
+        return None if deform is None else deform.get_data().shape
+
+    def _build_deferred(self, plot, axis, side=None):
+        """Turn a :class:`_DeferredPlot` into a real plotter for `axis`.
+
+        Everything downstream in ``add_plot``/``add_layer`` -- ``_registered``,
+        ``__class__.__name__``, ``_check_layer_conflict`` -- needs a real plotter,
+        so this has to happen first.
+        """
+        if not isinstance(plot, _DeferredPlot):
+            return plot
+        shape = self._board_shape()
+        return plot.build(
+            lambda v: resolve(v, self._source, axis, self._axis_map, shape, side)
+        )
 
     def _check_layer_conflict(self, plot):
         """Reject layers whose axes conventions cannot coexist.
@@ -1062,6 +1099,7 @@ class ClusterBoard(WhiteBoard):
     _split_row: bool = False
     _mesh = None
 
+    @accepts_source
     def __init__(
         self,
         cluster_data,
@@ -1076,7 +1114,9 @@ class ClusterBoard(WhiteBoard):
         )
         self._row_den = []
         self._col_den = []
-        cluster_data = np.asarray(cluster_data)
+        # np.asarray on a sparse matrix returns a 0-d object array rather than
+        # failing, so densify first or the error below is deeply confusing.
+        cluster_data = np.asarray(densify(cluster_data))
         if cluster_data.ndim != 2:
             raise ValueError("Cluster data must be 2D array")
         self._cluster_data = cluster_data
@@ -1297,9 +1337,11 @@ class ClusterBoard(WhiteBoard):
         Parameters
         ----------
         group : array-like
-            The group of each row
+            The group of each row. May be a data reference, e.g.
+            ``A.obs["leiden"]``.
         order : array-like, optional
-            The order of the unique groups
+            The order of the unique groups. If omitted and `group` is categorical,
+            its category order is used; otherwise the groups are sorted.
         spacing : float, optional
             The spacing between each split chunks, default is 0.01
 
@@ -1326,7 +1368,11 @@ class ClusterBoard(WhiteBoard):
         deform = self.get_deform()
         deform.hspace = spacing
 
-        labels = np.asarray(group)
+        labels, cat_order = resolve_group(
+            group, self._source, "row", self._axis_map, self._board_shape()
+        )
+        if order is None:
+            order = cat_order
         reindex, order = reorder_index(labels, order=order)
         deform.set_data_row_reindex(reindex)
 
@@ -1340,9 +1386,11 @@ class ClusterBoard(WhiteBoard):
         Parameters
         ----------
         group : array-like
-            The group of each column
+            The group of each column. May be a data reference, e.g.
+            ``A.var["gene_group"]``.
         order : array-like, optional
-            The order of the unique groups
+            The order of the unique groups. If omitted and `group` is categorical,
+            its category order is used; otherwise the groups are sorted.
         spacing : float, optional
             The spacing between each split chunks, default is 0.01
 
@@ -1369,7 +1417,11 @@ class ClusterBoard(WhiteBoard):
         deform = self.get_deform()
         deform.wspace = spacing
 
-        labels = np.asarray(group)
+        labels, cat_order = resolve_group(
+            group, self._source, "col", self._axis_map, self._board_shape()
+        )
+        if order is None:
+            order = cat_order
         reindex, order = reorder_index(labels, order=order)
         deform.set_data_col_reindex(reindex)
 

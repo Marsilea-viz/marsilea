@@ -12,6 +12,7 @@ from matplotlib.patches import Rectangle, Polygon
 from matplotlib.transforms import IdentityTransform
 from typing import Mapping, Iterable
 
+from ._sources import accepts_source
 from .base import ClusterBoard
 from .layout import close_ticks
 from .plotter import RenderPlan
@@ -225,6 +226,7 @@ class LayersMesh(RenderPlan):
 
 
 class Layers(ClusterBoard):
+    @accepts_source
     def __init__(
         self,
         data=None,
