@@ -166,10 +166,15 @@ def reset_random_seed(gallery_conf, fname):
 
 
 intersphinx_mapping = {
+    "numpy": ("https://numpy.org/doc/stable", None),
+    "pandas": ("https://pandas.pydata.org/docs", None),
     "scipy": ("https://docs.scipy.org/doc/scipy/", None),
     "seaborn": ("https://seaborn.pydata.org/", None),
     "matplotlib": ("https://matplotlib.org/stable", None),
     "legendkit": ("https://legendkit.readthedocs.io/en/stable", None),
+    "anndata": ("https://anndata.readthedocs.io/en/stable", None),
+    # mudata serves its inventory without the /en/ segment.
+    "mudata": ("https://mudata.readthedocs.io/stable", None),
 }
 
 copybutton_prompt_text = r">>> |\.\.\. |\$ |In \[\d*\]: | {2,5}\.\.\.: | {5," r"8}: "

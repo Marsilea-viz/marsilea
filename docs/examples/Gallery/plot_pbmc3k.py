@@ -93,12 +93,12 @@ exported_figure = plt.gcf().number
 # %%
 # The same figure from an AnnData
 # -------------------------------
-# If your data already lives in an :class:`~anndata.AnnData`, you do not have to
+# If your data already lives in an :class:`~anndata.AnnData`, there is no need to
 # pull the arrays out by hand. Bind the object to the board once, then name the
-# pieces you want with :mod:`anndata.acc` references. Install with
-# ``pip install marsilea[anndata]``.
+# pieces you want with :mod:`anndata.acc` references. See
+# :doc:`/tutorial/anndata` for the full walkthrough.
 #
-# Wrap the frames above into an AnnData -- observations are cell types here and
+# The frames above become an AnnData whose observations are cell types and whose
 # variables are genes:
 
 import anndata as ad
@@ -121,11 +121,13 @@ adata.layers["expression"] = exp.to_numpy()
 adata.layers["high"] = matrix > 0.7
 
 # %%
-# Now every data argument can be a reference. ``A.obs[...]`` spans observations
-# and so belongs on the row sides, ``A.var[...]`` on the column sides -- put one
-# on the wrong side and the board says so instead of failing later at render.
-# ``group_rows`` also needs no ``order=``: ``lineage`` is categorical, so its
-# category order is used.
+# Every data argument can now be a reference. ``A.obs[...]`` spans observations,
+# so it belongs on the row sides, and ``A.var[...]`` belongs on the column sides.
+# Add one to the wrong side and the board says so, rather than failing later
+# during rendering.
+#
+# ``group_rows`` needs no ``order=`` here either. ``lineage`` is categorical, so
+# its category order is used.
 
 h = ma.Heatmap(
     adata,

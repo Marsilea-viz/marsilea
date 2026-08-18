@@ -114,6 +114,5 @@ Documentation Sections
    Gallery <examples/index>
    API <api/index>
    Installation <installation>
-   AnnData <anndata>
    How-To <how_to/index>
    AI Assistants <ai_assistants>
