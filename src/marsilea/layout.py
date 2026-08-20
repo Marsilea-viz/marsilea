@@ -394,7 +394,19 @@ class CrossLayout(_MarginMixin):
                 self._side_cells[side].remove(pad)
 
     def get_ax(self, name):
-        return self.cells[name].ax
+        cell = self.cells.get(name)
+        if cell is None:
+            # The main cell is keyed by an internal name nobody types; point at
+            # get_main_ax() rather than print a uuid.
+            named = [n for n, c in self.cells.items() if c is not self.main_cell]
+            has = ", ".join(repr(n) for n in named) if named else "none"
+            raise KeyError(
+                f"No axes named {name!r}. Named axes on this board: {has}. "
+                f"The main canvas is `get_main_ax()`."
+            )
+        if cell.ax is None:
+            raise KeyError(f"{name!r} has no axes yet, call `render()` first.")
+        return cell.ax
 
     def get_main_ax(self):
         return self.main_cell.ax

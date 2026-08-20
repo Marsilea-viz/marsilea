@@ -299,6 +299,8 @@ class RenderPlan:
     _plan_label: RenderPlanLabel = None
     _split_regroup: Sequence[float] = None
     _registered: bool = False
+    #: ``file:line`` of the ``add_*`` call, for render-time errors.
+    _added_at: str = None
 
     def __new__(cls, *args, **kwargs):
         """Defer construction when the data is an unresolved reference.
@@ -345,14 +347,24 @@ class RenderPlan:
         self.label = label
         self._plan_label = RenderPlanLabel(label, loc=loc, props=props)
 
+    def data_axis(self, side=None):
+        """Which board axis this plan's data indexes: 'row', 'col' or 'main'.
+
+        `side` overrides ``self.side``, so a board can ask the question before
+        it has committed to adding the plotter.
+        """
+        side = self.side if side is None else side
+        if side == "main":
+            return "main"
+        return "row" if side in ("left", "right") else "col"
+
     def get_deform_func(self):
         if self.has_deform:
-            if self.side == "main":
-                return self.deform.transform
-            elif self.is_flank:
-                return self.deform.transform_row
-            else:
-                return self.deform.transform_col
+            return {
+                "main": self.deform.transform,
+                "row": self.deform.transform_row,
+                "col": self.deform.transform_col,
+            }[self.data_axis()]
 
     def reindex_by_chunk(self, group_data):
         if group_data is not None:
@@ -476,16 +488,13 @@ class RenderPlan:
         return RenderSpec(ax=ax, data=spec_data, params=params)
 
     def get_render_spec(self, axes):
-        try:
-            if self.is_split:
-                return self._get_split_render_spec(axes)
-            else:
-                return self._get_intact_render_spec(axes)
-        except Exception as _:
-            raise DataError(
-                f"Please check your data input "
-                f"with {self.__class__.__name__} at '{self.side}'"
-            )
+        # Deformation raises precise messages here ("Data has 7 elements on the
+        # row axis, expected 10"). Catching them to say "check your data" threw
+        # away the only part worth reading; the board adds the plotter and its
+        # call site as notes instead.
+        if self.is_split:
+            return self._get_split_render_spec(axes)
+        return self._get_intact_render_spec(axes)
 
     @property
     def has_deform(self):
@@ -608,6 +617,11 @@ class StatsBase(RenderPlan):
             return "h" if self.is_flank else "v"
         return self.orient
 
+    def data_axis(self, side=None):
+        side = self.side if side is None else side
+        orient = self.orient or ("h" if side in ("left", "right") else "v")
+        return "col" if orient == "v" else "row"
+
     def get_deform_func(self):
         if self.has_deform:
             orient = self.get_orient()
@@ -624,10 +638,9 @@ class StatsBase(RenderPlan):
                     )
                     raise SplitConflict(msg)
 
-            if self.get_orient() == "v":
+            if self.data_axis() == "col":
                 return self.deform.transform_col
-            else:
-                return self.deform.transform_row
+            return self.deform.transform_row
 
     def _setup_axis(self, ax):
         if self.get_orient() == "h":
