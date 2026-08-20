@@ -7,6 +7,7 @@ can be caught at the ``add_*`` call are caught there, and everything else keeps
 its own error and gains a pointer back to where the plotter came from.
 """
 
+import re
 import sys
 
 import numpy as np
@@ -134,6 +135,24 @@ def test_render_error_keeps_its_type_and_message(data):
     # message was the plotter's repr, discarding the real one.
     with pytest.raises(ValueError, match="has 3 labels but the rows are in 2 groups"):
         _chunk_board(data).render()
+
+
+@pytest.mark.parametrize(
+    "side,grouper", [("right", "group_rows"), ("top", "group_cols")]
+)
+def test_chunk_names_the_grouping_method_that_exists(data, side, grouper):
+    # The message used to build the name out of the word "columns" and land on
+    # `group_columns`, sending the reader to a method that is not there.
+    h = ma.Heatmap(data)
+    if side == "right":
+        h.group_rows(["a"] * 5 + ["b"] * 5)
+    else:
+        h.group_cols(["a"] * 4 + ["b"] * 4)
+    h.add_plot(side, mp.Chunk(["a", "b", "c"]))
+    with pytest.raises(ValueError, match=f"`{grouper}`") as err:
+        h.render()
+    named = re.search(r"`(group_\w+)`", str(err.value)).group(1)
+    assert hasattr(ma.Heatmap, named), f"error points at {named}, which does not exist"
 
 
 def test_render_error_names_the_plotter_and_its_call_site(data):

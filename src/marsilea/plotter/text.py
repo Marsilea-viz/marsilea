@@ -1139,11 +1139,15 @@ class Chunk(_ChunkBase):
             axes = [axes]
 
         if len(axes) != self.n:
-            axis = "rows" if self.is_flank else "columns"
+            # Spell the method out. Deriving it from the word above produced
+            # `group_columns`, which does not exist.
+            axis, grouper = (
+                ("rows", "group_rows") if self.is_flank else ("columns", "group_cols")
+            )
             raise ValueError(
                 f"`{type(self).__name__}` on '{self.side}' has {self.n} labels "
                 f"but the {axis} are in {len(axes)} groups. Give one label per "
-                f"group, in the same order as `group_{axis[:-1]}s`."
+                f"group, in the same order as `{grouper}`."
             )
 
         texts = self.reindex_by_chunk(self.texts)
@@ -1274,11 +1278,15 @@ class FixedChunk(_ChunkBase):
             axes = [axes]
 
         if len(axes) != self.n:
-            axis = "rows" if self.is_flank else "columns"
+            # Spell the method out. Deriving it from the word above produced
+            # `group_columns`, which does not exist.
+            axis, grouper = (
+                ("rows", "group_rows") if self.is_flank else ("columns", "group_cols")
+            )
             raise ValueError(
                 f"`{type(self).__name__}` on '{self.side}' has {self.n} labels "
                 f"but the {axis} are in {len(axes)} groups. Give one label per "
-                f"group, in the same order as `group_{axis[:-1]}s`."
+                f"group, in the same order as `{grouper}`."
             )
 
         self._render(
