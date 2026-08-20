@@ -18,15 +18,34 @@ from matplotlib.colors import (
 
 from ._utils import _format_label
 from .base import RenderPlan
+from .._normalize import densify
 from ..layout import close_ticks
 from ..utils import relative_luminance, get_colormap, ECHARTS16, get_canvas_size_by_data
+
+
+def _categorical_order(data):
+    """Categories of a pandas categorical, restricted to the ones present.
+
+    Returns None for anything that is not categorical. Absent categories are
+    dropped so that subsetting the data does not leave dead legend entries, while
+    the surviving ones keep the order the categorical declared.
+    """
+    cats = getattr(data, "categories", None)
+    if cats is None:
+        cats = getattr(getattr(data, "cat", None), "categories", None)
+    if cats is None:
+        return None
+    present = set(np.asarray(data).tolist())
+    return np.asarray([c for c in cats if c in present])
 
 
 def _mask_data(data, mask=None):
     if isinstance(data, pd.DataFrame):
         data = data.to_numpy()
     else:
-        data = np.asarray(data)
+        # densify first: np.asarray on a sparse matrix silently yields a 0-d
+        # object array rather than raising.
+        data = np.asarray(densify(data))
     if mask is not None:
         data = np.ma.masked_where(np.asarray(mask), data)
     if data.ndim == 1:
@@ -44,6 +63,7 @@ class MeshBase(RenderPlan):
         self.cmap = "coolwarm" if cmap is None else cmap
         self.norm = norm
 
+        data = densify(data)
         self.vmin = np.nanmin(data) if vmin is None else vmin
         self.vmax = np.nanmax(data) if vmax is None else vmax
 
@@ -148,6 +168,9 @@ class ColorMesh(MeshBase):
         label_props=None,
         **kwargs,
     ):
+        # Densify once here: _mask_data and _process_cmap below would otherwise
+        # each make their own dense copy of the same sparse input.
+        data = densify(data)
         self.data = _mask_data(data, mask)
         self.alpha = alpha
         self.linewidth = linewidth
@@ -316,6 +339,11 @@ class Colors(MeshBase):
         legend_kws=None,
         **kwargs,
     ):
+        # A pandas categorical carries the order the user set with
+        # .cat.reorder_categories; np.unique below would replace it with a
+        # lexicographic one, so leiden clusters would colour 0, 1, 10, 2 while
+        # group_rows chunks them 0, 1, 2, 10 and the legend stops matching.
+        cat_order = _categorical_order(data)
         data = np.asarray(data)
         self.set_label(label, label_loc, label_props)
         self.linewidth = linewidth
@@ -334,14 +362,15 @@ class Colors(MeshBase):
                 self.palette = palette
             else:
                 palette = np.asarray(palette)
-                self.palette = dict(zip(np.unique(data), palette.flat))
+                keys = np.unique(data) if cat_order is None else cat_order
+                self.palette = dict(zip(keys, palette.flat))
 
             for i, (label, color) in enumerate(self.palette.items()):
                 encoder[label] = i
                 render_colors.append(color)
 
         else:
-            cats = np.unique(data)
+            cats = np.unique(data) if cat_order is None else cat_order
             if cmap is not None:
                 cmap = get_colormap(cmap)
                 colors = cmap(np.linspace(0, 1, len(cats)))
@@ -525,7 +554,9 @@ class SizedMesh(MeshBase):
         **kwargs,
     ):
         # normalize size
-        size = np.asarray(size)
+        # data_validator rather than np.asarray: render_ax unpacks `Y, X = shape`,
+        # so a 1D input has to be promoted to (1, n) first.
+        size = self.data_validator(size, target="2d")
         if size_norm is None:
             size_norm = Normalize()
             size_norm.autoscale(size)
@@ -780,7 +811,9 @@ class MarkerMesh(MeshBase):
         label_props=None,
         **kwargs,
     ):
-        self.set_data(np.asarray(data))
+        # data_validator rather than np.asarray: render_ax unpacks `Y, X = shape`,
+        # so a 1D input has to be promoted to (1, n) first.
+        self.set_data(self.data_validator(data, target="2d"))
         self.color = color
         self.marker = marker
         self.marker_size = size

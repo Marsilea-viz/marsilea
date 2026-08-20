@@ -187,3 +187,19 @@ Tutorial
             <div class="img-frame">
                 <img style="max-width: 240px; max-height: 240px;" src="../_images/stats_annotation-1.png"/>
             </div>
+
+    .. grid-item-card::
+        :shadow: none
+        :class-body: sd-card-center
+        :link: anndata.html
+
+        .. toctree::
+            :maxdepth: 1
+
+            anndata.rst
+
+        .. raw:: html
+
+            <div class="img-frame">
+                <img style="max-width: 240px; max-height: 240px;" src="../_images/anndata-2.png"/>
+            </div>

@@ -10,8 +10,10 @@ from matplotlib.axes import Axes
 from matplotlib.offsetbox import AnchoredText
 from seaborn import despine
 
+from .._normalize import densify, is_sparse
+from .._sources import check_not_accessor, has_ref
 from .._deform import Deformation
-from ..exceptions import DataError, SplitConflict
+from ..exceptions import DataError, DuplicatePlotter, SplitConflict
 
 
 # class DataValidator:
@@ -38,6 +40,8 @@ class DataLoader:
             return self.from_dataframe(data, target=target)
         elif isinstance(data, np.ndarray):
             return self.from_ndarray(data, target=target)
+        elif is_sparse(data):
+            return self.from_ndarray(densify(data), target=target)
         elif isinstance(data, Iterable):
             return self.from_iterable(data, target=target)
         else:
@@ -184,18 +188,74 @@ class RenderPlanLabel:
             label_ax.add_artist(title)
 
 
-class MetaRenderPlan(type):
-    """Metaclass for RenderPlan"""
+class _AlreadyBuilt:
+    """Stand-in so DuplicatePlotter can report a deferred plotter's real class."""
 
-    def __init__(cls, name, bases, attrs):
-        allow_labeling = attrs.get("allow_labeling", False)
-        if allow_labeling:
+    def __init__(self, cls, side):
+        self.__class__ = type(cls.__name__, (_AlreadyBuilt,), {})
+        self.side = side
 
-            def new_render(self, axes):
-                attrs["render"](self, axes)
-                self._plan_label.add(axes, self.side)
 
-            setattr(cls, "render", new_render)
+class _DeferredPlot:
+    """A plotter that cannot be built yet because its data is a reference.
+
+    ``mp.Colors(A.obs["cell_type"])`` names data in an AnnData the plotter has no
+    access to -- only the board it is added to knows which object to resolve
+    against, and which axis the plot is going on. So construction waits: the
+    board resolves the references and calls :meth:`build` from ``add_plot`` /
+    ``add_layer``.
+
+    Configuration calls made in the meantime are recorded and replayed onto the
+    real plotter, so this keeps working::
+
+        plot = mp.ColorMesh(A.X[:, :], cmap="Blues")
+        plot.set_legends(title="Expression")
+        h.add_layer(plot)
+
+    Like the plain path, these calls return `None` rather than `self`:
+    `RenderPlan.set_legends` and friends are not chainable, and returning `self`
+    here would invent a spelling that breaks the moment a reference is swapped
+    for an array.
+    """
+
+    def __init__(self, cls, args, kwargs):
+        self.cls = cls
+        self.args = args
+        self.kwargs = kwargs
+        self._calls = []
+        self._built = False
+        self._side = None
+
+    def __getattr__(self, name):
+        if name.startswith("_"):
+            raise AttributeError(name)
+        if not hasattr(self.cls, name):
+            # Catch the typo here rather than at add_*, where the traceback
+            # names a class the user never typed.
+            msg = f"{self.cls.__name__!r} object has no attribute {name!r}"
+            raise AttributeError(msg)
+
+        def record(*args, **kwargs):
+            self._calls.append((name, args, kwargs))
+
+        return record
+
+    def __repr__(self):
+        return f"<unresolved {self.cls.__name__}({self.args[0] if self.args else ''})>"
+
+    def build(self, resolver):
+        """Construct the real plotter, `resolver` applied to every data argument."""
+        if self._built:
+            # Match the plain path: a plotter instance may only be added once.
+            raise DuplicatePlotter(_AlreadyBuilt(self.cls, self._side))
+        plot = self.cls(
+            *(resolver(a) for a in self.args),
+            **{k: resolver(v) for k, v in self.kwargs.items()},
+        )
+        for name, args, kwargs in self._calls:
+            getattr(plot, name)(*args, **kwargs)
+        self._built = True
+        return plot
 
 
 class RenderPlan:
@@ -239,6 +299,24 @@ class RenderPlan:
     _plan_label: RenderPlanLabel = None
     _split_regroup: Sequence[float] = None
     _registered: bool = False
+
+    def __new__(cls, *args, **kwargs):
+        """Defer construction when the data is an unresolved reference.
+
+        Returning something that is not an instance of `cls` makes Python skip
+        ``__init__`` entirely, so no plotter has to know about references. The
+        board that receives the :class:`_DeferredPlot` builds it for real.
+
+        The trade-off: between this call and ``add_left``/``add_layer``,
+        ``isinstance(mp.Colors(ref), mp.Colors)`` is False. That window is
+        normally a single expression and nothing in marsilea inspects a plotter
+        inside it.
+        """
+        for value in (*args, *kwargs.values()):
+            check_not_accessor(value)
+        if any(has_ref(a) for a in args) or any(has_ref(v) for v in kwargs.values()):
+            return _DeferredPlot(cls, args, kwargs)
+        return super().__new__(cls)
 
     def __repr__(self):
         side_str = f"side='{self.side}'"

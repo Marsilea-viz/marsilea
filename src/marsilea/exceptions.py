@@ -63,5 +63,29 @@ class DataError(Exception):
     pass
 
 
+class MisalignedRef(Exception):
+    """A data reference was added to an axis it does not span."""
+
+    def __init__(self, ref, ref_axis, side, board_axis, obs_axis="row"):
+        self.ref = ref
+        self.ref_axis = ref_axis
+        self.side = side
+        self.board_axis = board_axis
+        self.obs_axis = obs_axis
+
+    def __str__(self):
+        # The fix is always the *other* obs_axis than the board currently has --
+        # deriving it from the ref's axis suggests the current value half the time.
+        flip = "col" if self.obs_axis == "row" else "row"
+        sides = (
+            "add_top/add_bottom" if self.board_axis == "col" else "add_left/add_right"
+        )
+        return (
+            f"`{self.ref}` spans the '{self.ref_axis}' axis, which this board maps "
+            f"to {self.board_axis}s, but it was added to '{self.side}'. "
+            f'Use {sides}, or build the board with obs_axis="{flip}".'
+        )
+
+
 class PerformanceWarning(UserWarning):
     pass
