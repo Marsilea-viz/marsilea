@@ -16,7 +16,7 @@ from matplotlib.text import Text
 from typing import List, Iterable
 
 from .base import RenderPlan
-from ..utils import pairwise, relative_luminance
+from ..utils import find_stack_level, pairwise, relative_luminance
 
 
 class Segment:
@@ -113,7 +113,10 @@ def adjust_segments(lim: Segment, segments: List[Segment]):
     segments_length = np.sum(sl)
     space = lim.length
     if segments_length > space:
-        warnings.warn("No enough space to place all labels, try reducing the fontsize.")
+        warnings.warn(
+            "No enough space to place all labels, try reducing the fontsize.",
+            stacklevel=find_stack_level(),
+        )
 
     segments_length_r = segments_length
     space_r = space

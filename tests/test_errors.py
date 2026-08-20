@@ -15,7 +15,8 @@ import pytest
 
 import marsilea as ma
 import marsilea.plotter as mp
-from marsilea.utils import caller_location, _notebook_location
+from marsilea._deform import Deformation
+from marsilea.utils import caller_location, find_stack_level, _notebook_location
 
 
 @pytest.fixture
@@ -303,6 +304,26 @@ def test_marimo_running_a_notebook_file_keeps_the_path(monkeypatch):
 def test_caller_location_reports_this_file_outside_a_notebook():
     location = caller_location()
     assert location.startswith(__file__)
+
+
+def test_find_stack_level_stops_as_soon_as_it_leaves_marsilea():
+    assert find_stack_level() == 1
+
+
+@pytest.mark.parametrize(
+    "call",
+    [
+        # Two frames deep: the decorator that took the keyword.
+        lambda: ma.Heatmap(np.zeros((3, 3)), obs_axis="col"),
+        # Three: a deprecated shim delegating to the one that warns.
+        lambda: Deformation(np.zeros((3, 3))).split_by_row(np.zeros((3, 3))),
+    ],
+)
+def test_a_warning_blames_the_line_that_asked_for_it(call):
+    """However deep marsilea goes to raise it, the warning is about this file."""
+    with pytest.warns((UserWarning, DeprecationWarning)) as caught:
+        call()
+    assert caught[0].filename == __file__
 
 
 def test_ipython_still_offers_the_api_the_cell_name_relies_on():

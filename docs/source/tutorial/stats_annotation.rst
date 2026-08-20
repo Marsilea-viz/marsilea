@@ -205,6 +205,38 @@ with a warning telling you what to pass.
     >>> h.render()
 
 
+Groups of unequal size
+----------------------
+
+Wide input has to be rectangular, and real groups rarely are. Pad the short
+ones with :code:`NaN`; pandas does it for you and keeps the column labels that
+name the pairs::
+
+    pd.DataFrame({"A": pd.Series(a), "B": pd.Series(b)})
+
+Padding is not data. It stays out of the plot and out of the test, so a group
+of 8 is tested as 8 values.
+
+If a group has nothing left to test, there is no p-value and no label. The
+bracket is still drawn, and a warning names the pair, because an empty label
+is easy to miss on a finished figure.
+
+.. plot::
+    :context: close-figs
+
+    >>> sizes = [30, 12, 30, 8, 30, 30]
+    >>> ragged = pd.DataFrame(
+    ...     {g: pd.Series(np.random.normal(4, 1, n)) for g, n in zip(genes, sizes)}
+    ... )
+    >>> box = mp.Box({"Control": ragged, "Treated": treated}, label="Expression")
+    >>> box.annotate_stats(pairs="hue", text_format="star")
+    >>> h = ma.Heatmap(treated.values - control.values, label="Difference")
+    >>> h.add_top(box, size=2, pad=0.1)
+    >>> h.add_bottom(mp.Labels(genes))
+    >>> h.add_legends()
+    >>> h.render()
+
+
 Orientation
 -----------
 

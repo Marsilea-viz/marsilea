@@ -18,7 +18,7 @@ from ._stats_annot import (
     undodged_pairs,
 )
 from .base import StatsBase
-from ..utils import ECHARTS16
+from ..utils import ECHARTS16, find_stack_level
 
 
 def _extract_names(data):
@@ -296,7 +296,7 @@ class _SeabornBase(StatsBase):
                 f"{len(overlaid)} pair(s) compare hue levels that are drawn at the "
                 f"same place; pass dodge=True to separate them: "
                 f"{sorted(overlaid, key=str)}",
-                stacklevel=4,
+                stacklevel=find_stack_level(),
             )
             overlaid = set(map(str, overlaid))
             brackets = [b for b in brackets if str(b.original) not in overlaid]
@@ -319,7 +319,7 @@ class _SeabornBase(StatsBase):
             warnings.warn(
                 f"{len(unknown)} pair(s) name a category that is not in the data "
                 f"and were skipped: {sorted(unknown, key=str)}",
-                stacklevel=4,
+                stacklevel=find_stack_level(),
             )
 
     def render(self, axes):
@@ -384,6 +384,13 @@ def _seaborn_doc(obj: _SeabornBase):
         You can only use wide-format for this plot, the number of columns
         of your input data should match your main data, this allow the data
         to be split and reorder if split and cluster is applied.
+
+        The number of rows is up to you. Rows are the observations, and
+        nothing is aligned to them, so groups of unequal size can be padded
+        with :code:`NaN` to keep the input rectangular. Padding stays out of
+        the plot and out of the tests::
+
+            pd.DataFrame({{'A': pd.Series(a), 'B': pd.Series(b)}})
         
     
     Parameters

@@ -170,3 +170,18 @@ def caller_location():
             return _notebook_location(filename, lineno) or f"{filename}:{lineno}"
         frame = frame.f_back
     return None
+
+
+def find_stack_level():
+    """The ``stacklevel`` that makes a warning point at the caller's own line.
+
+    Counting frames by hand only holds until something between the warning and
+    the user grows a layer, and then the warning quietly blames marsilea. Walk
+    out of the package instead and let the number follow the code.
+    """
+    frame = sys._getframe(1)  # the warnings.warn() call site
+    level = 1
+    while frame is not None and frame.f_code.co_filename.startswith(_PKG_DIR):
+        frame = frame.f_back
+        level += 1
+    return level

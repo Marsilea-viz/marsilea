@@ -9,6 +9,7 @@ from scipy.cluster.hierarchy import linkage as scipy_linkage, dendrogram
 from typing import List
 
 from .exceptions import PerformanceWarning
+from .utils import find_stack_level
 
 _FASTCLUSTER_THRESHOLD = 10_000  # total elements; matches seaborn
 
@@ -38,7 +39,7 @@ def _compute_linkage(data, method, metric):
                 "Install `fastcluster` for better performance: "
                 "pip install marsilea[fast]",
                 PerformanceWarning,
-                stacklevel=4,
+                stacklevel=find_stack_level(),
             )
         return scipy_linkage(data, method=method, metric=metric)
 
