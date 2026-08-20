@@ -399,6 +399,15 @@ def flatten(per_chunk, cross, hue_order):
 # --- statistics ------------------------------------------------------------
 
 
+def _untested(result):
+    """Whether the test could not run, whatever the formatter made of it.
+
+    ``PValueFormat`` reads ``result.pvalue`` in every one of its formats, so
+    that is the value a missing label has to be traced back to.
+    """
+    return np.isnan(result.pvalue)
+
+
 def annotation_texts(brackets, chunks, config):
     """Test every bracket and format the labels, all as one family.
 
@@ -443,9 +452,9 @@ def annotation_texts(brackets, chunks, config):
     texts = [formatter.format_data(result) for result in results]
 
     # An unlabelled bracket is the one failure a reader cannot see on the
-    # figure: too few observations to test formats the same as a p-value the
-    # caller passed as nan, and both look like a finished plot.
-    if blank := [b.original for b, t in zip(brackets, texts) if not t.strip()]:
+    # figure. Ask the result and not the label: `pvalue_thresholds` can map a
+    # real p-value to an empty string on purpose, which is not this.
+    if blank := [b.original for b, r in zip(brackets, results) if _untested(r)]:
         warnings.warn(
             f"{len(blank)} pair(s) produced no p-value and are drawn without a "
             f"label: {sorted(blank, key=str)}",

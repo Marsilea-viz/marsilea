@@ -7,6 +7,7 @@ can be caught at the ``add_*`` call are caught there, and everything else keeps
 its own error and gains a pointer back to where the plotter came from.
 """
 
+import os
 import re
 import sys
 
@@ -16,7 +17,13 @@ import pytest
 import marsilea as ma
 import marsilea.plotter as mp
 from marsilea._deform import Deformation
-from marsilea.utils import caller_location, find_stack_level, _notebook_location
+from marsilea.utils import (
+    _PKG_DIR,
+    _inside_marsilea,
+    _notebook_location,
+    caller_location,
+    find_stack_level,
+)
 
 
 @pytest.fixture
@@ -308,6 +315,12 @@ def test_caller_location_reports_this_file_outside_a_notebook():
 
 def test_find_stack_level_stops_as_soon_as_it_leaves_marsilea():
     assert find_stack_level() == 1
+
+
+def test_a_sibling_package_is_not_marsilea():
+    """`marsilea_extra/plug.py` shares the path without being inside it."""
+    assert _inside_marsilea(os.path.join(_PKG_DIR, "base.py"))
+    assert not _inside_marsilea(_PKG_DIR + "_extra" + os.sep + "plug.py")
 
 
 @pytest.mark.parametrize(

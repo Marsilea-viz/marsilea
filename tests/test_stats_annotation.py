@@ -496,6 +496,20 @@ def test_a_group_with_nothing_in_it_is_reported():
     assert len(_brackets(board)) == 2
 
 
+def test_a_label_left_blank_on_purpose_is_not_a_missing_p_value():
+    """`pvalue_thresholds` can map a real p-value to no label at all."""
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", UserWarning)
+        board, _, _ = _board(
+            "hue",
+            n_cat=2,
+            # Nothing to tell apart, so every p-value lands in the blank bucket.
+            transform=lambda data: {**data, "KO": data["WT"]},
+            pvalue_thresholds=[[1e-4, "****"], [1, ""]],
+        )
+    assert [label.get_text() for label in _labels(board)] == ["", ""]
+
+
 def test_ordinary_data_reports_nothing():
     with warnings.catch_warnings():
         warnings.simplefilter("error", UserWarning)
