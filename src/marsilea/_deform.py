@@ -5,7 +5,7 @@ from typing import Any, Mapping
 import numpy as np
 
 from .dendrogram import Dendrogram, GroupDendrogram
-from .utils import pairwise
+from .utils import find_stack_level, pairwise
 
 _ROW, _COL = 0, 1
 
@@ -428,7 +428,7 @@ class Deformation:
             f"Deformation.{name} is an internal helper and will be removed, "
             f"use {instead} instead",
             DeprecationWarning,
-            stacklevel=3,
+            stacklevel=find_stack_level(),
         )
 
     def split_by_row(self, data: np.ndarray):

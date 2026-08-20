@@ -51,6 +51,7 @@ import pandas as pd
 
 from ._normalize import check_length, to_array
 from .exceptions import MisalignedRef
+from .utils import find_stack_level
 
 #: Which board axis each container axis maps to. Keyed by *container* axis name.
 AXIS_MAP_DEFAULT = {"obs": "row", "var": "col"}
@@ -327,7 +328,7 @@ def accepts_source(init):
                 "obs_axis has no effect without a data source; pass one, e.g. "
                 '`ma.Heatmap(adata, A.X[:, :], obs_axis="col")`.',
                 UserWarning,
-                stacklevel=2,
+                stacklevel=find_stack_level(),
             )
         if source is not None:
             self._source = source

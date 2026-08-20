@@ -27,6 +27,8 @@ from matplotlib.lines import Line2D
 from matplotlib.patches import Patch
 from matplotlib.text import Text
 
+from ..utils import find_stack_level
+
 #: Every seaborn plotter marsilea wraps can be annotated.
 SUPPORTED_PLOTS = (
     "barplot",
@@ -245,7 +247,7 @@ def _all_pairs(names, hue_order, ref):
                 f"pairs='all' on {len(names)} categories draws {len(combos)} "
                 "brackets, which is rarely readable. Consider listing the pairs "
                 "you care about.",
-                stacklevel=4,
+                stacklevel=find_stack_level(),
             )
     else:
         ref_pos = lookup.get(ref)
@@ -397,6 +399,15 @@ def flatten(per_chunk, cross, hue_order):
 # --- statistics ------------------------------------------------------------
 
 
+def _untested(result):
+    """Whether the test could not run, whatever the formatter made of it.
+
+    ``PValueFormat`` reads ``result.pvalue`` in every one of its formats, so
+    that is the value a missing label has to be traced back to.
+    """
+    return np.isnan(result.pvalue)
+
+
 def annotation_texts(brackets, chunks, config):
     """Test every bracket and format the labels, all as one family.
 
@@ -414,7 +425,10 @@ def annotation_texts(brackets, chunks, config):
         keep = frame["var"] == end.position
         if end.hue is not None:
             keep &= frame["hue"] == end.hue
-        return frame.loc[keep, "value"].to_numpy()
+        # Wide input pads its short columns with NaN. Seaborn already draws a
+        # padded slot as absent; a test given one returns pval=nan, which
+        # formats as an empty label on a bracket that is drawn regardless.
+        return frame.loc[keep, "value"].dropna().to_numpy()
 
     if config.pvalues is None:
         test = StatTest.from_library(config.test)
@@ -435,7 +449,18 @@ def annotation_texts(brackets, chunks, config):
 
     formatter = PValueFormat()
     formatter.config(**{k: v for k, v in options.items() if k in formattable})
-    return [formatter.format_data(result) for result in results]
+    texts = [formatter.format_data(result) for result in results]
+
+    # An unlabelled bracket is the one failure a reader cannot see on the
+    # figure. Ask the result and not the label: `pvalue_thresholds` can map a
+    # real p-value to an empty string on purpose, which is not this.
+    if blank := [b.original for b, r in zip(brackets, results) if _untested(r)]:
+        warnings.warn(
+            f"{len(blank)} pair(s) produced no p-value and are drawn without a "
+            f"label: {sorted(blank, key=str)}",
+            stacklevel=find_stack_level(),
+        )
+    return texts
 
 
 # --- measuring what was actually drawn -------------------------------------
@@ -780,7 +805,7 @@ def annotate(fig, axes, chunks, brackets, config, layout, orient, plot):
             f"{max(tiers) + 1} rows of brackets do not fit above the plot; "
             "the labels will be tight. Give the plot more room, or compare "
             "fewer pairs.",
-            stacklevel=5,
+            stacklevel=find_stack_level(),
         )
 
     # Make room before drawing: the transforms below need the final limits.

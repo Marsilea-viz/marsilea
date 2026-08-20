@@ -20,7 +20,13 @@ from ._utils import _format_label
 from .base import RenderPlan
 from .._normalize import densify
 from ..layout import close_ticks
-from ..utils import relative_luminance, get_colormap, ECHARTS16, get_canvas_size_by_data
+from ..utils import (
+    ECHARTS16,
+    find_stack_level,
+    get_canvas_size_by_data,
+    get_colormap,
+    relative_luminance,
+)
 
 
 def _categorical_order(data):
@@ -266,7 +272,8 @@ def _enough_colors(n_colors, n_cats):
         warnings.warn(
             f"Current colormap has only {n_colors} colors "
             f"which is less that your input "
-            f"with {n_cats} elements"
+            f"with {n_cats} elements",
+            stacklevel=find_stack_level(),
         )
 
 

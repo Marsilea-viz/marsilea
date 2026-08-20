@@ -215,6 +215,7 @@ def _board(
     n_cat=6,
     cuts=None,
     plot_kws=None,
+    transform=None,
     **stats_kws,
 ):
     """A canvas with one annotated plot, optionally split into groups."""
@@ -224,6 +225,9 @@ def _board(
         k: pd.DataFrame(rng.normal(shift, 1, (30, n_cat)), columns=cols)
         for k, shift in [("WT", 0), ("KO", 2)]
     }
+    if transform is not None:
+        # Reshape after drawing, so every board sees the same random numbers.
+        data = transform(data)
     kws = dict(plot_kws or {})
     if Plot in NEEDS_DODGE:
         kws.setdefault("dodge", True)
@@ -448,6 +452,69 @@ def test_pairs_naming_an_unknown_category_warn():
     with pytest.warns(UserWarning, match="not in the data"):
         board, _, _ = _board([(("c0", "WT"), ("nope", "KO"))], n_cat=6, cuts=(3,))
     assert len(_brackets(board)) == 0
+
+
+def _blank(condition, column, keep):
+    """Keep the first *keep* observations of one group, NaN the rest.
+
+    Unequal group sizes reach a wide plotter this way: the short columns are
+    padded so the frame stays rectangular.
+    """
+
+    def transform(data):
+        frame = data[condition].copy()
+        frame.loc[keep:, column] = np.nan
+        return {**data, condition: frame}
+
+    return transform
+
+
+def _truncate(condition, keep):
+    """The same group sizes without the padding, as a reference."""
+
+    def transform(data):
+        return {**data, condition: data[condition].iloc[:keep]}
+
+    return transform
+
+
+def test_padding_is_not_an_observation():
+    """A NaN-padded slot must not reach the test, which would return nan."""
+    padded, _, _ = _board("hue", n_cat=2, transform=_blank("WT", "c0", 10))
+    short, _, _ = _board("hue", n_cat=2, transform=_truncate("WT", 10))
+    label = _labels(padded)[0].get_text()
+    assert label.strip()
+    assert label == _labels(short)[0].get_text()
+
+
+def test_a_group_with_nothing_in_it_is_reported():
+    """Blank labels are the one failure a reader cannot see on the figure."""
+    with pytest.warns(UserWarning, match="no p-value"):
+        board, _, _ = _board("hue", n_cat=2, transform=_blank("WT", "c0", 0))
+    assert not _labels(board)[0].get_text().strip()
+    # The bracket is still drawn; only its label is missing.
+    assert len(_brackets(board)) == 2
+
+
+def test_a_label_left_blank_on_purpose_is_not_a_missing_p_value():
+    """`pvalue_thresholds` can map a real p-value to no label at all."""
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", UserWarning)
+        board, _, _ = _board(
+            "hue",
+            n_cat=2,
+            # Nothing to tell apart, so every p-value lands in the blank bucket.
+            transform=lambda data: {**data, "KO": data["WT"]},
+            pvalue_thresholds=[[1e-4, "****"], [1, ""]],
+        )
+    assert [label.get_text() for label in _labels(board)] == ["", ""]
+
+
+def test_ordinary_data_reports_nothing():
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", UserWarning)
+        board, _, _ = _board("hue", n_cat=2)
+    assert all(label.get_text().strip() for label in _labels(board))
 
 
 # --- what seaborn actually drew ---

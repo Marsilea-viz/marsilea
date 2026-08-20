@@ -874,6 +874,7 @@ class ZeroWidth(WhiteBoard):
 
     """
 
+    @accepts_source
     def __init__(self, height, name=None, margin=0.2):
         super().__init__(
             width=0, height=height, name=name, margin=margin, init_main=False
@@ -888,6 +889,7 @@ class ZeroHeight(WhiteBoard):
 
     """
 
+    @accepts_source
     def __init__(self, width, name=None, margin=0.2):
         super().__init__(
             width=width, height=0, name=name, margin=margin, init_main=False
@@ -1683,6 +1685,7 @@ class ZeroWidthCluster(ClusterBoard):
 
     """
 
+    @accepts_source
     def __init__(self, cluster_data, height, name=None, margin=0.2):
         super().__init__(
             cluster_data=cluster_data,
@@ -1713,6 +1716,7 @@ class ZeroHeightCluster(ClusterBoard):
 
     """
 
+    @accepts_source
     def __init__(self, cluster_data, width, name=None, margin=0.2):
         super().__init__(
             cluster_data=cluster_data,

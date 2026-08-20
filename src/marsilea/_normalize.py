@@ -19,6 +19,7 @@ import warnings
 import numpy as np
 
 from .exceptions import PerformanceWarning
+from .utils import find_stack_level
 
 # Densifying above this many cells is worth warning about: a 30k x 20k matrix is
 # ~4.8 GB dense, and add_dendrogram then runs a scipy linkage over it.
@@ -49,7 +50,7 @@ def densify(arr):
             f"Converting a sparse {arr.shape} array to dense uses about "
             f"{size * 8 / 1e9:.1f} GB. Subset the data before plotting it.",
             PerformanceWarning,
-            stacklevel=4,
+            stacklevel=find_stack_level(),
         )
     return arr.toarray()
 

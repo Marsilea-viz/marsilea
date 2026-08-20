@@ -52,6 +52,35 @@ def test_board_binds_source_by_keyword(adata):
     assert h._cluster_data.shape == (N_OBS, N_VARS)
 
 
+@pytest.mark.parametrize(
+    "make",
+    [
+        lambda adata: ma.ZeroWidth(adata, 2),
+        lambda adata: ma.ZeroHeight(adata, 2),
+        lambda adata: ma.ZeroWidthCluster(adata, A.X[:, :], 2),
+        lambda adata: ma.ZeroHeightCluster(adata, A.X[:, :], 2),
+    ],
+    ids=["ZeroWidth", "ZeroHeight", "ZeroWidthCluster", "ZeroHeightCluster"],
+)
+def test_a_zero_board_binds_a_source_like_any_other(make, adata):
+    """Undecorated, these took the source as their size argument instead."""
+    assert make(adata)._source is adata
+
+
+def test_a_zero_cluster_board_takes_a_ref_as_its_cluster_data(adata):
+    board = ma.ZeroWidthCluster(A.X[:, :], height=2, source=adata)
+    assert board._cluster_data.shape == (N_OBS, N_VARS)
+
+
+def test_a_zero_board_resolves_refs_on_its_side_plots(adata):
+    board = ma.ZeroWidth(adata, 2)
+    board.add_left(mp.Numbers(A.obs["score"]), name="bars")
+    board.add_right(mp.Labels(A.obs.index), name="names")
+    board.render()
+    assert len(board.get_ax("bars").patches) == N_OBS
+    assert [t.get_text() for t in board.get_ax("names").texts] == list(adata.obs_names)
+
+
 def test_gene_panel_stacks_into_a_matrix(adata):
     h = ma.Heatmap(adata, A.X[:, ["A", "C"]])
     assert h._cluster_data.shape == (N_OBS, 2)

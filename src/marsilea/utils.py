@@ -128,6 +128,17 @@ def _check_side(side):
         raise ValueError(f"`side` must be one of {options}.")
 
 
+def _inside_marsilea(filename):
+    """Whether a frame's file is marsilea's own code.
+
+    Compared at the directory boundary rather than as a string prefix: a
+    sibling package such as ``marsilea_extra`` starts with the same path
+    without being any of ours, and treating it as ours would walk straight
+    past the caller.
+    """
+    return filename.startswith(_PKG_DIR + os.sep)
+
+
 def _notebook_location(filename, lineno):
     """``Cell In[3]:12`` or ``marimo cell Hbol:12``, or None for a real file.
 
@@ -165,8 +176,23 @@ def caller_location():
     frame = sys._getframe(1)
     while frame is not None:
         filename = frame.f_code.co_filename
-        if not filename.startswith(_PKG_DIR):
+        if not _inside_marsilea(filename):
             lineno = frame.f_lineno
             return _notebook_location(filename, lineno) or f"{filename}:{lineno}"
         frame = frame.f_back
     return None
+
+
+def find_stack_level():
+    """The ``stacklevel`` that makes a warning point at the caller's own line.
+
+    Counting frames by hand only holds until something between the warning and
+    the user grows a layer, and then the warning quietly blames marsilea. Walk
+    out of the package instead and let the number follow the code.
+    """
+    frame = sys._getframe(1)  # the warnings.warn() call site
+    level = 1
+    while frame is not None and _inside_marsilea(frame.f_code.co_filename):
+        frame = frame.f_back
+        level += 1
+    return level
