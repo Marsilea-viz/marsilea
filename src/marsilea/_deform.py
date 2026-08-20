@@ -192,7 +192,8 @@ class Deformation:
                 f"Cannot cut {unit}s at {outside}, there are only {n} {unit}s. "
                 f"Cuts go between 1 and {n - 1}."
             )
-        repeated = sorted({int(c) for c in cuts if list(cuts).count(c) > 1})
+        values, counts = np.unique(cuts, return_counts=True)
+        repeated = [int(v) for v in values[counts > 1]]
         if repeated:
             raise ValueError(
                 f"Cannot cut {unit}s at {repeated} twice, "
