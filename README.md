@@ -71,14 +71,17 @@ Conda
 conda install -c conda-forge marsilea
 ```
 
-## Use with Claude Code
+## Use with Agents
 
-Marsilea ships an official [Claude Code](https://claude.com/claude-code) skill:
+Marsilea ships an official agentic skill:
 
+Claude Code
 ```shell
 /plugin marketplace add Marsilea-viz/marsilea-skill
 /plugin install marsilea@marsilea-marketplace
 ```
+
+For other agents, simply ask the agent to install the skill for you.
 
 Once installed, the skill activates automatically whenever you ask Claude for a
 composable visualization. Marsilea itself still needs to be installed in your

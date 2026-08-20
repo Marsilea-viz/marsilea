@@ -1,17 +1,16 @@
 :html_theme.sidebar_secondary.remove:
 
 .. meta::
-   :description: Use Marsilea from AI coding assistants: install the official Claude Code
+   :description: Use Marsilea from AI coding assistants: install the official agentic
        skill, or point any assistant at the machine-readable llms.txt.
 
 Use Marsilea with AI assistants
 ===============================
 
-Marsilea ships two things for AI coding assistants: an official skill for
-`Claude Code <https://claude.com/claude-code>`_, and an ``llms.txt`` that any assistant
+Marsilea ships two things for AI coding assistants: an official skill and an ``llms.txt`` that any assistant
 can read.
 
-Claude Code skill
+Agentic skill
 -----------------
 
 Run these inside Claude Code:
@@ -21,8 +20,8 @@ Run these inside Claude Code:
    /plugin marketplace add Marsilea-viz/marsilea-skill
    /plugin install marsilea@marsilea-marketplace
 
-The skill then activates on its own whenever you ask for a composable visualization —
-a heatmap with annotations, an oncoprint, an UpSet plot — and writes Marsilea code
+The skill then activates on its own whenever you ask for a composable visualization,
+a heatmap with annotations, an oncoprint, an UpSet plot. It will then write Marsilea code
 against the current API instead of guessing.
 
 Marsilea itself still has to be installed in the Python environment the assistant runs
