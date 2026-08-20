@@ -110,3 +110,89 @@ def check_length(name, arr, shape, axis):
             f"built?"
         )
         raise ValueError(msg)
+
+
+def _plural(n, unit):
+    return f"{n} {unit}" if n == 1 else f"{n} {unit}s"
+
+
+def check_plot_data(plot, side, axis, shape):
+    """Reject plotter data that cannot align with the board it is added to.
+
+    Boards render lazily, so a length mismatch used to surface inside
+    :class:`~marsilea._deform.Deformation` with the caller's ``add_*`` line
+    nowhere in the traceback. This asks the same question at the ``add_*``
+    call instead.
+
+    It asks exactly what `Deformation` asks at render: the same axis, the same
+    ``shape[-1]`` rule, and the same set of plans that get a deformation at
+    all. So it can only reject what the render would reject anyway.
+
+    Parameters
+    ----------
+    plot : RenderPlan
+        The plotter being added, already built (never a deferred one).
+    side : str
+        Where it is going, ``"main"`` for a layer.
+    axis : {"row", "col", "main"}
+        Which board axis its data indexes, from :meth:`RenderPlan.data_axis`.
+    shape : tuple or None
+        ``(nrow, ncol)`` of the board, or None when it has no fixed grid.
+
+    """
+    if shape is None:
+        return
+    if side != "main" and not plot.allow_split:
+        # Never handed a deformation, so its data is drawn as given.
+        return
+    datasets = plot.get_data()
+    if datasets is None:
+        return
+
+    name = type(plot).__name__
+    for data in datasets:
+        if data is None:
+            continue
+        try:
+            arr = np.asarray(data)
+        except Exception:  # ragged or exotic input; the render will speak up
+            continue
+        if arr.ndim == 0:
+            continue
+        if axis == "main":
+            if arr.ndim == 2 and arr.shape != shape:
+                msg = f"`{name}` has shape {arr.shape}, but the board is {shape}."
+                if arr.shape == shape[::-1]:
+                    msg += " That looks transposed, try `data.T`."
+                raise ValueError(msg)
+            continue
+
+        expect, other = (shape[0], shape[1]) if axis == "row" else (shape[1], shape[0])
+        got = arr.shape[-1]
+        if got == expect:
+            continue
+        unit = "row" if axis == "row" else "column"
+        msg = (
+            f"`{name}` on {side!r} has {_plural(got, 'value')}, "
+            f"but there are {_plural(expect, unit)}."
+        )
+        orient = getattr(plot, "orient", None)
+        if orient is not None:
+            # A pinned orient fixes the axis whatever side the plot is on, so
+            # "try the other side" would be wrong advice here.
+            msg += f" orient={orient!r} reads values along {unit}s on any side."
+        elif got == other:
+            # A length that fits the other axis is almost always a plot that
+            # went on the wrong side.
+            other_unit = "column" if axis == "row" else "row"
+            sides = (
+                "`add_top` or `add_bottom`"
+                if axis == "row"
+                else ("`add_left` or `add_right`")
+            )
+            msg += f" There are {_plural(other, other_unit)}, so try {sides} instead."
+        else:
+            msg += (
+                " Left and right take one value per row, top and bottom one per column."
+            )
+        raise ValueError(msg)

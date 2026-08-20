@@ -1,8 +1,19 @@
+import os
+import re
+import sys
+
 import matplotlib as mpl
 import numpy as np
 from itertools import tee, islice
 from matplotlib import colors as mcolors
 from uuid import uuid4
+
+#: Everything under here is marsilea's own code, so it is never the caller.
+_PKG_DIR = os.path.dirname(os.path.abspath(__file__))
+
+#: marimo compiles a cell from a temp file with the cell id in its name. Same
+#: rule marimo reads it back with, kept here so nothing has to import marimo.
+_MARIMO_CELL = re.compile(r"^__marimo__cell_(.*?)_")
 
 ECHARTS16 = [
     "#5470c6",
@@ -115,3 +126,47 @@ def _check_side(side):
     options = ["top", "bottom", "left", "right"]
     if side not in options:
         raise ValueError(f"`side` must be one of {options}.")
+
+
+def _notebook_location(filename, lineno):
+    """``Cell In[3]:12`` or ``marimo cell Hbol:12``, or None for a real file.
+
+    A notebook compiles every cell from a throwaway path such as
+    ``/tmp/ipykernel_913/2179451630.py``, which tells the reader nothing about
+    where to go and look. Jupyter knows the execution count behind that path,
+    and marimo writes the cell id into the name, so both can do better.
+    """
+    # Probe sys.modules rather than import, the way marsilea._sources detects
+    # its data containers. No shell running means no cells can exist.
+    ipython = sys.modules.get("IPython")
+    if ipython is not None:
+        try:
+            label = ipython.get_ipython().compile.format_code_name(filename)
+        except Exception:
+            # Naming a frame is a nicety, never let it replace the real error.
+            label = None
+        if label is not None:
+            kind, name = label
+            return f"{kind} {name}:{lineno}"
+
+    cell = _MARIMO_CELL.match(os.path.basename(filename))
+    if cell is not None:
+        return f"marimo cell {cell.group(1)}:{lineno}"
+    return None
+
+
+def caller_location():
+    """Where the caller is, as ``file:line`` or ``Cell In[3]:12``, or None.
+
+    A board is built lazily, so a plotter that fails at render was added
+    somewhere the traceback never mentions. Recording the ``add_*`` call site
+    is what lets the render-time error point back at it.
+    """
+    frame = sys._getframe(1)
+    while frame is not None:
+        filename = frame.f_code.co_filename
+        if not filename.startswith(_PKG_DIR):
+            lineno = frame.f_lineno
+            return _notebook_location(filename, lineno) or f"{filename}:{lineno}"
+        frame = frame.f_back
+    return None

@@ -169,12 +169,35 @@ class Deformation:
         if breakpoints is None:
             return
         state = self._axes[axis]
+        cuts = np.sort(np.asarray(breakpoints))
+        self._check_cuts(axis, cuts, state.n)
         state.is_split = True
-        state.breakpoints = [0, *np.sort(np.asarray(breakpoints)), state.n]
+        state.breakpoints = [0, *cuts, state.n]
         if order is None:
             order = np.arange(len(breakpoints) + 1)
         state.split_order = order
         state.plan = None
+
+    @staticmethod
+    def _check_cuts(axis, cuts, n):
+        """Reject cut positions that cannot split the axis.
+
+        Out of range used to pass silently: the chunk it describes is empty, so
+        the plot simply came out wrong with nothing said about it.
+        """
+        unit = "row" if axis == _ROW else "column"
+        outside = [int(c) for c in cuts if c < 1 or c > n - 1]
+        if outside:
+            raise ValueError(
+                f"Cannot cut {unit}s at {outside}, there are only {n} {unit}s. "
+                f"Cuts go between 1 and {n - 1}."
+            )
+        repeated = sorted({int(c) for c in cuts if list(cuts).count(c) > 1})
+        if repeated:
+            raise ValueError(
+                f"Cannot cut {unit}s at {repeated} twice, "
+                f"that would leave an empty group."
+            )
 
     def set_split_row(self, breakpoints=None, order=None):
         self._set_split(_ROW, breakpoints, order)

@@ -13,7 +13,7 @@ from matplotlib.artist import Artist
 from matplotlib.colors import is_color_like
 from matplotlib.figure import Figure
 
-from ._normalize import densify
+from ._normalize import check_plot_data, densify
 from ._sources import accepts_source, resolve, resolve_group
 from ._deform import Deformation
 from .dendrogram import Dendrogram
@@ -23,7 +23,7 @@ from .plotter import RenderPlan, Title, SizedMesh
 from .plotter._seaborn import _SeabornBase
 from .plotter.base import _DeferredPlot
 from .plotter.mesh import MeshBase
-from .utils import pairwise, batched, get_plot_name, _check_side
+from .utils import pairwise, batched, caller_location, get_plot_name, _check_side
 
 
 # Attributes whose container must not be shared with the source board,
@@ -83,6 +83,23 @@ def _copy_board(board, layout=None):
             new.main_board = new._board_list[0]
 
     return new
+
+
+def _render_with_context(plan, axes):
+    """Render one plan, tagging any failure with where the plan came from.
+
+    A board is built lazily, so the only user frame in a render traceback is
+    ``render()`` itself. Notes keep the original exception intact, its type,
+    its message and its traceback, and add the two things it cannot know:
+    which plotter blew up, and the ``add_*`` line that put it there.
+    """
+    try:
+        plan.render(axes)
+    except Exception as e:
+        e.add_note(f"  while rendering {type(plan).__name__} on '{plan.side}'")
+        if plan._added_at is not None:
+            e.add_note(f"  added at {plan._added_at}")
+        raise
 
 
 def reorder_index(arr, order=None):
@@ -417,6 +434,10 @@ class WhiteBoard(LegendMaker):
         )
         if plot._registered:
             raise DuplicatePlotter(plot)
+        # Before the layout is touched: a rejected plot must not leave an
+        # orphan axes behind for the next render to trip over.
+        check_plot_data(plot, side, plot.data_axis(side), self._board_shape())
+        plot._added_at = caller_location()
         plot_name = get_plot_name(name, side, plot.__class__.__name__)
         self._legend_switch[plot_name] = legend
 
@@ -518,16 +539,13 @@ class WhiteBoard(LegendMaker):
         return self.add_plot("bottom", plot, name, size, pad, legend)
 
     def _render_plan(self):
-        try:
-            for plan in self._col_plan + self._row_plan:
-                axes = self.layout.get_ax(plan.name)
-                plan.render(axes)
+        for plan in self._col_plan + self._row_plan:
+            axes = self.layout.get_ax(plan.name)
+            _render_with_context(plan, axes)
 
-            main_ax = self.get_main_ax()
-            for plan in self._get_layers_zorder():
-                plan.render(main_ax)
-        except Exception as e:
-            raise Exception(f"An error occur during rendering of {plan}") from e
+        main_ax = self.get_main_ax()
+        for plan in self._get_layers_zorder():
+            _render_with_context(plan, main_ax)
 
     def add_layer(self, plot: RenderPlan, zorder=None, name=None, legend=True):
         """Add a plotter to the main canvas
@@ -560,6 +578,8 @@ class WhiteBoard(LegendMaker):
             msg = f"{plot_type} cannot be rendered as another layer."
             raise TypeError(msg)
         self._check_layer_conflict(plot)
+        check_plot_data(plot, "main", plot.data_axis("main"), self._board_shape())
+        plot._added_at = caller_location()
         if zorder is not None:
             plot.zorder = zorder
         plot.set(name=name)
@@ -1119,6 +1139,16 @@ class ClusterBoard(WhiteBoard):
         cluster_data = np.asarray(densify(cluster_data))
         if cluster_data.ndim != 2:
             raise ValueError("Cluster data must be 2D array")
+        if cluster_data.dtype.kind in "US":
+            # Text reaches numpy's reductions and dies as a ufunc loop error
+            # that names neither marsilea nor the data.
+            msg = (
+                f"{self.__class__.__name__} needs numbers, but this data is "
+                f"text (dtype {cluster_data.dtype}). Use `ma.CatHeatmap` for "
+                f"categories, or pass `cluster_data=` to cluster on something "
+                f"numeric."
+            )
+            raise ValueError(msg)
         self._cluster_data = cluster_data
         self._deform = Deformation(cluster_data)
 
@@ -1573,19 +1603,16 @@ class ClusterBoard(WhiteBoard):
 
     def _render_plan(self):
         deform = self.get_deform()
-        try:
-            for plan in self._col_plan + self._row_plan:
-                if plan.allow_split:
-                    plan.set_deform(deform)
-                axes = self.layout.get_ax(plan.name)
-                plan.render(axes)
-
-            main_ax = self.get_main_ax()
-            for plan in self._get_layers_zorder():
+        for plan in self._col_plan + self._row_plan:
+            if plan.allow_split:
                 plan.set_deform(deform)
-                plan.render(main_ax)
-        except Exception as e:
-            raise Exception(f"An error occurred during rendering of {plan}") from e
+            axes = self.layout.get_ax(plan.name)
+            _render_with_context(plan, axes)
+
+        main_ax = self.get_main_ax()
+        for plan in self._get_layers_zorder():
+            plan.set_deform(deform)
+            _render_with_context(plan, main_ax)
 
     def get_deform(self):
         """Return the deformation object of the cluster data"""
