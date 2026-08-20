@@ -75,7 +75,7 @@ conda install -c conda-forge marsilea
 
 Marsilea ships an official agentic skill:
 
-Claude code
+Claude Code
 ```shell
 /plugin marketplace add Marsilea-viz/marsilea-skill
 /plugin install marsilea@marsilea-marketplace
