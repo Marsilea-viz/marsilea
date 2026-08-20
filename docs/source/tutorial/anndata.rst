@@ -6,7 +6,7 @@ AnnData and MuData
 ==================
 
 Marsilea can read straight from an :class:`~anndata.AnnData`. You bind the object
-to a board once, then name the pieces you want with :mod:`anndata.acc`
+to a board once, then name the pieces to plot with :mod:`anndata.acc`
 references instead of pulling arrays out by hand:
 
 .. code-block:: bash
@@ -174,24 +174,6 @@ Everything above applies unchanged to a :class:`~mudata.MuData`, because
 Modalities share the ``obs`` axis, so plots drawn from different modalities line
 up on the rows without any reindexing on your part.
 
-Other containers
-----------------
-
-Marsilea accepts any container that follows the same accessor protocol: its
-references are :class:`anndata.acc.AdRef`, ``container[ref]`` materializes one,
-and ``ref.dims`` reports the axes it spans. AnnData and MuData both qualify, and
-another can be registered in one call:
-
-.. code-block:: python
-
-    from marsilea._sources import register_source
-
-    register_source("somepkg", "SomeContainer")
-
-The type is registered by name rather than imported, so this costs no import.
-Detection only fires once the container itself has been imported. A container
-that does not follow the protocol needs more than this, so please open an issue
-describing it.
 
 Working without references
 --------------------------
