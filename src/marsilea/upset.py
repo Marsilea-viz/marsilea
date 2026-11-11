@@ -219,6 +219,35 @@ class UpsetData:
         min_degree=None,
         max_degree=None,
     ):
+        """Flag subsets that satisfy membership and size limits
+
+        Every argument that is set has to match. A name in ``present``
+        must be part of the subset, and a name in ``absent`` must not.
+        Cardinality and degree bounds are inclusive. With no arguments,
+        every current subset is flagged. The mask follows the row order
+        of :meth:`sets_table`.
+
+        Parameters
+        ----------
+        present : str or sequence of str, optional
+            Set names that the subset must contain.
+        absent : str or sequence of str, optional
+            Set names that the subset must not contain.
+        min_cardinality : int, optional
+            Inclusive lower bound on cardinality.
+        max_cardinality : int, optional
+            Inclusive upper bound on cardinality.
+        min_degree : int, optional
+            Inclusive lower bound on degree.
+        max_degree : int, optional
+            Inclusive upper bound on degree.
+
+        Returns
+        -------
+        numpy.ndarray
+            1 where the subset matches and 0 otherwise.
+
+        """
         sets_table = self._sets_table
         marks = np.ones(len(sets_table), dtype=int)
 
@@ -244,6 +273,18 @@ class UpsetData:
         return marks
 
     def reset(self):
+        """Restore the sets table from the membership matrix
+
+        Subset filters and the subset ordering are discarded. Set order
+        stays as :meth:`sort_sets` left it, because that order lives on
+        the membership matrix.
+
+        Returns
+        -------
+        UpsetData
+            This object, so further calls can be chained.
+
+        """
         self._sets_table = _get_sets_table(self._binary_table)
         return self
 
@@ -390,9 +431,36 @@ class UpsetData:
         return self._binary_table.sum(axis=1)
 
     def binary_table(self):
+        """Return the stored item-by-set membership matrix
+
+        Each column is a set and each row is an item. An entry of 1
+        means the item is in that set. :meth:`sort_sets` reorders the
+        columns. :meth:`filter` does not touch this matrix.
+
+        Returns
+        -------
+        pandas.DataFrame
+            The membership matrix held by this object.
+
+        """
         return self._binary_table
 
     def sets_table(self) -> pd.DataFrame:
+        """Return the subset summary in its current order
+
+        One row per membership pattern that actually occurs. The index
+        has a level per set (1 if the set is in the pattern). The
+        ``cardinality`` column counts items with that exact pattern,
+        and ``degree`` counts how many sets the pattern includes.
+        :meth:`filter`, :meth:`sort_subsets`, and :meth:`sort_sets`
+        rewrite this table.
+
+        Returns
+        -------
+        pandas.DataFrame
+            Columns are ``cardinality`` and ``degree``.
+
+        """
         return self._sets_table
 
     def cardinality(self):
@@ -404,22 +472,75 @@ class UpsetData:
         return self._sets_table["degree"]
 
     def sets_size(self):
+        """Count the items that belong to each set
+
+        The count is the column sum of :meth:`binary_table`, so an item
+        in several sets is counted once for each of them. Subset filters
+        do not change the result. The index follows :attr:`sets_names`.
+
+        Returns
+        -------
+        pandas.Series
+            Item count for each set, in the current set order.
+
+        """
         return self._binary_table.sum()[self.sets_names]
 
     @property
     def sets_names(self):
+        """Set names in the current order
+
+        This is the level order of :meth:`sets_table`, which
+        :meth:`sort_sets` updates.
+
+        Returns
+        -------
+        list of str
+            Names in the current set order.
+
+        """
         return self._sets_table.index.names
 
     @property
     def items(self):
+        """Item labels in membership-matrix row order
+
+        Returns
+        -------
+        pandas.Index
+            Label of each item.
+
+        """
         return self._binary_table.index
 
     @property
     def sets_attrs(self):
+        """Attribute table for the sets, or None if it was not supplied
+
+        The index is the set names. Rows are reordered when
+        :meth:`sort_sets` changes the set order.
+
+        Returns
+        -------
+        pandas.DataFrame or None
+            One row per set, or None when no attributes were given.
+
+        """
         return self._sets_attrs
 
     @property
     def items_attrs(self):
+        """Attribute table for the items, or None if it was not supplied
+
+        The index is the item labels, in the order stored at
+        construction.
+
+        Returns
+        -------
+        pandas.DataFrame or None
+            One row per item, or None when no attributes were given.
+
+        """
         return self._items_attrs
 
     def get_items_attr(self, attr):
@@ -764,6 +885,36 @@ class Upset(WhiteBoard):
             raise ValueError(msg)
 
     def add_intersections(self, side, pad=0.1, size=1.0, **props):
+        """Bar-plot the cardinality of each subset
+
+        The series is :meth:`UpsetData.cardinality`, drawn with
+        :class:`~marsilea.plotter.Numbers`. A horizontal upset accepts
+        ``'top'`` and ``'bottom'``; a vertical upset accepts ``'left'``
+        and ``'right'``. Another side raises ``ValueError``.
+        :meth:`highlight_subsets` restyles the bars from the latest call.
+
+        Parameters
+        ----------
+        side : {'top', 'bottom', 'left', 'right'}
+            Which edge of the matrix the bars sit on.
+        pad : float, default: 0.1
+            Gap between the bars and the matrix, in inches.
+        size : float, default: 1.0
+            Thickness of the bar axes, in inches.
+        **props
+            Passed through to :class:`~marsilea.plotter.Numbers`.
+            ``color`` falls back to the color chosen for this upset.
+            Also recognized are ``width``, ``show_value``, ``fmt``,
+            ``label``, ``label_loc``, ``label_props``, ``value_pad``,
+            and ``props`` for the printed values. Further keywords go
+            to :meth:`matplotlib.axes.Axes.bar`.
+
+        Returns
+        -------
+        Upset
+            This plot, so further calls can be chained.
+
+        """
         self._add_intersections = True
         self._check_side(
             side, "Intersections", dict(h=["top", "bottom"], v=["left", "right"])
@@ -777,6 +928,33 @@ class Upset(WhiteBoard):
         return self
 
     def add_sets_size(self, side, pad=0.1, size=1.0, **props):
+        """Bar-plot how many items each set contains
+
+        The lengths are the set sizes fixed when this upset was built,
+        drawn with :class:`~marsilea.plotter.Numbers`. A horizontal
+        upset accepts ``'left'`` and ``'right'``; a vertical upset
+        accepts ``'top'`` and ``'bottom'``.
+
+        Parameters
+        ----------
+        side : {'top', 'bottom', 'left', 'right'}
+            Which edge of the matrix the bars sit on.
+        pad : float, default: 0.1
+            Gap between the bars and the matrix, in inches.
+        size : float, default: 1.0
+            Thickness of the bar axes, in inches.
+        **props
+            Passed through to :class:`~marsilea.plotter.Numbers`,
+            with the same keys as :meth:`add_intersections`.
+            ``color`` falls back to this upset's color; a sequence
+            colors one set per entry.
+
+        Returns
+        -------
+        Upset
+            This plot, so further calls can be chained.
+
+        """
         self._check_side(
             side, "Sets size", dict(h=["left", "right"], v=["top", "bottom"])
         )
@@ -788,6 +966,34 @@ class Upset(WhiteBoard):
         return self
 
     def add_sets_label(self, side, pad=0.1, size=None, **props):
+        """Write the set names beside the matrix
+
+        The text is :attr:`UpsetData.sets_names` in the current order,
+        drawn with :class:`~marsilea.plotter.Labels`. A horizontal
+        upset accepts ``'left'`` and ``'right'``; a vertical upset
+        accepts ``'top'`` and ``'bottom'``.
+
+        Parameters
+        ----------
+        side : {'top', 'bottom', 'left', 'right'}
+            Which edge of the matrix the names sit on.
+        pad : float, default: 0.1
+            Gap between the names and the matrix, in inches.
+        size : float, optional
+            Thickness of the label axes, in inches. When omitted the
+            layout uses 1 inch.
+        **props
+            Passed through to :class:`~marsilea.plotter.Labels`.
+            Recognized keys are ``align``, ``padding``, ``text_props``,
+            ``label``, ``label_loc``, and ``label_props``. Further
+            keywords go to :class:`matplotlib.text.Text`.
+
+        Returns
+        -------
+        Upset
+            This plot, so further calls can be chained.
+
+        """
         self._check_side(
             side, "Sets label", dict(h=["left", "right"], v=["top", "bottom"])
         )
@@ -796,15 +1002,63 @@ class Upset(WhiteBoard):
         return self
 
     def get_intersection_ax(self):
+        """Fetch the axes registered under the name ``"Intersections"``
+
+        Delegates to :meth:`~marsilea.base.WhiteBoard.get_ax`. Available
+        after :meth:`render`, and only when a plot was added under that
+        name; otherwise ``KeyError`` is raised.
+
+        Returns
+        -------
+        matplotlib.axes.Axes
+            The axes stored under ``"Intersections"``.
+
+        """
         return self.get_ax("Intersections")
 
     def get_sets_size_ax(self):
+        """Fetch the axes registered under the name ``"Sets size"``
+
+        Delegates to :meth:`~marsilea.base.WhiteBoard.get_ax`. Available
+        after :meth:`render`, and only when a plot was added under that
+        name; otherwise ``KeyError`` is raised.
+
+        Returns
+        -------
+        matplotlib.axes.Axes
+            The axes stored under ``"Sets size"``.
+
+        """
         return self.get_ax("Sets size")
 
     def get_sets_label_ax(self):
+        """Fetch the axes registered under the name ``"Sets label"``
+
+        Delegates to :meth:`~marsilea.base.WhiteBoard.get_ax`. Available
+        after :meth:`render`, and only when a plot was added under that
+        name; otherwise ``KeyError`` is raised.
+
+        Returns
+        -------
+        matplotlib.axes.Axes
+            The axes stored under ``"Sets label"``.
+
+        """
         return self.get_ax("Sets label")
 
     def get_data(self):
+        """Return the :class:`UpsetData` this plot actually draws
+
+        Construction copies the input and then applies the requested
+        degree, cardinality, and ordering limits. Later edits to the
+        original object are not visible here.
+
+        Returns
+        -------
+        UpsetData
+            The copied data, after filtering and ordering.
+
+        """
         return self.data
 
     @property
