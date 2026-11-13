@@ -197,6 +197,9 @@ class LayersMesh(RenderPlan):
         ax.set_axis_off()
         ax.set_xlim(0, X)
         ax.set_ylim(0, Y)
+        # Row 0 goes on top. Invert before drawing so pieces that are not
+        # symmetric top to bottom, like RightTri, can see the final direction.
+        ax.invert_yaxis()
         if self.mode == "layer":
             for layer, piece in zip(data, self.pieces):
                 for iy, row in enumerate(layer):
@@ -222,7 +225,6 @@ class LayersMesh(RenderPlan):
                         ax,
                     )
                     add_artists(ax, art)
-        ax.invert_yaxis()
 
 
 class Layers(ClusterBoard):
@@ -348,6 +350,12 @@ class RightTri(Piece):
         "upper left": [0, 1, 2],
         "upper right": [1, 2, 3],
     }
+    flipped = {
+        "lower left": "upper left",
+        "lower right": "upper right",
+        "upper left": "lower left",
+        "upper right": "lower right",
+    }
 
     def __init__(
         self, color="C0", right_angle="lower left", label=None, legend=True, zorder=0
@@ -367,7 +375,12 @@ class RightTri(Piece):
         p2 = (x + w, y + h)
         p3 = (x + w, y)
         points = np.array([p0, p1, p2, p3])
-        ps = points[self.point_order[self.pos]]
+        pos = self.pos
+        # On an inverted y-axis (as in LayersMesh) a larger y is lower on
+        # screen, so the corner has to be flipped to land where it was asked.
+        if ax is not None and ax.yaxis_inverted():
+            pos = self.flipped[pos]
+        ps = points[self.point_order[pos]]
         return Polygon(ps, fc=self.color)
 
 
