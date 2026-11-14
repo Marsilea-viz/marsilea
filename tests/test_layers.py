@@ -94,3 +94,40 @@ def test_layers_in_clusterboard_split():
     mesh = ma.layers.Layers(data=data, pieces=pieces)
     mesh.cut_rows([3])
     mesh.render()
+
+
+def _right_angle_corner(tri):
+    # The right-angle vertex is the one shared by the two legs, i.e. the one
+    # whose x matches one neighbour and whose y matches the other.
+    pts = tri.get_xy()[:3]
+    for i, (x, y) in enumerate(pts):
+        others = np.delete(pts, i, axis=0)
+        if np.isclose(others[:, 0], x).any() and np.isclose(others[:, 1], y).any():
+            return x, y
+    raise AssertionError("not a right triangle")
+
+
+def test_righttri_corner_follows_inverted_axis():
+    # LayersMesh inverts the y-axis, so "lower" must be the larger y there,
+    # matching what the legend (drawn on a normal axis) shows.
+    _, ax = plt.subplots()
+    ax.set_ylim(0, 1)
+    p = RightTri(right_angle="lower left")
+    assert _right_angle_corner(p.draw(0, 0, 1, 1, ax)) == (0, 0)
+    ax.invert_yaxis()
+    assert _right_angle_corner(p.draw(0, 0, 1, 1, ax)) == (0, 1)
+    p = RightTri(right_angle="upper right")
+    assert _right_angle_corner(p.draw(0, 0, 1, 1, ax)) == (1, 0)
+    plt.close("all")
+
+
+def test_righttri_in_layers_matches_legend():
+    p = RightTri(color="red", right_angle="lower left")
+    h = Layers(layers=[np.ones((1, 1), dtype=bool)], pieces=[p])
+    h.render()
+    ax = h.get_main_ax()
+    (tri,) = [a for a in ax.get_children() if a.__class__.__name__ == "Polygon"]
+    # y-axis is inverted, so the lower-left corner of the cell is (0, 1)
+    assert ax.yaxis_inverted()
+    assert _right_angle_corner(tri) == (0, 1)
+    plt.close("all")
