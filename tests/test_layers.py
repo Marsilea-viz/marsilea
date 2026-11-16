@@ -94,3 +94,11 @@ def test_layers_in_clusterboard_split():
     mesh = ma.layers.Layers(data=data, pieces=pieces)
     mesh.cut_rows([3])
     mesh.render()
+
+
+def test_marker_legend_matches_plot_size():
+    # draw() uses `size` as a PathCollection area (points**2), so the legend
+    # Line2D needs the matching diameter, not the raw area.
+    p = Marker("o", color="red", size=36)
+    handle = p.legend(0, 0, 1, 1)
+    assert handle.get_markersize() == 6

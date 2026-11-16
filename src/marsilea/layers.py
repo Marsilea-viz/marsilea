@@ -396,8 +396,15 @@ class Marker(Piece):
         return collection
 
     def legend(self, x, y, w, h):
+        # `size` is passed to PathCollection as an area in points**2, while
+        # Line2D's markersize is a diameter in points, so take the square root
+        # to make the legend marker the same size as the ones on the plot.
         return Line2D(
-            [0], [0], marker=self.marker, color=self.color, markersize=self.size
+            [0],
+            [0],
+            marker=self.marker,
+            color=self.color,
+            markersize=np.sqrt(self.size),
         )
 
 
