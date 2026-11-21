@@ -1,5 +1,6 @@
 """Smoke tests: each plotter renders without error."""
 
+import matplotlib.colors as mcolors
 import numpy as np
 import pandas as pd
 import pytest
@@ -106,6 +107,28 @@ def test_centerbar(data_2d, rng):
     h = ma.Heatmap(data_2d)
     h.add_top(mp.CenterBar(center_data, names=["A", "B"]))
     h.render()
+
+
+@pytest.mark.parametrize("side", ["top", "left"])
+def test_centerbar_colors_follow_series(side):
+    # Each series must keep its own color whatever the orientation. The
+    # horizontal layout used to swap the colors of the two series.
+    small = np.arange(1, 6)
+    large = small * 10
+    cb = mp.CenterBar(
+        np.column_stack([small, large]), names=["A", "B"], colors=["red", "blue"]
+    )
+    h = ma.Heatmap(np.random.default_rng(0).random((5, 5)))
+    getattr(h, f"add_{side}")(cb)
+    h.render()
+
+    ax = next(a for a in h.figure.axes if len(a.patches) == 10)
+    sizes = {}
+    for patch in ax.patches:
+        size = patch.get_height() if side == "top" else patch.get_width()
+        sizes.setdefault(mcolors.to_hex(patch.get_facecolor()), []).append(abs(size))
+    assert sorted(sizes[mcolors.to_hex("red")]) == sorted(small)
+    assert sorted(sizes[mcolors.to_hex("blue")]) == sorted(large)
 
 
 # --- Labels ---
