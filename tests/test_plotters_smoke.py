@@ -252,3 +252,18 @@ def test_seaborn_cat_axis_stays_aligned(rng, PlotClass, side, native_scale):
     assert abs(hi - lo) == pytest.approx(n_cat)
     # a horizontal plot runs top-to-bottom, like the rows of the main canvas
     assert (lo > hi) == is_horizontal
+
+
+def test_stackbar_plain_array(data_2d, rng):
+    # A 2D numpy array without item names used to fail with a TypeError while
+    # checking the number of colors against the (missing) item names.
+    stack_data = rng.random((3, 6))
+    h = ma.Heatmap(data_2d)
+    h.add_top(mp.StackBar(stack_data))
+    h.add_legends()
+    h.render()
+
+
+def test_stackbar_plain_array_too_few_colors(rng):
+    with pytest.raises(ValueError, match="number of colors"):
+        mp.StackBar(rng.random((3, 6)), colors=["red", "blue"])
