@@ -236,12 +236,17 @@ class CenterBar(_BarBase):
         orient = self.get_orient()
         bar = ax.bar
         line = ax.axhline
+        colors = self.colors
         options = {"bottom": 0, **self.options}
 
         if orient == "h":
             bar = ax.barh
             line = ax.axvline
+            # The first series is drawn on the left (negative) side so that it
+            # sits under the first name. Swap the colors with the data, so each
+            # series keeps its own color in both orientations.
             data = data[::-1]
+            colors = colors[::-1]
 
             del options["bottom"]
             options["left"] = 0
@@ -249,8 +254,8 @@ class CenterBar(_BarBase):
         left_bar, right_bar = data[0], data[1]
         locs = np.arange(0, len(left_bar)) + 0.5
 
-        bar1 = bar(locs, left_bar, self.width, color=self.colors[0], **self.options)
-        bar2 = bar(locs, -right_bar, self.width, color=self.colors[1], **self.options)
+        bar1 = bar(locs, left_bar, self.width, color=colors[0], **self.options)
+        bar2 = bar(locs, -right_bar, self.width, color=colors[1], **self.options)
         line(0, color="black", lw=1)
         if self.names is not None:
             n1, n2 = self.names
