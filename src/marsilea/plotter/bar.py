@@ -355,7 +355,6 @@ class StackBar(_BarBase):
         legend_kws=None,
         **kwargs,
     ):
-        # TODO: Support bare bone numpy array as input
         item_names = None
         if isinstance(data, pd.DataFrame):
             item_names = data.index
@@ -377,7 +376,9 @@ class StackBar(_BarBase):
             else:
                 bar_colors = colors
 
-        if len(bar_colors) < len(item_names):
+        # Each row of the data is one item, so count the rows rather than the
+        # item names, which are None for a plain array without ``items``.
+        if len(bar_colors) < data.shape[0]:
             msg = "The number of colors is less than the number of items."
             raise ValueError(msg)
 
